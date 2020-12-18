@@ -12,8 +12,6 @@ use actix_web::{
 };
 use thiserror::Error;
 
-// pub type Result<T> = result::Result<T, HandlerError>;
-
 pub type HandlerResult<T> = result::Result<T, HandlerError>;
 
 #[derive(Debug)]
@@ -22,12 +20,19 @@ pub struct HandlerError {
     backtrace: Backtrace,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Error)]
+#[derive(Debug, Error)]
 pub enum HandlerErrorKind {
     #[error("General error: {:?}", _0)]
-    GeneralError(String),
+    General(String),
+
     #[error("Internal error: {:?}", _0)]
-    InternalError(String),
+    Internal(String),
+
+    #[error("Reqwest error: {:?}", _0)]
+    Reqwest(#[from] reqwest::Error),
+
+    #[error("Validation error: {:?}", _0)]
+    Validation(String),
 }
 
 impl HandlerErrorKind {
@@ -35,17 +40,21 @@ impl HandlerErrorKind {
     pub fn http_status(&self) -> StatusCode {
         match self {
             // HandlerErrorKind::NotFound => Status::NotFound,
-            HandlerErrorKind::InternalError(_) | HandlerErrorKind::GeneralError(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            } // _ => StatusCode::UNAUTHORIZED,
+            HandlerErrorKind::Internal(_)
+            | HandlerErrorKind::General(_)
+            | HandlerErrorKind::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
+            // _ => StatusCode::UNAUTHORIZED,
         }
     }
 
     /// Return a unique errno code
     pub fn errno(&self) -> i32 {
         match self {
-            HandlerErrorKind::InternalError(_) => 510,
-            HandlerErrorKind::GeneralError(_) => 500,
+            HandlerErrorKind::General(_) => 500,
+            HandlerErrorKind::Internal(_) => 510,
+            HandlerErrorKind::Reqwest(_) => 520,
+            HandlerErrorKind::Validation(_) => 600,
         }
     }
 
@@ -59,16 +68,20 @@ impl HandlerErrorKind {
     */
 }
 
-impl ResponseError for HandlerErrorKind {
-    fn error_response(&self) -> HttpResponse {
-        let err = HandlerError::from(self.clone());
-        err.error_response()
+impl From<HandlerErrorKind> for actix_web::Error {
+    fn from(kind: HandlerErrorKind) -> Self {
+        let error: HandlerError = kind.into();
+        error.into()
     }
 }
 
 impl HandlerError {
     pub fn kind(&self) -> &HandlerErrorKind {
         &self.kind
+    }
+
+    pub fn internal(msg: &str) -> Self {
+        HandlerErrorKind::Internal(msg.to_owned()).into()
     }
 }
 
@@ -132,5 +145,9 @@ impl ResponseError for HandlerError {
         // So instead we translate our error to a backwards compatible one
         let mut resp = HttpResponse::build(self.status_code());
         resp.json(self.kind().errno() as i32)
+    }
+
+    fn status_code(&self) -> StatusCode {
+        self.kind().http_status()
     }
 }

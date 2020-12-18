@@ -10,3 +10,6 @@ pub const DOCKER_FLOW_ENDPOINTS: [&str; 4] = [
     "/__version__",
     "/__error__",
 ];
+
+#[cfg(test)]
+mod test;

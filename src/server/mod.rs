@@ -1,4 +1,5 @@
 //! Main application server
+use std::{collections::HashMap, sync::Arc};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -12,34 +13,23 @@ use crate::metrics;
 use crate::settings::Settings;
 use crate::web::{handlers, middleware};
 
-pub const BSO_ID_REGEX: &str = r"[ -~]{1,64}";
-pub const COLLECTION_ID_REGEX: &str = r"[a-zA-Z0-9._-]{1,32}";
-const MYSQL_UID_REGEX: &str = r"[0-9]{1,10}";
-const SYNC_VERSION_PATH: &str = "1.5";
-
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
+#[derive(Debug)]
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
     pub port: u16,
-}
-
-pub fn cfg_path(path: &str) -> String {
-    let path = path
-        .replace(
-            "{collection}",
-            &format!("{{collection:{}}}", COLLECTION_ID_REGEX),
-        )
-        .replace("{bso}", &format!("{{bso:{}}}", BSO_ID_REGEX));
-    format!("/{}/{{uid:{}}}{}", SYNC_VERSION_PATH, MYSQL_UID_REGEX, path)
+    pub adm_endpoint_url: String,
+    pub adm_country_ip_map: Arc<HashMap<String, String>>,
+    pub reqwest_client: reqwest::Client,
 }
 
 pub struct Server;
 
 #[macro_export]
 macro_rules! build_app {
-    ($state: expr, $limits: expr) => {
+    ($state: expr) => {
         App::new()
             .data($state)
             // Middleware is applied LIFO
@@ -53,6 +43,7 @@ macro_rules! build_app {
             // For now, let's be permissive and use NGINX (the wrapping server)
             // for finer grained specification.
             .wrap(Cors::permissive())
+            .service(web::resource("/v1/tiles").route(web::get().to(handlers::get_tiles)))
             // Dockerflow
             // Remember to update .::web::middleware::DOCKER_FLOW_ENDPOINTS
             // when applying changes to endpoint names.
@@ -83,15 +74,21 @@ impl Server {
         let metrics = metrics::metrics_from_opts(&settings)?;
         let host = settings.host.clone();
         let port = settings.port;
+        let adm_endpoint_url = settings.adm_endpoint_url.clone();
+        let adm_country_ip_map = Arc::new(settings.build_adm_country_ip_map());
+        let reqwest_client = reqwest::Client::new();
 
         let mut server = HttpServer::new(move || {
             // Setup the server state
             let state = ServerState {
                 metrics: Box::new(metrics.clone()),
                 port,
+                adm_endpoint_url: adm_endpoint_url.clone(),
+                reqwest_client: reqwest_client.clone(),
+                adm_country_ip_map: Arc::clone(&adm_country_ip_map),
             };
 
-            build_app!(state, limits)
+            build_app!(state)
         });
         if let Some(keep_alive) = settings.actix_keep_alive {
             server = server.keep_alive(keep_alive as usize);

@@ -1,19 +1,27 @@
 //! Application settings objects and initialization
 
+use std::collections::HashMap;
+
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
+static PREFIX: &str = "fx_tiles";
+
 static DEFAULT_PORT: u16 = 8000;
 
-/*
-static KILOBYTE: u32 = 1024;
-static MEGABYTE: u32 = KILOBYTE * KILOBYTE;
-static GIGABYTE: u32 = MEGABYTE * 1_000;
-*/
-
-static PREFIX: &str = "skeleton";
+static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
+{
+    "US": "174.245.240.112",
+    "UK": "86.164.248.137",
+    "DE": "87.182.235.159",
+    "FR": "31.39.255.255",
+    "IT": "5.62.79.255",
+    "JP": "27.98.191.255"
+}
+"#;
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub debug: bool,
     pub port: u16,
@@ -23,6 +31,8 @@ pub struct Settings {
     pub statsd_host: Option<String>,
     pub statsd_port: u16,
     pub actix_keep_alive: Option<u64>,
+    pub adm_endpoint_url: String,
+    pub adm_country_ip_map: String,
 }
 
 impl Default for Settings {
@@ -30,12 +40,14 @@ impl Default for Settings {
         Settings {
             debug: false,
             port: DEFAULT_PORT,
-            host: "127.0.0.1".to_string(),
+            host: "127.0.0.1".to_owned(),
             human_logs: false,
-            statsd_label: PREFIX.to_string(),
+            statsd_label: PREFIX.to_owned(),
             statsd_host: None,
             statsd_port: 8125,
             actix_keep_alive: None,
+            adm_endpoint_url: "".to_owned(),
+            adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
         }
     }
 }
@@ -44,11 +56,6 @@ impl Settings {
     /// Load the settings from the config file if supplied, then the environment.
     pub fn with_env_and_config_file(filename: &Option<String>) -> Result<Self, ConfigError> {
         let mut s = Config::default();
-        // Set our defaults, this can be fixed up drastically later after:
-        // https://github.com/mehcode/config-rs/issues/60
-        s.set_default("debug", false)?;
-        s.set_default("port", i64::from(DEFAULT_PORT))?;
-        s.set_default("host", "127.0.0.1")?;
 
         // Merge the config file if supplied
         if let Some(config_filename) = filename {
@@ -92,5 +99,27 @@ impl Settings {
     /// A simple banner for display of certain settings at startup
     pub fn banner(&self) -> String {
         format!("http://{}:{}", self.host, self.port)
+    }
+
+    pub fn build_adm_country_ip_map(&self) -> HashMap<String, String> {
+        let mut map: HashMap<String, String> =
+            serde_json::from_str(&self.adm_country_ip_map).expect("Invalid ADM_COUNTRY_IP_MAP");
+        map = map
+            .into_iter()
+            .map(|(key, val)| (key.to_uppercase(), val))
+            .collect();
+        if !map.contains_key("US") {
+            panic!("Invalid ADM_COUNTRY_IP_MAP");
+        }
+        map
+    }
+}
+
+#[cfg(test)]
+pub fn test_settings() -> Settings {
+    Settings {
+        debug: true,
+        ..Settings::with_env_and_config_file(&None)
+            .expect("Could not get Settings in get_test_settings")
     }
 }
