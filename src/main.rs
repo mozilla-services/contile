@@ -8,11 +8,11 @@ use logging::init_logging;
 use serde::Deserialize;
 
 const USAGE: &str = "
-Usage: adm-tiles [options]
+Usage: fx_tiles [options]
 
 Options:
     -h, --help               Show this message.
-    --config=CONFIGFILE      Syncstorage configuration file path.
+    --config=CONFIGFILE      Configuration file path.
 ";
 
 #[derive(Debug, Deserialize)]
@@ -20,7 +20,7 @@ struct Args {
     config: Option<String>,
 }
 
-use adm_tiles::{logging, server, settings};
+use fx_tiles::{logging, server, settings};
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {

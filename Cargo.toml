@@ -1,5 +1,5 @@
 [package]
-name = "adm-tiles"
+name = "fx_tiles"
 version = "0.1.0"
 authors = [
   "Philip Jenvey <pjenvey@underboss.org>",
