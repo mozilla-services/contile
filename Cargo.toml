@@ -1,0 +1,37 @@
+[package]
+name = "fx_tiles"
+version = "0.1.0"
+authors = [
+  "Philip Jenvey <pjenvey@underboss.org>",
+  "jrconlin <jr+git@mozilla.com>",
+  "Mozilla Services Engineering <services-engineering+code@mozilla.com>"
+]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-http = "2"
+actix-web = "3"
+actix-rt = "1"
+actix-cors = "0.5"
+backtrace = "0.3"
+cadence = "0.22"
+docopt = "1.1"
+config = "0.10"
+env_logger = "0.8"
+futures = "0.3"
+hostname = "0.3"
+lazy_static = "1.4"
+regex = "1.4"
+serde = "1.0"
+sentry = "0.20.1"
+serde_json = "1.0"
+slog = { version = "2.7", features = ["max_level_info", "release_max_level_info", "dynamic-keys"] }
+slog-async = "2.5"
+slog-envlogger = "2.2.0"
+slog-mozlog-json = "0.1"
+slog-scope = "4.3"
+slog-stdlog = "4.1"
+slog-term = "2.6"
+thiserror = "1.0"
