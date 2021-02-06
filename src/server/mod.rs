@@ -15,11 +15,10 @@ use crate::web::{handlers, middleware};
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
-    pub port: u16,
     pub adm_endpoint_url: String,
     pub adm_country_ip_map: Arc<HashMap<String, String>>,
     pub reqwest_client: reqwest::Client,
@@ -71,30 +70,19 @@ macro_rules! build_app {
 
 impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
-        let metrics = metrics::metrics_from_opts(&settings)?;
-        let host = settings.host.clone();
-        let port = settings.port;
-        let adm_endpoint_url = settings.adm_endpoint_url.clone();
-        let adm_country_ip_map = Arc::new(settings.build_adm_country_ip_map());
-        let reqwest_client = reqwest::Client::new();
+        let state = ServerState {
+            metrics: Box::new(metrics::metrics_from_opts(&settings)?),
+            adm_endpoint_url: settings.adm_endpoint_url.clone(),
+            adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
+            reqwest_client: reqwest::Client::new(),
+        };
 
-        let mut server = HttpServer::new(move || {
-            // Setup the server state
-            let state = ServerState {
-                metrics: Box::new(metrics.clone()),
-                port,
-                adm_endpoint_url: adm_endpoint_url.clone(),
-                reqwest_client: reqwest_client.clone(),
-                adm_country_ip_map: Arc::clone(&adm_country_ip_map),
-            };
-
-            build_app!(state)
-        });
+        let mut server = HttpServer::new(move || build_app!(state.clone()));
         if let Some(keep_alive) = settings.actix_keep_alive {
             server = server.keep_alive(keep_alive as usize);
         }
         let server = server
-            .bind(format!("{}:{}", host, port))
+            .bind((settings.host, settings.port))
             .expect("Could not get Server in Server::with_settings")
             .run();
         Ok(server)

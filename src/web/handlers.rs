@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
+use super::user_agent;
 use crate::{error::HandlerError, server::ServerState, web::extractors::TilesRequest};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -35,10 +36,10 @@ pub async fn get_tiles(
         state
             .adm_country_ip_map
             .get("US")
-            .ok_or_else(|| HandlerError::internal("Invalid ADM_COUNTRY_IP_MAP"))?
+            .expect("Invalid ADM_COUNTRY_IP_MAP setting")
     };
 
-    let ua = strip_ua(&treq.ua);
+    let stripped_ua = user_agent::strip_ua(&treq.ua);
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
     // validate this on startup)
@@ -46,7 +47,7 @@ pub async fn get_tiles(
         &state.adm_endpoint_url,
         &[
             ("ip", fake_ip.as_str()),
-            ("ua", &ua),
+            ("ua", &stripped_ua),
             ("sub2", &treq.placement),
             ("v", "1.0"),
         ],
@@ -55,28 +56,21 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     trace!("get_tiles GET {}", adm_url);
-    let mut tresponse: AdmTileResponse = state
+    let mut response: AdmTileResponse = state
         .reqwest_client
         .get(adm_url)
-        .header(reqwest::header::USER_AGENT, &ua)
+        .header(reqwest::header::USER_AGENT, &stripped_ua)
         .send()
         .await?
         .json()
         .await?;
-    tresponse.tiles = tresponse
+    response.tiles = response
         .tiles
         .into_iter()
         .filter_map(filter_and_process)
-        .collect::<Vec<_>>();
+        .collect();
 
-    Ok(HttpResponse::Ok().json(tresponse))
-}
-
-/// Strip a Firefox User-Agent string, returning a version only varying in Base
-/// OS (e.g. Mac, Windows, Linux) and Firefox major version number
-fn strip_ua(ua: &str) -> String {
-    // XXX:
-    ua.to_owned()
+    Ok(HttpResponse::Ok().json(response))
 }
 
 /// Filter and process tiles from ADM:
@@ -90,7 +84,6 @@ fn filter_and_process(mut tile: AdmTile) -> Option<AdmTile> {
     //}
 
     // TODO: move images to CDN
-    //tile.image_url = "https://fail.fail".to_owned();
     Some(tile)
 }
 
@@ -101,36 +94,6 @@ pub async fn heartbeat() -> Result<HttpResponse, Error> {
         "version".to_owned(),
         Value::String(env!("CARGO_PKG_VERSION").to_owned()),
     );
-
-    // Add optional values to checklist
-    // checklist.insert("quota".to_owned(), serde_json::to_value(hb.quota)?);
-
-    /*
-    // Perform whatever additional checks you prefer
-    match db.check().await {
-        Ok(result) => {
-            if result {
-                checklist.insert("database".to_owned(), Value::from("Ok"));
-            } else {
-                checklist.insert("database".to_owned(), Value::from("Err"));
-                checklist.insert(
-                    "database_msg".to_owned(),
-                    Value::from("check failed without error"),
-                );
-            };
-            let status = if result { "Ok" } else { "Err" };
-            checklist.insert("status".to_owned(), Value::from(status));
-
-        }
-        Err(e) => {
-            error!("Heartbeat error: {:?}", e);
-            checklist.insert("status".to_owned(), Value::from("Err"));
-            checklist.insert("database".to_owned(), Value::from("Unknown"));
-            return Ok(HttpResponse::ServiceUnavailable().json(checklist))
-        }
-    }
-    */
-
     Ok(HttpResponse::Ok().json(checklist))
 }
 

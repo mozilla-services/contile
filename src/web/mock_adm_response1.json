@@ -5,7 +5,7 @@
             "name": "Acme",
             "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000&aespFlag=altinst",
             "image_url": "https://cdn.example.com/601.jpg",
-            "advertiser_url": "https://www.acme.biz?foo=1&device=Computers&cmpgn=123601",
+            "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
             "impression_url": "https://example.net/static?id=0000"
         },
         {
