@@ -2,11 +2,18 @@
 //!
 //! Handles ensuring the header's, body, and query parameters are correct, extraction to
 //! relevant types, and failing correctly with the appropriate errors if issues arise.
-use actix_web::{dev::Payload, http::header, web, Error, FromRequest, HttpRequest};
+use actix_web::{
+    dev::Payload, http::header, http::header::HeaderValue, web, Error, FromRequest, HttpRequest,
+};
 use futures::future::{FutureExt, LocalBoxFuture};
+use lazy_static::lazy_static;
 use serde::Deserialize;
 
 use crate::error::HandlerErrorKind;
+
+lazy_static! {
+    static ref EMPTY_HEADER: HeaderValue = HeaderValue::from_static("");
+}
 
 const VALID_PLACEMENTS: &[&str] = &["urlbar", "newtab", "search"];
 
@@ -34,13 +41,9 @@ impl FromRequest for TilesRequest {
             let ua = req
                 .headers()
                 .get(header::USER_AGENT)
-                .ok_or_else(|| {
-                    HandlerErrorKind::Validation("Missing User-Agent Header".to_owned())
-                })?
+                .unwrap_or(&EMPTY_HEADER)
                 .to_str()
-                .map_err(|e| {
-                    HandlerErrorKind::Validation(format!("Invalid User-Agent Header: {}", e))
-                })?;
+                .unwrap_or_default();
 
             let params = web::Query::<TilesParams>::from_request(&req, &mut Payload::None).await?;
             let placement = params.placement.to_lowercase();

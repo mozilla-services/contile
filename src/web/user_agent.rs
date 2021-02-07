@@ -1,21 +1,26 @@
-use woothee::parser::Parser;
+use woothee::{
+    parser::{Parser, WootheeResult},
+    woothee::VALUE_UNKNOWN,
+};
 
 /// Strip a Firefox User-Agent string, returning a version only varying in Base
 /// OS (e.g. Mac, Windows, Linux) and Firefox major version number
 pub fn strip_ua(ua: &str) -> String {
-    let parser = Parser::new();
-    let wresult = parser.parse(ua).unwrap_or_default();
+    let WootheeResult {
+        name, os, version, ..
+    } = Parser::new().parse(ua).unwrap_or_default();
 
-    let platform = if wresult.os.starts_with("Windows") {
-        "Windows NT 10.0; Win64; x64"
-    } else {
-        match wresult.os {
-            "Mac OSX" => "Macintosh; Intel Mac OS X 10.15",
-            "Linux" => "X11; Ubuntu; Linux x86_64",
-            _ => "Other",
-        }
+    let platform = match os {
+        _ if os.starts_with("Windows") => "Windows NT 10.0; Win64; x64",
+        "Mac OSX" => "Macintosh; Intel Mac OS X 10.15",
+        "Linux" => "X11; Ubuntu; Linux x86_64",
+        _ => "Other",
     };
-    let major = wresult.version.split('.').take(1).collect::<Vec<_>>()[0];
+    let major = if name != "Firefox" || version == VALUE_UNKNOWN {
+        "?"
+    } else {
+        version.split('.').take(1).collect::<Vec<_>>()[0]
+    };
     format!(
         "Mozilla/5.0 ({}; rv:{major}.0) Gecko/20100101 Firefox/{major}.0",
         platform,
@@ -66,11 +71,20 @@ mod tests {
     }
 
     #[test]
-    fn other() {
+    fn other_os() {
         // don't even pass geckoversion (rv), only major
         assert_strip_eq!(
             "Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/85.0",
             "Mozilla/5.0 (Other; rv:85.0) Gecko/20100101 Firefox/85.0"
+        );
+        assert_strip_eq!("", "Mozilla/5.0 (Other; rv:?.0) Gecko/20100101 Firefox/?.0");
+    }
+
+    #[test]
+    fn other_ua() {
+        assert_strip_eq!(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:?.0) Gecko/20100101 Firefox/?.0"
         );
     }
 }
