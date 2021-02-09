@@ -159,7 +159,7 @@ where
                             return future::ok(sresp);
                         }
                         */
-                        report(&tags, sentry::integrations::failure::event_from_fail(herr));
+                        report(&tags, sentry::event_from_error(herr));
                     }
                 }
             }
