@@ -242,6 +242,7 @@ mod tests {
         result.insert("ua.name".to_owned(), "Firefox".to_owned());
         result.insert("ua.browser.family".to_owned(), "Firefox".to_owned());
         result.insert("uri.method".to_owned(), "GET".to_owned());
+        dbg!(&result);
 
         assert_eq!(tags.tags, result)
     }
