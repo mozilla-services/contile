@@ -1,9 +1,9 @@
 # Docker 17.05 or higher required for multi-stage builds
-FROM rust:1.48 as builder
+FROM rust:1.49 as builder
 ADD . /app
 WORKDIR /app
 # Change this to be your application's name
-ARG APPNAME=my_app
+ARG APPNAME=fx_tiles
 # Make sure that this matches in .travis.yml
 # ARG RUST_TOOLCHAIN=nightly
 RUN \
