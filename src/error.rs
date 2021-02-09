@@ -39,12 +39,8 @@ impl HandlerErrorKind {
     /// Return a response Status to be rendered for an error
     pub fn http_status(&self) -> StatusCode {
         match self {
-            // HandlerErrorKind::NotFound => Status::NotFound,
-            HandlerErrorKind::Internal(_)
-            | HandlerErrorKind::General(_)
-            | HandlerErrorKind::Reqwest(_) => StatusCode::INTERNAL_SERVER_ERROR,
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
-            // _ => StatusCode::UNAUTHORIZED,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 
