@@ -196,8 +196,8 @@ workflows:
             tags:
               only: /.*/
       - deploy:
-          requires:
-            - e2e-tests
+          #requires:
+          #  - e2e-tests
           filters:
             tags:
               only: /.*/
