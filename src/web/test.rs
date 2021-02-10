@@ -82,17 +82,13 @@ async fn basic() {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         ..get_test_settings()
     };
-    println!("trying app?");
     let mut app = init_app!(settings).await;
-    println!("started app?");
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles?country=UK&placement=newtab")
         .header(header::USER_AGENT, UA)
         .to_request();
-    dbg!("Trying request?");
     let resp = test::call_service(&mut app, req).await;
-    dbg!(&resp);
     assert_eq!(resp.status(), StatusCode::OK);
 
     let content_type = resp.headers().get(header::CONTENT_TYPE);
