@@ -17,7 +17,7 @@ Options:
 
 #[derive(Debug, Deserialize)]
 struct Args {
-    config: Option<String>,
+    flag_config: Option<String>,
 }
 
 use fx_tiles::{logging, server, settings};
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
-    let settings = settings::Settings::with_env_and_config_file(&args.config)?;
+    let settings = settings::Settings::with_env_and_config_file(&args.flag_config)?;
     init_logging(!settings.human_logs).expect("Logging failed to init");
     debug!("Starting up...");
     // Set SENTRY_DSN env var to enable Sentry.actix_cors

@@ -29,8 +29,7 @@ commands:
           name: Core Rust Checks
           command: |
             cargo fmt -- --check
-            # cargo audit --ignore RUSTSEC-2020-0041
-            cargo audit
+            cargo audit --ignore RUSTSEC-2020-0041
   rust-clippy:
     steps:
       - run:
@@ -122,7 +121,6 @@ jobs:
               fi
       - checkout
       - setup-rust
-      # - setup-python
       - write-version
       - cargo-build
       - run-tests
@@ -137,9 +135,6 @@ jobs:
           command: |
             mkdir -p /home/circleci/cache
             docker save -o /home/circleci/cache/docker.tar "fx-tiles:build"
-      - run:
-          name: Save docker-compose config
-          command: cp docker-compose*.yaml /home/circleci/cache
       - save_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}-{{ epoch }}
           paths:
@@ -198,7 +193,6 @@ workflows:
       - deploy:
           requires:
             - build-and-test
-            # - e2e-test
           filters:
             tags:
               only: /.*/
