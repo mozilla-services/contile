@@ -13,8 +13,8 @@ edition = "2018"
 [dependencies]
 actix-cors = "0.5"
 actix-http = "2"
-actix-web = "3"
 actix-rt = "1"  # 2+ breaks testing, May need actix-web 4+?
+actix-web = "3"
 backtrace = "0.3"
 cadence = "0.24"
 docopt = "1.1"
