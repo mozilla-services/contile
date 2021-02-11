@@ -1,5 +1,5 @@
 //! Main application server
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -8,10 +8,14 @@ use actix_web::{
 };
 use cadence::StatsdClient;
 
-use crate::error::HandlerError;
-use crate::metrics;
-use crate::settings::Settings;
-use crate::web::{handlers, middleware};
+use crate::{
+    error::HandlerError,
+    metrics::metrics_from_opts,
+    settings::Settings,
+    web::{handlers, middleware},
+};
+
+pub mod cache;
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
@@ -22,6 +26,7 @@ pub struct ServerState {
     pub adm_endpoint_url: String,
     pub adm_country_ip_map: Arc<HashMap<String, String>>,
     pub reqwest_client: reqwest::Client,
+    pub tiles_cache: cache::TilesCache,
 }
 
 pub struct Server;
@@ -71,11 +76,16 @@ macro_rules! build_app {
 impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
         let state = ServerState {
-            metrics: Box::new(metrics::metrics_from_opts(&settings)?),
+            metrics: Box::new(metrics_from_opts(&settings)?),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::new(),
+            tiles_cache: cache::TilesCache::new(75),
         };
+        cache::spawn_tile_cache_updater(
+            Duration::from_secs(settings.tiles_ttl as u64),
+            state.clone(),
+        );
 
         let mut server = HttpServer::new(move || build_app!(state.clone()));
         if let Some(keep_alive) = settings.actix_keep_alive {
