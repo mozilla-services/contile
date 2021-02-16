@@ -77,8 +77,7 @@ pub async fn get_tiles(
 ///
 /// - Returns None for tiles that shouldn't be shown to the client
 /// - Modifies tiles for output to the client (adding additional fields, etc.)
-#[allow(unused_mut)]
-#[allow(clippy::clippy::unnecessary_wraps)]
+#[allow(clippy::unnecessary_wraps, unused_mut)]
 fn filter_and_process(mut tile: AdmTile) -> Option<AdmTile> {
     //if !state.valid_tile(tile.name) {
     //    return None;
