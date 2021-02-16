@@ -12,7 +12,7 @@ services:
         environment:
             #MYSQL_RANDOM_ROOT_PASSWORD: yes
             MYSQL_ROOT_PASSWORD: random
-            MYSQL_DATABASE: fx_tiles
+            MYSQL_DATABASE: contile
             MYSQL_USER: test
             MYSQL_PASSWORD: test
 
@@ -23,7 +23,7 @@ services:
         depends_on:
           - db
         environment:
-          DATABASE_URL: mysql://test:test@db:3306/fx_tiles
+          DATABASE_URL: mysql://test:test@db:3306/contile
 
 volumes:
     db_data:

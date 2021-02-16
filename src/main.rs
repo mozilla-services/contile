@@ -8,7 +8,7 @@ use logging::init_logging;
 use serde::Deserialize;
 
 const USAGE: &str = "
-Usage: fx_tiles [options]
+Usage: contile [options]
 
 Options:
     -h, --help               Show this message.
@@ -20,7 +20,7 @@ struct Args {
     flag_config: Option<String>,
 }
 
-use fx_tiles::{logging, server, settings};
+use contile::{logging, server, settings};
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
