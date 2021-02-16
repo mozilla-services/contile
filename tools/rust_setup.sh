@@ -7,8 +7,8 @@ then
 fi
 # Fetch rustup if not installed.
 # curl https://sh.rustup.rs -sSf | sh
-rustup install nightly
-rustup update nightly
+#rustup install nightly
+#rustup update nightly
 # if you want clippy, the rust linter:
 #cargo +nightly install clippy
 # if you want to use rust-wasm, uncomment

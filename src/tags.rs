@@ -13,6 +13,46 @@ use serde::{
 };
 use serde_json::value::Value;
 use slog::{Key, Record, KV};
+use woothee::parser::{Parser, WootheeResult};
+
+// List of valid user-agent attributes to keep, anything not in this
+// list is considered 'Other'. We log the user-agent on connect always
+// to retain the full string, but for DD more tags are expensive so we
+// limit to these.
+const VALID_UA_BROWSER: &[&str] = &["Chrome", "Firefox", "Safari", "Opera"];
+
+// See dataset.rs in https://github.com/woothee/woothee-rust for the
+// full list (WootheeResult's 'os' field may fall back to its 'name'
+// field). Windows has many values and we only care that its Windows
+const VALID_UA_OS: &[&str] = &["Firefox OS", "Linux", "Mac OSX"];
+
+pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
+    let parser = Parser::new();
+    let wresult = parser.parse(&agent).unwrap_or_else(|| WootheeResult {
+        name: "",
+        category: "",
+        os: "",
+        os_version: "".into(),
+        browser_type: "",
+        version: "",
+        vendor: "",
+    });
+
+    // Determine a base os/browser for metrics' tags
+    let metrics_os = if wresult.os.starts_with("Windows") {
+        "Windows"
+    } else if VALID_UA_OS.contains(&wresult.os) {
+        wresult.os
+    } else {
+        "Other"
+    };
+    let metrics_browser = if VALID_UA_BROWSER.contains(&wresult.name) {
+        wresult.name
+    } else {
+        "Other"
+    };
+    (wresult, metrics_os, metrics_browser)
+}
 
 #[derive(Clone, Debug)]
 pub struct Tags {
@@ -44,6 +84,12 @@ impl Serialize for Tags {
     }
 }
 
+fn insert_if_not_empty(label: &str, val: &str, tags: &mut HashMap<String, String>) {
+    if !val.is_empty() {
+        tags.insert(label.to_owned(), val.to_owned());
+    }
+}
+
 // Tags are extra data to be recorded in metric and logging calls.
 // If additional tags are required or desired, you will need to add them to the
 // mutable extensions, e.g.
@@ -60,8 +106,7 @@ impl Tags {
         let mut tags = HashMap::new();
         let mut extra = HashMap::new();
         if let Some(ua) = req_head.headers().get(USER_AGENT) {
-            if let Ok(_uas) = ua.to_str() {
-                /*
+            if let Ok(uas) = ua.to_str() {
                 // if you wanted to parse out the user agent using some out-of-scope user agent parser like woothee
                 let (ua_result, metrics_os, metrics_browser) = parse_user_agent(uas);
                 insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
@@ -70,7 +115,6 @@ impl Tags {
                 insert_if_not_empty("ua.os.ver", &ua_result.os_version.to_owned(), &mut tags);
                 insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
                 extra.insert("ua".to_owned(), uas.to_string());
-                */
             }
         }
         tags.insert("uri.method".to_owned(), req_head.method.to_string());
