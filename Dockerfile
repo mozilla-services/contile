@@ -3,7 +3,7 @@ FROM rust:1.49 as builder
 ADD . /app
 WORKDIR /app
 # Change this to be your application's name
-ARG APPNAME=fx_tiles
+ARG APPNAME=contile
 # Make sure that this matches in .travis.yml
 # ARG RUST_TOOLCHAIN=nightly
 RUN \

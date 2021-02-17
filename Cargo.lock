@@ -521,6 +521,40 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28b9d6de7f49e22cf97ad17fc4036ece69300032f45f78f30b4a4482cdc3f4a6"
 
 [[package]]
+name = "contile"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-http",
+ "actix-rt",
+ "actix-web",
+ "backtrace",
+ "cadence",
+ "config",
+ "docopt",
+ "env_logger",
+ "futures",
+ "hostname",
+ "lazy_static",
+ "log",
+ "regex",
+ "reqwest 0.10.10",
+ "sentry",
+ "serde 1.0.123",
+ "serde_json",
+ "slog",
+ "slog-async",
+ "slog-envlogger",
+ "slog-mozlog-json",
+ "slog-scope",
+ "slog-stdlog",
+ "slog-term",
+ "thiserror",
+ "url",
+ "woothee",
+]
+
+[[package]]
 name = "cookie"
 version = "0.14.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -859,40 +893,6 @@ dependencies = [
  "proc-macro-hack",
  "proc-macro-nested",
  "slab",
-]
-
-[[package]]
-name = "fx_tiles"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-http",
- "actix-rt",
- "actix-web",
- "backtrace",
- "cadence",
- "config",
- "docopt",
- "env_logger",
- "futures",
- "hostname",
- "lazy_static",
- "log",
- "regex",
- "reqwest 0.10.10",
- "sentry",
- "serde 1.0.123",
- "serde_json",
- "slog",
- "slog-async",
- "slog-envlogger",
- "slog-mozlog-json",
- "slog-scope",
- "slog-stdlog",
- "slog-term",
- "thiserror",
- "url",
- "woothee",
 ]
 
 [[package]]
@@ -2639,11 +2639,11 @@ dependencies = [
 
 [[package]]
 name = "tracing-futures"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab7bb6f14721aa00656086e9335d363c5c8747bae02ebe32ea2c7dece5689b4c"
+checksum = "97d095ae15e245a057c8e8451bab9b3ee1e1f68e9ba2b4fbc18d0ac5237835f2"
 dependencies = [
- "pin-project 0.4.27",
+ "pin-project 1.0.5",
  "tracing",
 ]
 

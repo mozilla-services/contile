@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
-static PREFIX: &str = "fx_tiles";
+static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
 
