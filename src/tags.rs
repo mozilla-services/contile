@@ -134,6 +134,18 @@ impl Tags {
         }
     }
 
+    pub fn add_extra(&mut self, key: &str, value: &str) {
+        if !value.is_empty() {
+            self.extra.insert(key.to_owned(), value.to_owned());
+        }
+    }
+
+    pub fn add_tag(&mut self, key: &str, value: &str) {
+        if !value.is_empty() {
+            self.tags.insert(key.to_owned(), value.to_owned());
+        }
+    }
+
     pub fn get(&self, label: &str) -> String {
         let none = "None".to_owned();
         self.tags.get(label).map(String::from).unwrap_or(none)

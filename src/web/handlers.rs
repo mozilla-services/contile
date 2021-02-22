@@ -1,12 +1,13 @@
 //! API Handlers
 use std::collections::HashMap;
 
-use actix_web::{web, Error, HttpResponse};
+use actix_web::{web, Error, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
 use super::user_agent;
+use crate::tags::Tags;
 use crate::{error::HandlerError, server::ServerState, web::extractors::TilesRequest};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -27,6 +28,7 @@ struct AdmTile {
 pub async fn get_tiles(
     treq: TilesRequest,
     state: web::Data<ServerState>,
+    request: HttpRequest,
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
 
@@ -54,6 +56,17 @@ pub async fn get_tiles(
     )
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
     let adm_url = adm_url.as_str();
+
+    {
+        // for demonstration purposes
+        let mut exts = request.extensions_mut();
+        let mut tags = exts.get::<Tags>().unwrap_or(&Tags::default()).clone();
+        tags.add_extra("ip", fake_ip.as_str());
+        tags.add_extra("ua", &stripped_ua);
+        tags.add_extra("sub2", &treq.placement);
+        // any additional insertions...
+        exts.insert(tags);
+    }
 
     trace!("get_tiles GET {}", adm_url);
     let mut response: AdmTileResponse = state
