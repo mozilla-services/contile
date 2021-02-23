@@ -2,28 +2,17 @@
 use std::collections::HashMap;
 
 use actix_web::{web, Error, HttpRequest, HttpResponse};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::user_agent;
-use crate::tags::Tags;
-use crate::{error::HandlerError, server::ServerState, web::extractors::TilesRequest};
-
-#[derive(Debug, Deserialize, Serialize)]
-struct AdmTileResponse {
-    tiles: Vec<AdmTile>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct AdmTile {
-    id: u64,
-    name: String,
-    advertiser_url: String,
-    click_url: String,
-    image_url: String,
-    impression_url: String,
-}
-use crate::{adm, metrics::Metrics, server::cache};
+use crate::{
+    adm,
+    error::HandlerError,
+    metrics::Metrics,
+    server::{cache, ServerState},
+    tags::Tags,
+    web::extractors::TilesRequest,
+};
 
 pub async fn get_tiles(
     treq: TilesRequest,
