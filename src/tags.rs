@@ -131,6 +131,8 @@ impl From<HttpRequest> for Tags {
 /// If additional tags are required or desired, you will need to add them to the
 /// mutable extensions, e.g.
 /// ```compile_fail
+///      use contile::tags::Tags;
+///
 ///      let mut tags = Tags::default();
 ///      tags.add_tag("SomeLabel", "whatever");
 ///      tags.commit(&mut request.extensions_mut());

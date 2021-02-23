@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use url::Url;
 
 use super::user_agent;
 use crate::tags::Tags;
@@ -24,9 +23,15 @@ struct AdmTile {
     image_url: String,
     impression_url: String,
 }
+use crate::{
+    adm,
+    metrics::Metrics,
+    server::cache,
+};
 
 pub async fn get_tiles(
     treq: TilesRequest,
+    metrics: Metrics,
     state: web::Data<ServerState>,
     request: HttpRequest,
 ) -> Result<HttpResponse, HandlerError> {
@@ -40,22 +45,7 @@ pub async fn get_tiles(
             .get("US")
             .expect("Invalid ADM_COUNTRY_IP_MAP setting")
     };
-
     let stripped_ua = user_agent::strip_ua(&treq.ua);
-    // XXX: Assumes adm_endpoint_url includes
-    // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
-    // validate this on startup)
-    let adm_url = Url::parse_with_params(
-        &state.adm_endpoint_url,
-        &[
-            ("ip", fake_ip.as_str()),
-            ("ua", &stripped_ua),
-            ("sub2", &treq.placement),
-            ("v", "1.0"),
-        ],
-    )
-    .map_err(|e| HandlerError::internal(&e.to_string()))?;
-    let adm_url = adm_url.as_str();
 
     {
         // for demonstration purposes
@@ -67,36 +57,42 @@ pub async fn get_tiles(
         tags.commit(&mut request.extensions_mut());
     }
 
-    trace!("get_tiles GET {}", adm_url);
-    let mut response: AdmTileResponse = state
-        .reqwest_client
-        .get(adm_url)
-        .header(reqwest::header::USER_AGENT, &stripped_ua)
-        .send()
-        .await?
-        .json()
-        .await?;
-    response.tiles = response
-        .tiles
-        .into_iter()
-        .filter_map(filter_and_process)
-        .collect();
+    let audience_key = cache::AudienceKey {
+        country: treq.country,
+        fake_ip: fake_ip.clone(),
+        platform: stripped_ua.clone(),
+        placement: treq.placement.clone(),
+    };
+    if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
+        trace!("get_tiles: cache hit: {:?}", audience_key);
+        metrics.incr("tiles_cache.hit");
+        return Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(&tiles.json));
+    }
 
-    Ok(HttpResponse::Ok().json(response))
-}
+    let response = adm::get_tiles(
+        &state.reqwest_client,
+        &state.adm_endpoint_url,
+        fake_ip,
+        &stripped_ua,
+        &treq.placement,
+    )
+    .await?;
+    let tiles = serde_json::to_string(&response)
+        .map_err(|e| HandlerError::internal(&format!("Response failed to serialize: {}", e)))?;
+    trace!("get_tiles: cache miss: {:?}", audience_key);
+    metrics.incr("tiles_cache.miss");
+    state.tiles_cache.write().await.insert(
+        audience_key,
+        cache::Tiles {
+            json: tiles.clone(),
+        },
+    );
 
-/// Filter and process tiles from ADM:
-///
-/// - Returns None for tiles that shouldn't be shown to the client
-/// - Modifies tiles for output to the client (adding additional fields, etc.)
-#[allow(clippy::unnecessary_wraps, unused_mut)]
-fn filter_and_process(mut tile: AdmTile) -> Option<AdmTile> {
-    //if !state.valid_tile(tile.name) {
-    //    return None;
-    //}
-
-    // TODO: move images to CDN
-    Some(tile)
+    Ok(HttpResponse::Ok()
+        .content_type("application/json")
+        .body(tiles))
 }
 
 /// Returns a status message indicating the state of the current server

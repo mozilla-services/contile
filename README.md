@@ -1,4 +1,4 @@
-# FX-Tiles
+# contile
 
 Service to pass tiles from partners along to Firefox for display. Supports the TopSites feature within Firefox.
 

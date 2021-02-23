@@ -550,6 +550,7 @@ dependencies = [
  "slog-stdlog",
  "slog-term",
  "thiserror",
+ "tokio 0.2.25",
  "url",
  "woothee",
 ]

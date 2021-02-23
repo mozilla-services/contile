@@ -109,15 +109,11 @@ where
             // are NOT automatically passed to responses. You need to check both.
             if let Some(t) = sresp.request().extensions().get::<Tags>() {
                 trace!("Sentry: found tags in request: {:?}", &t.tags);
-                for (k, v) in t.tags.clone() {
-                    tags.tags.insert(k, v);
-                }
+                tags.extend(t.clone());
             };
             if let Some(t) = sresp.response().extensions().get::<Tags>() {
                 trace!("Sentry: found tags in response: {:?}", &t.tags);
-                for (k, v) in t.tags.clone() {
-                    tags.tags.insert(k, v);
-                }
+                tags.extend(t.clone());
             };
             match sresp.response().error() {
                 None => {

@@ -11,7 +11,7 @@ use crate::{
     build_app,
     error::HandlerError,
     metrics::Metrics,
-    server::ServerState,
+    server::{cache, ServerState},
     settings::{test_settings, Settings},
     web::{handlers, middleware},
 };
@@ -44,6 +44,7 @@ macro_rules! init_app {
                 adm_endpoint_url: $settings.adm_endpoint_url.clone(),
                 adm_country_ip_map: Arc::new($settings.build_adm_country_ip_map()),
                 reqwest_client: reqwest::Client::new(),
+                tiles_cache: cache::TilesCache::new(10),
             };
             test::init_service(build_app!(state)).await
         }
@@ -52,7 +53,7 @@ macro_rules! init_app {
 
 /// Bind a mock of the AdM Tiles API to a random port on localhost
 fn init_mock_adm() -> (dev::Server, SocketAddr) {
-    let server = HttpServer::new(move || {
+    let server = HttpServer::new(|| {
         App::new().route(
             "/",
             web::get().to(|req: HttpRequest| {
