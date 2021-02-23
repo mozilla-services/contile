@@ -117,7 +117,6 @@ impl From<&RequestHead> for Tags {
         Tags {
             tags,
             extra,
-            ..Default::default()
         }
     }
 }
