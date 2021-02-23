@@ -100,7 +100,7 @@ where
     }
 
     fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
-        let mut tags = Tags::from_request_head(sreq.head());
+        let mut tags = Tags::from(sreq.head());
         sreq.extensions_mut().insert(tags.clone());
 
         Box::pin(self.service.call(sreq).and_then(move |mut sresp| {

@@ -59,13 +59,12 @@ pub async fn get_tiles(
 
     {
         // for demonstration purposes
-        let mut exts = request.extensions_mut();
-        let mut tags = exts.get::<Tags>().unwrap_or(&Tags::default()).clone();
+        let mut tags = Tags::default();
         tags.add_extra("ip", fake_ip.as_str());
         tags.add_extra("ua", &stripped_ua);
         tags.add_extra("sub2", &treq.placement);
-        // any additional insertions...
-        exts.insert(tags);
+        // Add/modify the existing request tags.
+        tags.commit(&mut request.extensions_mut());
     }
 
     trace!("get_tiles GET {}", adm_url);

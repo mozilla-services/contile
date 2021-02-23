@@ -1,5 +1,7 @@
+use core::cell::RefMut;
 use std::collections::{BTreeMap, HashMap};
 
+use actix_http::Extensions;
 use actix_web::{
     dev::{Payload, RequestHead},
     http::header::USER_AGENT,
@@ -90,17 +92,8 @@ fn insert_if_not_empty(label: &str, val: &str, tags: &mut HashMap<String, String
     }
 }
 
-// Tags are extra data to be recorded in metric and logging calls.
-// If additional tags are required or desired, you will need to add them to the
-// mutable extensions, e.g.
-// ```
-//      let mut tags = request.extensions_mut().get::<Tags>();
-//      tags.insert("SomeLabel".to_owned(), "whatever".to_owned());
-// ```
-// how you get the request (or the response, and it's set of `extensions`) to whatever
-// function requires it, is left as an exercise for the reader.
-impl Tags {
-    pub fn from_request_head(req_head: &RequestHead) -> Tags {
+impl From<&RequestHead> for Tags {
+    fn from(req_head: &RequestHead) -> Self {
         // Return an Option<> type because the later consumers (HandlerErrors) presume that
         // tags are optional and wrapped by an Option<> type.
         let mut tags = HashMap::new();
@@ -121,9 +114,32 @@ impl Tags {
         // `uri.path` causes too much cardinality for influx but keep it in
         // extra for sentry
         extra.insert("uri.path".to_owned(), req_head.uri.to_string());
-        Tags { tags, extra }
+        Tags {
+            tags,
+            extra,
+            ..Default::default()
+        }
     }
+}
 
+impl From<HttpRequest> for Tags {
+    fn from(request: HttpRequest) -> Self {
+        match request.extensions().get::<Self>() {
+            Some(v) => v.clone(),
+            None => Tags::from(request.head()),
+        }
+    }
+}
+
+/// Tags are extra data to be recorded in metric and logging calls.
+/// If additional tags are required or desired, you will need to add them to the
+/// mutable extensions, e.g.
+/// ```compile_fail
+///      let mut tags = Tags::default();
+///      tags.add_tag("SomeLabel", "whatever");
+///      tags.commit(&mut request.extensions_mut());
+/// ```
+impl Tags {
     pub fn with_tags(tags: HashMap<String, String>) -> Tags {
         if tags.is_empty() {
             return Tags::default();
@@ -151,8 +167,9 @@ impl Tags {
         self.tags.get(label).map(String::from).unwrap_or(none)
     }
 
-    pub fn extend(&mut self, tags: HashMap<String, String>) {
-        self.tags.extend(tags);
+    pub fn extend(&mut self, tags: Self) {
+        self.tags.extend(tags.tags);
+        self.extra.extend(tags.extra);
     }
 
     pub fn tag_tree(self) -> BTreeMap<String, String> {
@@ -172,6 +189,13 @@ impl Tags {
         }
         result
     }
+
+    pub fn commit(self, exts: &mut RefMut<'_, Extensions>) {
+        match exts.get_mut::<Tags>() {
+            Some(t) => t.extend(self),
+            None => exts.insert(self),
+        }
+    }
 }
 
 impl FromRequest for Tags {
@@ -184,7 +208,7 @@ impl FromRequest for Tags {
             let exts = req.extensions();
             match exts.get::<Tags>() {
                 Some(t) => t.clone(),
-                None => Tags::from_request_head(req.head()),
+                None => Tags::from(req.head()),
             }
         };
 
