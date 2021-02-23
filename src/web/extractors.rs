@@ -5,11 +5,11 @@
 use actix_web::{
     dev::Payload, http::header, http::header::HeaderValue, web, Error, FromRequest, HttpRequest,
 };
-use futures::future::{FutureExt, LocalBoxFuture};
+use futures::future::{self, FutureExt, LocalBoxFuture};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
-use crate::error::HandlerErrorKind;
+use crate::{error::HandlerErrorKind, metrics::Metrics};
 
 lazy_static! {
     static ref EMPTY_HEADER: HeaderValue = HeaderValue::from_static("");
@@ -60,6 +60,16 @@ impl FromRequest for TilesRequest {
             })
         }
         .boxed_local()
+    }
+}
+
+impl FromRequest for Metrics {
+    type Config = ();
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
+        future::ok(Metrics::from(req)).boxed_local()
     }
 }
 

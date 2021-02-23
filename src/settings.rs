@@ -9,9 +9,12 @@ static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
 
+// issue11: AdM doesn't return any tiles for any of the example non-finalized
+// fake IPs, so replaced "US": "174.245.240.112" with "130.245.32.23" (from
+// their provided stage URL params) that does result in tiles
 static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
 {
-    "US": "174.245.240.112",
+    "US": "130.245.32.23",
     "UK": "86.164.248.137",
     "DE": "87.182.235.159",
     "FR": "31.39.255.255",
@@ -33,6 +36,8 @@ pub struct Settings {
     pub actix_keep_alive: Option<u64>,
     pub adm_endpoint_url: String,
     pub adm_country_ip_map: String,
+    /// Expire tiles after this many seconds
+    pub tiles_ttl: u32,
 }
 
 impl Default for Settings {
@@ -48,6 +53,7 @@ impl Default for Settings {
             actix_keep_alive: None,
             adm_endpoint_url: "".to_owned(),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
+            tiles_ttl: 15 * 60,
         }
     }
 }

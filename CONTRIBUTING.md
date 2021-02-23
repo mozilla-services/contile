@@ -26,7 +26,7 @@ Before submitting a PR:
 When submitting a PR:
 - You agree to license your code under the project's open source license
   ([MPL 2.0](/LICENSE)).
-- Base your branch off the current `master`.
+- Base your branch off the current `main`.
 - Add both your code and new tests if relevant.
 - Sign your git commit.
 - Run the test suite to make sure your code passes linting and tests.
