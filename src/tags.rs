@@ -114,10 +114,7 @@ impl From<&RequestHead> for Tags {
         // `uri.path` causes too much cardinality for influx but keep it in
         // extra for sentry
         extra.insert("uri.path".to_owned(), req_head.uri.to_string());
-        Tags {
-            tags,
-            extra,
-        }
+        Tags { tags, extra }
     }
 }
 
