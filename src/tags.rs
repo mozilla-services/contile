@@ -28,6 +28,10 @@ const VALID_UA_BROWSER: &[&str] = &["Chrome", "Firefox", "Safari", "Opera"];
 // field). Windows has many values and we only care that its Windows
 const VALID_UA_OS: &[&str] = &["Firefox OS", "Linux", "Mac OSX"];
 
+/// Primative User Agent parser.
+///
+/// We only care about a subset of the results for this (to avoid cardinality with
+/// metrics and logging).
 pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
     let parser = Parser::new();
     let wresult = parser.parse(&agent).unwrap_or_else(|| WootheeResult {
@@ -86,6 +90,7 @@ impl Serialize for Tags {
     }
 }
 
+/// Insert a into a hashmap only if the `val` is not empty.
 fn insert_if_not_empty(label: &str, val: &str, tags: &mut HashMap<String, String>) {
     if !val.is_empty() {
         tags.insert(label.to_owned(), val.to_owned());
@@ -138,6 +143,7 @@ impl From<HttpRequest> for Tags {
 ///      tags.commit(&mut request.extensions_mut());
 /// ```
 impl Tags {
+    /// Generate a new Tag struct from a Hash of values.
     pub fn with_tags(tags: HashMap<String, String>) -> Tags {
         if tags.is_empty() {
             return Tags::default();
@@ -148,28 +154,42 @@ impl Tags {
         }
     }
 
+    /// Add an element to the "extra" data.
+    ///
+    /// Extra data is non-key storage used by sentry. It is not
+    /// distributed to metrics.
     pub fn add_extra(&mut self, key: &str, value: &str) {
         if !value.is_empty() {
             self.extra.insert(key.to_owned(), value.to_owned());
         }
     }
 
+    /// Add an element to the "tag" data.
+    ///
+    /// Tag data is keyed info. Be careful to not include too many
+    /// unique values here otherwise you run the risk of excess
+    /// cardinality.
     pub fn add_tag(&mut self, key: &str, value: &str) {
         if !value.is_empty() {
             self.tags.insert(key.to_owned(), value.to_owned());
         }
     }
 
+    /// Get a tag value.
     pub fn get(&self, label: &str) -> String {
         let none = "None".to_owned();
         self.tags.get(label).map(String::from).unwrap_or(none)
     }
 
+    /// Extend the current tag set using another tag set.
+    ///
+    /// Useful for collating tags before distribution.
     pub fn extend(&mut self, tags: Self) {
         self.tags.extend(tags.tags);
         self.extra.extend(tags.extra);
     }
 
+    /// Convert tag hash to a Binary Tree map (used by cadence and sentry)
     pub fn tag_tree(self) -> BTreeMap<String, String> {
         let mut result = BTreeMap::new();
 
@@ -179,6 +199,7 @@ impl Tags {
         result
     }
 
+    /// Convert extra hash to a Binary Tree map (used by cadence and sentry)
     pub fn extra_tree(self) -> BTreeMap<String, Value> {
         let mut result = BTreeMap::new();
 
@@ -188,6 +209,11 @@ impl Tags {
         result
     }
 
+    /// Write the current tag info to the Extensions.
+    ///
+    /// Actix provides extensions for requests and responses. These allow
+    /// for arbitrary data to be stored, however note that these are
+    /// separate, and that `response.request()` is not `request`.
     pub fn commit(self, exts: &mut RefMut<'_, Extensions>) {
         match exts.get_mut::<Tags>() {
             Some(t) => t.extend(self),

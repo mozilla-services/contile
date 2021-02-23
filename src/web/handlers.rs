@@ -23,11 +23,7 @@ struct AdmTile {
     image_url: String,
     impression_url: String,
 }
-use crate::{
-    adm,
-    metrics::Metrics,
-    server::cache,
-};
+use crate::{adm, metrics::Metrics, server::cache};
 
 pub async fn get_tiles(
     treq: TilesRequest,
