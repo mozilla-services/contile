@@ -38,6 +38,7 @@ pub async fn get_tiles(
     fake_ip: &str,
     stripped_ua: &str,
     placement: &str,
+    count: u16,
 ) -> Result<TileResponse<MozTile>, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
@@ -49,9 +50,7 @@ pub async fn get_tiles(
             ("ua", &stripped_ua),
             ("sub2", &placement),
             ("v", "1.0"),
-            // XXX: some value for results seems required, it defaults to 0
-            // when omitted (despite AdM claiming it would default to 1)
-            ("results", "10"),
+            ("results", &count.to_string()),
         ],
     )
     .map_err(|e| HandlerError::internal(&e.to_string()))?;

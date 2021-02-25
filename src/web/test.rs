@@ -41,7 +41,7 @@ macro_rules! init_app {
             crate::logging::init_logging(false).unwrap();
             let state = ServerState {
                 metrics: Box::new(Metrics::sink()),
-                adm_endpoint_url: $settings.adm_endpoint_url.clone(),
+                settings: $settings.clone(),
                 adm_country_ip_map: Arc::new($settings.build_adm_country_ip_map()),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),

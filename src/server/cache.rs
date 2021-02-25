@@ -55,10 +55,10 @@ pub fn spawn_tile_cache_updater(interval: Duration, state: ServerState) {
 
 async fn tile_cache_updater(state: &ServerState) {
     let ServerState {
-        tiles_cache,
-        reqwest_client,
-        adm_endpoint_url,
         metrics,
+        settings,
+        reqwest_client,
+        tiles_cache,
         ..
     } = state;
 
@@ -67,10 +67,11 @@ async fn tile_cache_updater(state: &ServerState) {
     for key in keys {
         let result = adm::get_tiles(
             reqwest_client,
-            adm_endpoint_url,
+            &settings.adm_endpoint_url,
             &key.fake_ip,
             &key.platform,
             &key.placement,
+            settings.tile_count,
         )
         .await;
 

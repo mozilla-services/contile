@@ -23,7 +23,7 @@ pub mod cache;
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
-    pub adm_endpoint_url: String,
+    pub settings: Settings,
     pub adm_country_ip_map: Arc<HashMap<String, String>>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
@@ -77,7 +77,7 @@ impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
         let state = ServerState {
             metrics: Box::new(metrics_from_opts(&settings)?),
-            adm_endpoint_url: settings.adm_endpoint_url.clone(),
+            settings: settings.clone(),
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::new(),
             tiles_cache: cache::TilesCache::new(75),
