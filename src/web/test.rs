@@ -106,7 +106,8 @@ async fn basic() {
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert!(tiles.len() > 1);
     for tile in tiles {
-        let _tile = tile.as_object().expect("!tile.is_object()");
+        let tile = tile.as_object().expect("!tile.is_object()");
+        assert!(tile["sponsored_position"].is_u64());
     }
 }
 
