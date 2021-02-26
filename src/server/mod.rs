@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub mod cache;
+pub mod img_storage;
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
