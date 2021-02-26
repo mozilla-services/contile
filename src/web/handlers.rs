@@ -1,7 +1,7 @@
 //! API Handlers
 use std::collections::HashMap;
 
-use actix_web::{web, Error, HttpResponse};
+use actix_web::{web, Error, HttpRequest, HttpResponse};
 use serde_json::Value;
 
 use super::user_agent;
@@ -10,6 +10,7 @@ use crate::{
     error::HandlerError,
     metrics::Metrics,
     server::{cache, ServerState},
+    tags::Tags,
     web::extractors::TilesRequest,
 };
 
@@ -17,6 +18,7 @@ pub async fn get_tiles(
     treq: TilesRequest,
     metrics: Metrics,
     state: web::Data<ServerState>,
+    request: HttpRequest,
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
 
@@ -29,6 +31,16 @@ pub async fn get_tiles(
             .expect("Invalid ADM_COUNTRY_IP_MAP setting")
     };
     let stripped_ua = user_agent::strip_ua(&treq.ua);
+
+    {
+        // for demonstration purposes
+        let mut tags = Tags::default();
+        tags.add_extra("ip", fake_ip.as_str());
+        tags.add_extra("ua", &stripped_ua);
+        tags.add_extra("sub2", &treq.placement);
+        // Add/modify the existing request tags.
+        tags.commit(&mut request.extensions_mut());
+    }
 
     let audience_key = cache::AudienceKey {
         country: treq.country,
