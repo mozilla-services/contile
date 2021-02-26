@@ -58,11 +58,10 @@ pub async fn get_tiles(
 
     let response = adm::get_tiles(
         &state.reqwest_client,
-        &state.settings.adm_endpoint_url,
+        &state.settings,
         fake_ip,
         &stripped_ua,
         &treq.placement,
-        state.settings.tile_count,
     )
     .await?;
     let tiles = serde_json::to_string(&response)

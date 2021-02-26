@@ -67,11 +67,10 @@ async fn tile_cache_updater(state: &ServerState) {
     for key in keys {
         let result = adm::get_tiles(
             reqwest_client,
-            &settings.adm_endpoint_url,
+            &settings,
             &key.fake_ip,
             &key.platform,
             &key.placement,
-            settings.tile_count,
         )
         .await;
 

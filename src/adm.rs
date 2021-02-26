@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::error::HandlerError;
+use crate::{error::HandlerError, settings::Settings};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TileResponse<T> {
@@ -34,23 +34,22 @@ pub struct MozTile {
 
 pub async fn get_tiles(
     reqwest_client: &reqwest::Client,
-    adm_endpoint_url: &str,
+    settings: &Settings,
     fake_ip: &str,
     stripped_ua: &str,
     placement: &str,
-    count: u16,
 ) -> Result<TileResponse<MozTile>, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
     // validate this on startup)
     let adm_url = Url::parse_with_params(
-        adm_endpoint_url,
+        &settings.adm_endpoint_url,
         &[
             ("ip", fake_ip),
             ("ua", &stripped_ua),
             ("sub2", &placement),
             ("v", "1.0"),
-            ("results", &count.to_string()),
+            ("results", &settings.tile_count.to_string()),
         ],
     )
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
@@ -70,7 +69,7 @@ pub async fn get_tiles(
     let tiles = response
         .tiles
         .into_iter()
-        .filter_map(filter_and_process)
+        .filter_map(|tile| filter_and_process(settings, tile))
         .collect();
     Ok(TileResponse { tiles })
 }
@@ -80,7 +79,7 @@ pub async fn get_tiles(
 /// - Returns None for tiles that shouldn't be shown to the client
 /// - Modifies tiles for output to the client (adding additional fields, etc.)
 #[allow(clippy::unnecessary_wraps)]
-fn filter_and_process(tile: AdmTile) -> Option<MozTile> {
+fn filter_and_process(settings: &Settings, tile: AdmTile) -> Option<MozTile> {
     //if !state.valid_tile(tile.name) {
     //    return None;
     //}
