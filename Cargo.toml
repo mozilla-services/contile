@@ -44,4 +44,5 @@ tokio = { version = "0.2.4", features = ["sync"] }
 url = "2"
 woothee = "0.11"
 
+grpcio="0.8"
 googleapis-raw = {version="0.1", path="vendor/mozilla-rust-sdk/googleapis-raw"}

@@ -592,6 +592,7 @@ dependencies = [
  "env_logger",
  "futures",
  "googleapis-raw",
+ "grpcio",
  "hex",
  "hostname",
  "lazy_static",
