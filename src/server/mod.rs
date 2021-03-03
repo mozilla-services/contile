@@ -3,8 +3,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{
-    dev, http::StatusCode, middleware::errhandlers::ErrorHandlers, web, App, HttpRequest,
-    HttpResponse, HttpServer,
+    dev, http::StatusCode, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
 };
 use cadence::StatsdClient;
 
@@ -12,7 +11,7 @@ use crate::{
     error::HandlerError,
     metrics::metrics_from_opts,
     settings::Settings,
-    web::{handlers, middleware},
+    web::{dockerflow, handlers, middleware},
 };
 
 pub mod cache;
@@ -47,29 +46,10 @@ macro_rules! build_app {
             // For now, let's be permissive and use NGINX (the wrapping server)
             // for finer grained specification.
             .wrap(Cors::permissive())
+            // Next, the API we are implementing
             .service(web::resource("/v1/tiles").route(web::get().to(handlers::get_tiles)))
-            // Dockerflow
-            // Remember to update .::web::middleware::DOCKER_FLOW_ENDPOINTS
-            // when applying changes to endpoint names.
-            .service(web::resource("/__heartbeat__").route(web::get().to(handlers::heartbeat)))
-            .service(
-                web::resource("/__lbheartbeat__").route(web::get().to(|_: HttpRequest| {
-                    // used by the load balancers, just return OK.
-                    HttpResponse::Ok()
-                        .content_type("application/json")
-                        .body("{}")
-                })),
-            )
-            .service(
-                web::resource("/__version__").route(web::get().to(|_: HttpRequest| {
-                    // return the contents of the version.json file created by circleci
-                    // and stored in the docker root
-                    HttpResponse::Ok()
-                        .content_type("application/json")
-                        .body(include_str!("../../version.json"))
-                })),
-            )
-            .service(web::resource("/__error__").route(web::get().to(handlers::test_error)))
+            // And finally the behavior necessary to satisfy Dockerflow
+            .service(web::scope("/").configure(dockerflow::service))
     };
 }
 

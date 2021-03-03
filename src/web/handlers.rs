@@ -1,8 +1,5 @@
 //! API Handlers
-use std::collections::HashMap;
-
-use actix_web::{web, Error, HttpRequest, HttpResponse};
-use serde_json::Value;
+use actix_web::{web, HttpRequest, HttpResponse};
 
 use super::user_agent;
 use crate::{
@@ -78,21 +75,4 @@ pub async fn get_tiles(
     Ok(HttpResponse::Ok()
         .content_type("application/json")
         .body(tiles))
-}
-
-/// Returns a status message indicating the state of the current server
-pub async fn heartbeat() -> Result<HttpResponse, Error> {
-    let mut checklist = HashMap::new();
-    checklist.insert(
-        "version".to_owned(),
-        Value::String(env!("CARGO_PKG_VERSION").to_owned()),
-    );
-    Ok(HttpResponse::Ok().json(checklist))
-}
-
-/// try returning an API error
-pub async fn test_error() -> Result<HttpResponse, HandlerError> {
-    // generate an error for sentry.
-    error!("Test Error");
-    Err(HandlerError::internal("Oh Noes!"))
 }
