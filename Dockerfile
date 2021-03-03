@@ -32,4 +32,6 @@ COPY --from=builder /app/version.json /app
 WORKDIR /app
 USER app
 
+# ARG variables aren't available at runtime
+ENV APPNAME=${APPNAME}
 CMD ["/app/bin/${APPNAME}"]
