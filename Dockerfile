@@ -1,9 +1,13 @@
 # Docker 17.05 or higher required for multi-stage builds
-FROM rust:1.49 as builder
-ADD . /app
-WORKDIR /app
+
 # Change this to be your application's name
 ARG APPNAME=contile
+
+FROM rust:1.49 as builder
+ARG APPNAME
+ADD . /app
+WORKDIR /app
+
 # Make sure that this matches in .travis.yml
 # ARG RUST_TOOLCHAIN=nightly
 RUN \
@@ -18,18 +22,24 @@ RUN \
 
 
 FROM debian:stretch-slim
+ARG APPNAME
+
 # FROM debian:stretch  # for debugging docker build
 RUN \
     groupadd --gid 10001 app && \
     useradd --uid 10001 --gid 10001 --home /app --create-home app && \
     \
     apt-get -qq update && \
+    apt-get -qq install -y libssl-dev ca-certificates && \
     rm -rf /var/lib/apt/lists
 
 COPY --from=builder /app/bin /app/bin
 COPY --from=builder /app/version.json /app
+COPY --from=builder /app/entrypoint.sh /app
 
 WORKDIR /app
 USER app
 
-CMD ["/app/bin/${APPNAME}"]
+# ARG variables aren't available at runtime
+ENV BINARY=/app/bin/${APPNAME}
+ENTRYPOINT ["/app/entrypoint.sh"]
