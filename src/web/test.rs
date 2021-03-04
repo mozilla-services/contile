@@ -13,7 +13,7 @@ use crate::{
     metrics::Metrics,
     server::{cache, ServerState},
     settings::{test_settings, Settings},
-    web::{handlers, middleware},
+    web::{dockerflow, handlers, middleware},
 };
 
 const MOCK_RESPONSE1: &str = include_str!("mock_adm_response1.json");
