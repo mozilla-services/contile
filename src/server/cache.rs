@@ -12,10 +12,12 @@ pub struct AudienceKey {
     /// Not yet supported: Region/subdivision (e.g. a US state) in ISO
     /// 3166-2 format
     //pub region: String,
-    /// Only here for use by the periodic updater
-    pub fake_ip: String,
-    pub platform: String,
-    pub placement: String,
+
+    // Mac, Windows, Linux or Other
+    pub platform: Platform,
+
+    // One of urlbar, newtab, search
+    pub placement: Placement,
 }
 
 #[derive(Debug)]
