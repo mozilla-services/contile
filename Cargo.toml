@@ -16,14 +16,16 @@ actix-http = "2"
 actix-rt = "1"  # 2+ breaks testing, May need actix-web 4+?
 actix-web = "3"
 backtrace = "0.3"
-cadence = "0.24"
+cadence = "0.25"
+chrono = "0.4"
+cloud-storage = "0.6" # 0.7+ includes request 0.11, tokio 1.4
 docopt = "1.1"
-config = "0.10"
+config = "0.11"
 env_logger = "0.8"
 futures = "0.3"
 hostname = "0.3"
 lazy_static = "1.4"
-log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
 regex = "1.4"
 reqwest = { version = "0.10", features = ["json"] } # 0.11+ conflicts with actix & tokio. Block until actix-web 4+?
 serde = "1.0"
@@ -43,6 +45,3 @@ thiserror = "1.0"
 tokio = { version = "0.2.4", features = ["sync"] }
 url = "2"
 woothee = "0.11"
-
-grpcio="0.8"
-googleapis-raw = {version="0.1", path="vendor/mozilla-rust-sdk/googleapis-raw"}

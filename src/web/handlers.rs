@@ -4,12 +4,36 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use super::user_agent;
 use crate::{
     adm,
-    error::HandlerError,
+    error::{HandlerError, HandlerErrorKind},
     metrics::Metrics,
     server::{cache, ServerState},
     tags::Tags,
     web::extractors::TilesRequest,
 };
+
+pub async fn get_image(
+    _req: HttpRequest,
+    _metrics: Metrics,
+    state: web::Data<ServerState>,
+) -> Result<HttpResponse, HandlerError> {
+    trace!("Testing image");
+
+    let storage = crate::server::img_storage::StoreImage::new(&state.settings).await?;
+
+    match storage
+        .fetch("https://unitedheroes.net/icons/JRS_128x128.jpg".parse()?)
+        .await
+    {
+        Ok(si) => {
+            dbg!(si);
+        }
+        Err(e) => {
+            println!("Err: {:?}", e);
+            return Err(HandlerErrorKind::Internal(e.to_string()).into());
+        }
+    }
+    Ok(HttpResponse::Ok().finish())
+}
 
 pub async fn get_tiles(
     treq: TilesRequest,

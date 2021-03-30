@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|e| e.exit());
     let settings = settings::Settings::with_env_and_config_file(&args.flag_config)?;
     init_logging(!settings.human_logs).expect("Logging failed to init");
-    debug!("Starting up...");
+    debug!("Starting up... {}:{}", &settings.host, &settings.port);
     // Set SENTRY_DSN env var to enable Sentry.actix_cors
     // Avoid its default reqwest transport for now due to issues w/
     // likely grpcio's boringssl
