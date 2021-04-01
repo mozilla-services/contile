@@ -66,7 +66,7 @@ impl StoreImage {
                             return Ok(Self {
                                 // bucket: Some(v),
                                 settings: sset,
-                            })
+                            });
                         }
                         Err(e) => {
                             return Err(HandlerErrorKind::Internal(format!(
