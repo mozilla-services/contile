@@ -25,7 +25,7 @@ env_logger = "0.8"
 futures = "0.3"
 hostname = "0.3"
 lazy_static = "1.4"
-log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
+log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
 regex = "1.4"
 reqwest = { version = "0.10", features = ["json"] } # 0.11+ conflicts with actix & tokio. Block until actix-web 4+?
 serde = "1.0"

@@ -51,7 +51,7 @@ macro_rules! build_app {
             // Next, the API we are implementing
             .service(web::resource("/v1/tiles").route(web::get().to(handlers::get_tiles)))
             // image cache tester...
-            .service(web::resource("/v1/test").route(web::get().to(handlers::get_image)))
+            //.service(web::resource("/v1/test").route(web::get().to(handlers::get_image)))
             // And finally the behavior necessary to satisfy Dockerflow
             .service(web::scope("/").configure(dockerflow::service))
     };

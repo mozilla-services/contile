@@ -6,7 +6,7 @@ use cloud_storage::{
 };
 use serde::Deserialize;
 
-use crate::error::{HandlerErrorKind, HandlerResult};
+use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -61,27 +61,18 @@ impl StoreImage {
                 if ger.errors_has_reason(&cloud_storage::Reason::Conflict) {
                     dbg!("Already exists", &sset.bucket_name);
                     // try fetching the existing bucket.
-                    match Bucket::read(&sset.bucket_name).await {
-                        Ok(_v) => {
-                            return Ok(Self {
-                                // bucket: Some(v),
-                                settings: sset,
-                            });
-                        }
-                        Err(e) => {
-                            return Err(HandlerErrorKind::Internal(format!(
-                                "Could not read bucket {:?}",
-                                e
-                            ))
-                            .into())
-                        }
-                    }
+                    let _content = Bucket::read(&sset.bucket_name).await.map_err(|e| {
+                        HandlerError::internal(&format!("Could not read bucket {:?}", e))
+                    })?;
+                    return Ok(Self {
+                        // bucket: Some(_content),
+                        settings: sset,
+                    });
                 } else {
-                    return Err(HandlerErrorKind::Internal(format!(
+                    return Err(HandlerError::internal(&format!(
                         "Bucket create error {:?}",
                         ger
-                    ))
-                    .into());
+                    )));
                 }
             }
             Err(e) => {
