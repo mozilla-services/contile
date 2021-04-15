@@ -298,8 +298,10 @@ mod test {
     async fn test_location_good() -> HandlerResult<()> {
         let test_ip: IpAddr = "63.245.208.195".parse().unwrap(); // Mozilla
         let langs = vec!["en".to_owned()];
-        let mut settings = Settings::default();
-        settings.maxminddb_loc = Some(MMDB_LOC.to_owned());
+        let settings = Settings {
+            maxminddb_loc: Some(MMDB_LOC.to_owned()),
+            ..Default::default()
+        };
         let location = Location::from(&settings);
         if location.is_available() {
             // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
@@ -317,8 +319,10 @@ mod test {
     async fn test_location_bad() -> HandlerResult<()> {
         let test_ip: IpAddr = "192.168.1.1".parse().unwrap();
         let langs = vec!["en".to_owned()];
-        let mut settings = Settings::default();
-        settings.maxminddb_loc = Some(MMDB_LOC.to_owned());
+        let settings = Settings {
+            maxminddb_loc: Some(MMDB_LOC.to_owned()),
+            ..Default::default()
+        };
         let location = Location::from(&settings);
         if location.is_available() {
             let result = location.locate(test_ip, &langs).await?;
