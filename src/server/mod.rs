@@ -15,10 +15,11 @@ use crate::{
 };
 
 pub mod cache;
+pub mod location;
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
@@ -26,6 +27,20 @@ pub struct ServerState {
     pub adm_country_ip_map: Arc<HashMap<String, String>>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
+    pub mmdb: location::Location,
+}
+
+impl std::fmt::Debug for ServerState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ServerState{{ metrics: {:?}, adm_endpoint_url: {:?}, adm_country_ip_map: {:?}, reqwest_client: {:?}, tiles_cache: {:?}, mmdb: {:?} }}",
+            self.metrics,
+            self.adm_endpoint_url,
+            self.adm_country_ip_map,
+            self.reqwest_client,
+            self.tiles_cache,
+            if self.mmdb.is_available(){"is set"} else { "is not set"},
+        )
+    }
 }
 
 pub struct Server;
@@ -61,6 +76,7 @@ impl Server {
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::new(),
             tiles_cache: cache::TilesCache::new(75),
+            mmdb: (&settings).into(),
         };
         cache::spawn_tile_cache_updater(
             Duration::from_secs(settings.tiles_ttl as u64),

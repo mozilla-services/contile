@@ -16,14 +16,15 @@ actix-http = "2"
 actix-rt = "1"  # 2+ breaks testing, May need actix-web 4+?
 actix-web = "3"
 backtrace = "0.3"
-cadence = "0.24"
+cadence = "0.25"
 docopt = "1.1"
-config = "0.10"
+config = "0.11"
 env_logger = "0.8"
 futures = "0.3"
 hostname = "0.3"
 lazy_static = "1.4"
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
+maxminddb = "0.17"
 regex = "1.4"
 reqwest = { version = "0.10", features = ["json"] } # 0.11+ conflicts with actix & tokio. Block until actix-web 4+?
 serde = "1.0"
