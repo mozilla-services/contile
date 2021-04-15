@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use actix_http::RequestHead;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
 
@@ -18,6 +19,26 @@ pub struct LocationResult {
     pub country: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dma: Option<u16>,
+}
+
+/// RequestHead is available for HttpRequest and ServiceRequest
+impl From<&RequestHead> for LocationResult {
+    /// Scan the headers to see if there's anything we can use to derive the location
+    fn from(head: &RequestHead) -> Self {
+        const GOOG_LOC_HEADER: &str = "x-client-geo-location";
+        let headers = head.headers();
+        if let Some(loc_string) = headers.get(GOOG_LOC_HEADER) {
+            dbg!("Found google header", loc_string);
+            let mut parts: Vec<&str> = loc_string.to_str().unwrap_or("").split(',').collect();
+            return Self {
+                city: parts.pop().map(ToOwned::to_owned),
+                country: parts.pop().map(ToOwned::to_owned),
+                ..Default::default()
+            };
+        }
+        dbg!("No Google header found");
+        Self::default()
+    }
 }
 
 #[derive(Default, Clone)]
@@ -149,7 +170,7 @@ impl Location {
     ///
     /// `preferred_languages` is an array of `Accepted-Langauge` type pairs. You can use `preferred_languages` to
     /// convert the `Accepted-Language` header into this set.
-    pub async fn locate(
+    pub async fn mmdb_locate(
         &self,
         ip_addr: IpAddr,
         preferred_languages: &[String],
@@ -305,7 +326,7 @@ mod test {
         let location = Location::from(&settings);
         if location.is_available() {
             // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
-            let result = location.locate(test_ip, &langs).await?.unwrap();
+            let result = location.mmdb_locate(test_ip, &langs).await?.unwrap();
             assert_eq!(result.city, Some("Sacramento".to_owned()));
             assert_eq!(result.provinces, Some(["California".to_owned()].to_vec()));
             assert_eq!(result.country, Some("United States".to_owned()));
@@ -325,7 +346,7 @@ mod test {
         };
         let location = Location::from(&settings);
         if location.is_available() {
-            let result = location.locate(test_ip, &langs).await?;
+            let result = location.mmdb_locate(test_ip, &langs).await?;
             assert!(result.is_none());
         } else {
             println!("⚠Location Database not found, cannot test location, skipping");
