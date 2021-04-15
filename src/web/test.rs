@@ -11,7 +11,7 @@ use crate::{
     build_app,
     error::HandlerError,
     metrics::Metrics,
-    server::{cache, ServerState},
+    server::{cache, location::Location, ServerState},
     settings::{test_settings, Settings},
     web::{dockerflow, handlers, middleware},
 };
@@ -45,6 +45,7 @@ macro_rules! init_app {
                 adm_country_ip_map: Arc::new($settings.build_adm_country_ip_map()),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
+                mmdb: Location::default(),
             };
             test::init_service(build_app!(state)).await
         }
