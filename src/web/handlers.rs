@@ -27,6 +27,7 @@ pub async fn get_tiles(
             .get("US")
             .expect("Invalid ADM_COUNTRY_IP_MAP setting")
     };
+    let filters = state.filter.clone();
     let stripped_ua = user_agent::strip_ua(&treq.ua);
 
     {
@@ -59,6 +60,7 @@ pub async fn get_tiles(
         fake_ip,
         &stripped_ua,
         &treq.placement,
+        &filters,
     )
     .await?;
     let tiles = serde_json::to_string(&response)

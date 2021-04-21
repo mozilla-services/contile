@@ -1,6 +1,6 @@
 //! Application settings objects and initialization
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
@@ -23,21 +23,34 @@ static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
 }
 "#;
 
+/// Configuration settings and options
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    /// Enable verbos debugging output (default: false)
     pub debug: bool,
+    /// Service port (default: 8000)
     pub port: u16,
+    /// Service hostname (default: 127.0.0.1)
     pub host: String,
+    /// Enable "human readable" logging messages (default: false)
     pub human_logs: bool,
+    /// Metric default label (default: "contile")
     pub statsd_label: String,
+    /// Metric reporting host address (default: None)
     pub statsd_host: Option<String>,
+    /// Metric reporting host port
     pub statsd_port: u16,
+    /// Enable actix "keep alive" period in seconds (default: None)
     pub actix_keep_alive: Option<u64>,
+    /// adm Endpoint URL
     pub adm_endpoint_url: String,
+    /// adm country to default IP map (Hash in JSON format)
     pub adm_country_ip_map: String,
     /// Expire tiles after this many seconds
     pub tiles_ttl: u32,
+    /// list of allowed vendors (Array in JSON format)
+    pub allowed_vendors: Option<Vec<String>>,
 }
 
 impl Default for Settings {
@@ -54,6 +67,7 @@ impl Default for Settings {
             adm_endpoint_url: "".to_owned(),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             tiles_ttl: 15 * 60,
+            allowed_vendors: None,
         }
     }
 }
@@ -107,8 +121,9 @@ impl Settings {
         format!("http://{}:{}", self.host, self.port)
     }
 
-    pub fn build_adm_country_ip_map(&self) -> HashMap<String, String> {
-        let mut map: HashMap<String, String> =
+    /// convert the `adm_country_ip_map` setting from a string to a hashmap
+    pub(crate) fn build_adm_country_ip_map(&self) -> BTreeMap<String, String> {
+        let mut map: BTreeMap<String, String> =
             serde_json::from_str(&self.adm_country_ip_map).expect("Invalid ADM_COUNTRY_IP_MAP");
         map = map
             .into_iter()

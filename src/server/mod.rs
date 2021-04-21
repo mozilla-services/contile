@@ -1,5 +1,5 @@
 //! Main application server
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -8,6 +8,7 @@ use actix_web::{
 use cadence::StatsdClient;
 
 use crate::{
+    adm::AdmFilter,
     error::HandlerError,
     metrics::metrics_from_opts,
     settings::Settings,
@@ -23,9 +24,11 @@ pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
     pub adm_endpoint_url: String,
-    pub adm_country_ip_map: Arc<HashMap<String, String>>,
+    pub adm_country_ip_map: Arc<BTreeMap<String, String>>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
+    pub settings: Settings,
+    pub filter: AdmFilter,
 }
 
 pub struct Server;
@@ -61,6 +64,8 @@ impl Server {
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::new(),
             tiles_cache: cache::TilesCache::new(75),
+            settings: settings.clone(),
+            filter: AdmFilter::from(&settings),
         };
         cache::spawn_tile_cache_updater(
             Duration::from_secs(settings.tiles_ttl as u64),

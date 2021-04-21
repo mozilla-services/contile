@@ -71,6 +71,7 @@ async fn tile_cache_updater(state: &ServerState) {
             &key.fake_ip,
             &key.platform,
             &key.placement,
+            &state.filter,
         )
         .await;
 

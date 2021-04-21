@@ -8,6 +8,7 @@ use actix_web::{
 use serde_json::Value;
 
 use crate::{
+    adm::AdmFilter,
     build_app,
     error::HandlerError,
     metrics::Metrics,
@@ -45,6 +46,8 @@ macro_rules! init_app {
                 adm_country_ip_map: Arc::new($settings.build_adm_country_ip_map()),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
+                settings: $settings.clone(),
+                filter: AdmFilter::from(&$settings),
             };
             test::init_service(build_app!(state)).await
         }
