@@ -114,6 +114,42 @@ async fn basic() {
 }
 
 #[actix_rt::test]
+async fn basic_filtered() {
+    let (_, addr) = init_mock_adm();
+    let settings = Settings {
+        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        allowed_vendors: Some(vec!["www.acme.biz".to_owned(), "www.example.ninja".to_owned()]),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles?country=UK&placement=newtab")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert!(tiles.len() == 1);
+    for tile in tiles {
+        let _tile = tile.as_object().expect("!tile.is_object()");
+    }
+}
+
+
+#[actix_rt::test]
 async fn invalid_placement() {
     let (_, addr) = init_mock_adm();
     let settings = Settings {

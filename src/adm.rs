@@ -14,7 +14,7 @@ pub struct AdmTileResponse {
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     /// list of allowed base host strings.
-    pub allowed_url_hosts: BTreeSet<String>,
+    pub allowed_url_hosts: Option<BTreeSet<String>>,
     pub field_defaults: HashMap<String, String>,
 }
 
@@ -36,13 +36,21 @@ impl AdmFilter {
         };
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        if self
-            .allowed_url_hosts
-            .contains(host.host_str().unwrap_or("UNKNOWN"))
-        {
-            return Some(tile);
+        match self.allowed_url_hosts.clone() {
+            Some(allowed) => {
+                let host_name = host.host_str().unwrap_or("UKNOWN");
+                if allowed.contains(host_name)
+                {
+                    dbg!("👍🏻", host_name);
+                    return Some(tile);
+                }
+                dbg!("👎🏻", host_name);
+                return None
+            },
+            None => {
+                return Some(tile)
+            }
         }
-        None
     }
 }
 
@@ -59,7 +67,11 @@ impl From<&Settings> for AdmFilter {
         };
 
         AdmFilter {
-            allowed_url_hosts,
+            allowed_url_hosts: if allowed_url_hosts.is_empty() {
+                None
+            } else {
+                Some(allowed_url_hosts)
+            },
             ..Default::default()
         }
     }
