@@ -39,17 +39,14 @@ impl AdmFilter {
         match self.allowed_url_hosts.clone() {
             Some(allowed) => {
                 let host_name = host.host_str().unwrap_or("UKNOWN");
-                if allowed.contains(host_name)
-                {
+                if allowed.contains(host_name) {
                     dbg!("👍🏻", host_name);
                     return Some(tile);
                 }
                 dbg!("👎🏻", host_name);
-                return None
-            },
-            None => {
-                return Some(tile)
+                None
             }
+            None => Some(tile),
         }
     }
 }

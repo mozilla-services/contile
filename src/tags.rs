@@ -240,7 +240,7 @@ impl FromRequest for Tags {
     }
 }
 
-impl From<Tags> for BTreeMap<String,String>{
+impl From<Tags> for BTreeMap<String, String> {
     fn from(tags: Tags) -> BTreeMap<String, String> {
         let mut result = BTreeMap::new();
 

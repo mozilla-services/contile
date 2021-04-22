@@ -118,7 +118,10 @@ async fn basic_filtered() {
     let (_, addr) = init_mock_adm();
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
-        allowed_vendors: Some(vec!["www.acme.biz".to_owned(), "www.example.ninja".to_owned()]),
+        allowed_vendors: Some(vec![
+            "www.acme.biz".to_owned(),
+            "www.example.ninja".to_owned(),
+        ]),
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
@@ -147,7 +150,6 @@ async fn basic_filtered() {
         let _tile = tile.as_object().expect("!tile.is_object()");
     }
 }
-
 
 #[actix_rt::test]
 async fn invalid_placement() {
