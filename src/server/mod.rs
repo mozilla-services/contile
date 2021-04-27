@@ -31,15 +31,16 @@ pub struct ServerState {
 }
 
 impl std::fmt::Debug for ServerState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ServerState{{ metrics: {:?}, adm_endpoint_url: {:?}, adm_country_ip_map: {:?}, reqwest_client: {:?}, tiles_cache: {:?}, mmdb: {:?} }}",
-            self.metrics,
-            self.adm_endpoint_url,
-            self.adm_country_ip_map,
-            self.reqwest_client,
-            self.tiles_cache,
-            if self.mmdb.is_available(){"is set"} else { "is not set"},
-        )
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mmdb_status = if self.mmdb.is_available(){ "is set" } else { "is not set" };
+        fmt.debug_struct("ServerState")
+            .field("metrics", &self.metrics)
+            .field("adm_endpoint_url", &self.adm_endpoint_url)
+            .field("adm_country_ip_map", &self.adm_country_ip_map)
+            .field("reqwest_client", &self.reqwest_client)
+            .field("tiles_cache", &self.tiles_cache)
+            .field("mmdb", &mmdb_status.to_owned())
+            .finish()
     }
 }
 
