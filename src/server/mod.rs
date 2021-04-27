@@ -32,7 +32,11 @@ pub struct ServerState {
 
 impl std::fmt::Debug for ServerState {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mmdb_status = if self.mmdb.is_available(){ "is set" } else { "is not set" };
+        let mmdb_status = if self.mmdb.is_available() {
+            "is set"
+        } else {
+            "is not set"
+        };
         fmt.debug_struct("ServerState")
             .field("metrics", &self.metrics)
             .field("adm_endpoint_url", &self.adm_endpoint_url)
