@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub mod cache;
+pub mod img_storage;
 pub mod location;
 
 /// This is the global HTTP state object that will be made available to all
@@ -28,6 +29,7 @@ pub struct ServerState {
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub mmdb: location::Location,
+    pub settings: Settings,
 }
 
 impl std::fmt::Debug for ServerState {
@@ -68,6 +70,8 @@ macro_rules! build_app {
             .wrap(Cors::permissive())
             // Next, the API we are implementing
             .service(web::resource("/v1/tiles").route(web::get().to(handlers::get_tiles)))
+            // image cache tester...
+            //.service(web::resource("/v1/test").route(web::get().to(handlers::get_image)))
             // And finally the behavior necessary to satisfy Dockerflow
             .service(web::scope("/").configure(dockerflow::service))
     };
@@ -82,7 +86,10 @@ impl Server {
             reqwest_client: reqwest::Client::new(),
             tiles_cache: cache::TilesCache::new(75),
             mmdb: (&settings).into(),
+            settings: settings.clone(),
         };
+
+        // causing panic in arbiter thread
         cache::spawn_tile_cache_updater(
             Duration::from_secs(settings.tiles_ttl as u64),
             state.clone(),

@@ -46,6 +46,7 @@ macro_rules! init_app {
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 mmdb: Location::default(),
+                settings: $settings.clone(),
             };
             test::init_service(build_app!(state)).await
         }

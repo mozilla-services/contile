@@ -1,15 +1,52 @@
 //! API Handlers
+use actix_http::http::Uri;
 use actix_web::{web, HttpRequest, HttpResponse};
 
 use super::user_agent;
 use crate::{
     adm,
-    error::HandlerError,
+    error::{HandlerError, HandlerErrorKind},
     metrics::Metrics,
     server::{cache, ServerState},
     tags::Tags,
     web::extractors::TilesRequest,
 };
+
+pub async fn get_image(
+    _req: HttpRequest,
+    _metrics: Metrics,
+    _state: web::Data<ServerState>,
+) -> Result<HttpResponse, HandlerError> {
+    trace!("Testing image");
+
+    // pick something arbitrary to play with...
+    let target = "https://unitedheroes.net/icons/JRS_128x128.jpg";
+    let target_uri: Uri = target.parse()?;
+
+    // if we need to create a bucket (really probably should use the admin panel)
+    // just make sure that "allUsers" have read access and whatever user runs this
+    // has `Storage Legacy Bucket Writer` and `Storage Object Creator` access.
+    //
+    // let storage = crate::server::img_storage::StoreImage::create(&state.settings).await?;
+    let storage = crate::server::img_storage::StoreImage::default();
+
+    // fetch a remote URL and store it's contents into Google
+    match storage.store(&target_uri).await {
+        Ok(sr) => {
+            dbg!(sr);
+        }
+        Err(e) => {
+            dbg!(HandlerErrorKind::Internal(e.to_string()));
+        }
+    }
+
+    // Fetch an existing resource. Ideally, the one we just stored.
+    if let Some(res) = storage.fetch(&target_uri).await? {
+        Ok(HttpResponse::Ok().body(res.url.to_string()))
+    } else {
+        Ok(HttpResponse::NotFound().finish())
+    }
+}
 
 pub async fn get_tiles(
     treq: TilesRequest,

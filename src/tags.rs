@@ -241,7 +241,7 @@ impl FromRequest for Tags {
 }
 
 impl From<Tags> for BTreeMap<String, String> {
-    fn from(tags: Tags) -> BTreeMap<String, String> {
+    fn from(tags: Tags) -> Self {
         let mut result = BTreeMap::new();
 
         for (k, v) in tags.tags {

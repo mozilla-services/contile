@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
+use crate::server::img_storage::StorageSettings;
+
 static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
@@ -39,6 +41,7 @@ pub struct Settings {
     /// Expire tiles after this many seconds
     pub tiles_ttl: u32,
     pub maxminddb_loc: Option<String>,
+    pub storage: StorageSettings,
 }
 
 impl Default for Settings {
@@ -56,6 +59,7 @@ impl Default for Settings {
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             tiles_ttl: 15 * 60,
             maxminddb_loc: None,
+            storage: StorageSettings::default(),
         }
     }
 }
