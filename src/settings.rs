@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
+use crate::server::img_storage::StorageSettings;
+
 static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
@@ -51,6 +53,8 @@ pub struct Settings {
     pub tiles_ttl: u32,
     /// list of allowed vendors (Array in JSON format)
     pub allowed_vendors: Option<Vec<String>>,
+    /// Settings related to the google cloud storage
+    pub storage: StorageSettings,
 }
 
 impl Default for Settings {
@@ -68,6 +72,7 @@ impl Default for Settings {
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             tiles_ttl: 15 * 60,
             allowed_vendors: None,
+            storage: StorageSettings::default(),
         }
     }
 }

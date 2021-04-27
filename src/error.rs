@@ -3,6 +3,8 @@ use std::error::Error;
 use std::fmt;
 use std::result;
 
+use actix_web::http::uri::InvalidUri;
+
 use actix_web::{
     dev::{HttpResponseBuilder, ServiceResponse},
     error::ResponseError,
@@ -68,6 +70,12 @@ impl From<HandlerErrorKind> for actix_web::Error {
     fn from(kind: HandlerErrorKind) -> Self {
         let error: HandlerError = kind.into();
         error.into()
+    }
+}
+
+impl From<InvalidUri> for HandlerErrorKind {
+    fn from(err: InvalidUri) -> Self {
+        HandlerErrorKind::Internal(format!("Invalid URL: {:?}", err))
     }
 }
 

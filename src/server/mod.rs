@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub mod cache;
+pub mod img_storage;
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
@@ -51,6 +52,8 @@ macro_rules! build_app {
             .wrap(Cors::permissive())
             // Next, the API we are implementing
             .service(web::resource("/v1/tiles").route(web::get().to(handlers::get_tiles)))
+            // image cache tester...
+            //.service(web::resource("/v1/test").route(web::get().to(handlers::get_image)))
             // And finally the behavior necessary to satisfy Dockerflow
             .service(web::scope("/").configure(dockerflow::service))
     };
@@ -67,6 +70,8 @@ impl Server {
             settings: settings.clone(),
             filter: AdmFilter::from(&settings),
         };
+
+        // causing panic in arbiter thread
         cache::spawn_tile_cache_updater(
             Duration::from_secs(settings.tiles_ttl as u64),
             state.clone(),
