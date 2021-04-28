@@ -8,9 +8,9 @@ use actix_web::{
 use serde_json::Value;
 
 use crate::{
-    adm::AdmFilter,
+    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings},
     build_app,
-    error::HandlerError,
+    error::{HandlerError, HandlerResult},
     metrics::Metrics,
     server::{cache, ServerState},
     settings::{test_settings, Settings},
@@ -47,7 +47,7 @@ macro_rules! init_app {
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 settings: $settings.clone(),
-                filter: AdmFilter::from(&$settings),
+                filter: HandlerResult::<AdmFilter>::from(&$settings).unwrap(),
             };
             test::init_service(build_app!(state)).await
         }
@@ -79,11 +79,41 @@ fn init_mock_adm() -> (dev::Server, SocketAddr) {
     (server.run(), addr)
 }
 
+fn adm_settings() -> AdmSettings {
+    let mut adm_settings = AdmSettings::default();
+    adm_settings.insert(
+        "Acme".to_owned(),
+        AdmAdvertiserFilterSettings {
+            advertiser_url: ["www.acme.biz".to_owned()].to_vec(),
+            position: Some(0),
+            include_regions: Vec::new(),
+        },
+    );
+    adm_settings.insert(
+        "Dunder Mifflin".to_owned(),
+        AdmAdvertiserFilterSettings {
+            advertiser_url: ["www.dunderm.biz".to_owned()].to_vec(),
+            position: Some(1),
+            include_regions: Vec::new(),
+        },
+    );
+    adm_settings.insert(
+        "Los Pollos Hermanos".to_owned(),
+        AdmAdvertiserFilterSettings {
+            advertiser_url: ["www.lph-nm.biz".to_owned()].to_vec(),
+            position: Some(2),
+            include_regions: Vec::new(),
+        },
+    );
+    adm_settings
+}
+
 #[actix_rt::test]
 async fn basic() {
     let (_, addr) = init_mock_adm();
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_settings: adm_settings(),
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
@@ -116,12 +146,21 @@ async fn basic() {
 #[actix_rt::test]
 async fn basic_filtered() {
     let (_, addr) = init_mock_adm();
+
+    let mut adm_settings = adm_settings();
+    adm_settings.insert(
+        "Example".to_owned(),
+        AdmAdvertiserFilterSettings {
+            advertiser_url: ["www.example.ninja".to_owned()].to_vec(),
+            position: Some(100),
+            include_regions: Vec::new(),
+        },
+    );
+    adm_settings.remove("Dunder Mifflin");
+
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
-        allowed_vendors: Some(vec![
-            "www.acme.biz".to_owned(),
-            "www.example.ninja".to_owned(),
-        ]),
+        adm_settings,
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
@@ -145,9 +184,14 @@ async fn basic_filtered() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    assert!(tiles.len() == 1);
+    assert!(tiles.len() == 2);
     for tile in tiles {
-        let _tile = tile.as_object().expect("!tile.is_object()");
+        let tile = tile.as_object().expect("!tile.is_object()");
+        match tile.get("name").unwrap().as_str() {
+            Some("Acme") => assert!(tile.get("position") == Some(&Value::from(0))),
+            Some("Los Pollos Hermanos") => assert!(tile.get("position") == Some(&Value::from(2))),
+            _ => panic!("Unknown result"),
+        }
     }
 }
 

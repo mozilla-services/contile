@@ -13,7 +13,7 @@ pub struct AudienceKey {
     /// 3166-2 format
     //pub region: String,
     /// Only here for use by the periodic updater
-    pub fake_ip: String,
+    // pub fake_ip: String,
     pub platform: String,
     pub placement: String,
 }
@@ -68,10 +68,10 @@ async fn tile_cache_updater(state: &ServerState) {
         let result = adm::get_tiles(
             reqwest_client,
             adm_endpoint_url,
-            &key.fake_ip,
+            (key.country.to_owned(), "region".to_owned()), //TODO: in lieu of the upcoming location pr.
             &key.platform,
             &key.placement,
-            &state.filter,
+            &state,
         )
         .await;
 

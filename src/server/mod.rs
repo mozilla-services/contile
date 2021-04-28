@@ -9,7 +9,7 @@ use cadence::StatsdClient;
 
 use crate::{
     adm::AdmFilter,
-    error::HandlerError,
+    error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     settings::Settings,
     web::{dockerflow, handlers, middleware},
@@ -61,6 +61,7 @@ macro_rules! build_app {
 
 impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
+        let filter = HandlerResult::<AdmFilter>::from(&settings)?;
         let state = ServerState {
             metrics: Box::new(metrics_from_opts(&settings)?),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
@@ -68,7 +69,7 @@ impl Server {
             reqwest_client: reqwest::Client::new(),
             tiles_cache: cache::TilesCache::new(75),
             settings: settings.clone(),
-            filter: AdmFilter::from(&settings),
+            filter,
         };
 
         // causing panic in arbiter thread

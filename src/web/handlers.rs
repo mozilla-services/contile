@@ -1,52 +1,15 @@
 //! API Handlers
-use actix_http::http::Uri;
 use actix_web::{web, HttpRequest, HttpResponse};
 
 use super::user_agent;
 use crate::{
     adm,
-    error::{HandlerError, HandlerErrorKind},
+    error::HandlerError,
     metrics::Metrics,
     server::{cache, ServerState},
     tags::Tags,
     web::extractors::TilesRequest,
 };
-
-pub async fn get_image(
-    _req: HttpRequest,
-    _metrics: Metrics,
-    _state: web::Data<ServerState>,
-) -> Result<HttpResponse, HandlerError> {
-    trace!("Testing image");
-
-    // pick something arbitrary to play with...
-    let target = "https://unitedheroes.net/icons/JRS_128x128.jpg";
-    let target_uri: Uri = target.parse()?;
-
-    // if we need to create a bucket (really probably should use the admin panel)
-    // just make sure that "allUsers" have read access and whatever user runs this
-    // has `Storage Legacy Bucket Writer` and `Storage Object Creator` access.
-    //
-    // let storage = crate::server::img_storage::StoreImage::create(&state.settings).await?;
-    let storage = crate::server::img_storage::StoreImage::default();
-
-    // fetch a remote URL and store it's contents into Google
-    match storage.store(&target_uri).await {
-        Ok(sr) => {
-            dbg!(sr);
-        }
-        Err(e) => {
-            dbg!(HandlerErrorKind::Internal(e.to_string()));
-        }
-    }
-
-    // Fetch an existing resource. Ideally, the one we just stored.
-    if let Some(res) = storage.fetch(&target_uri).await? {
-        Ok(HttpResponse::Ok().body(res.url.to_string()))
-    } else {
-        Ok(HttpResponse::NotFound().finish())
-    }
-}
 
 pub async fn get_tiles(
     treq: TilesRequest,
@@ -56,21 +19,24 @@ pub async fn get_tiles(
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
 
-    let fake_ip = if let Some(ip) = state.adm_country_ip_map.get(&treq.country) {
-        ip
-    } else {
-        state
-            .adm_country_ip_map
-            .get("US")
-            .expect("Invalid ADM_COUNTRY_IP_MAP setting")
-    };
-    let filters = state.filter.clone();
+    let location = (treq.country, "region".to_string()); // TODO: In lieu of Location
+                                                         /*
+                                                         let fake_ip = if let Some(ip) = state.adm_country_ip_map.get(&treq.country) {
+                                                             ip
+                                                         } else {
+                                                             state
+                                                                 .adm_country_ip_map
+                                                                 .get("US")
+                                                                 .expect("Invalid ADM_COUNTRY_IP_MAP setting")
+                                                         };
+                                                         */
     let stripped_ua = user_agent::strip_ua(&treq.ua);
 
     {
         // for demonstration purposes
         let mut tags = Tags::default();
-        tags.add_extra("ip", fake_ip.as_str());
+        tags.add_extra("country", &location.0);
+        tags.add_extra("region", &location.1);
         tags.add_extra("ua", &stripped_ua);
         tags.add_extra("sub2", &treq.placement);
         // Add/modify the existing request tags.
@@ -78,8 +44,8 @@ pub async fn get_tiles(
     }
 
     let audience_key = cache::AudienceKey {
-        country: treq.country,
-        fake_ip: fake_ip.clone(),
+        country: location.0.clone(),
+        // fake_ip: fake_ip.clone(),
         platform: stripped_ua.clone(),
         placement: treq.placement.clone(),
     };
@@ -94,10 +60,10 @@ pub async fn get_tiles(
     let response = adm::get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
-        fake_ip,
+        location,
         &stripped_ua,
         &treq.placement,
-        &filters,
+        &state,
     )
     .await?;
     let tiles = serde_json::to_string(&response)
