@@ -40,6 +40,7 @@ pub struct Settings {
     pub adm_country_ip_map: String,
     /// Expire tiles after this many seconds
     pub tiles_ttl: u32,
+    pub maxminddb_loc: Option<String>,
     pub storage: StorageSettings,
 }
 
@@ -57,6 +58,7 @@ impl Default for Settings {
             adm_endpoint_url: "".to_owned(),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             tiles_ttl: 15 * 60,
+            maxminddb_loc: None,
             storage: StorageSettings::default(),
         }
     }

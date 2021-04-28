@@ -35,6 +35,9 @@ pub enum HandlerErrorKind {
 
     #[error("Validation error: {:?}", _0)]
     Validation(String),
+
+    #[error("Location error: {:?}", _0)]
+    Location(String),
 }
 
 impl HandlerErrorKind {
@@ -53,6 +56,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Internal(_) => 510,
             HandlerErrorKind::Reqwest(_) => 520,
             HandlerErrorKind::Validation(_) => 600,
+            HandlerErrorKind::Location(_) => 530,
         }
     }
 
