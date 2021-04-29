@@ -84,25 +84,28 @@ fn adm_settings() -> AdmSettings {
     adm_settings.insert(
         "Acme".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_url: ["www.acme.biz".to_owned()].to_vec(),
+            advertiser_urls: ["www.acme.biz".to_owned()].to_vec(),
             position: Some(0),
             include_regions: Vec::new(),
+            impression_urls: ["example.net".to_owned()].to_vec(),
         },
     );
     adm_settings.insert(
         "Dunder Mifflin".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_url: ["www.dunderm.biz".to_owned()].to_vec(),
+            advertiser_urls: ["www.dunderm.biz".to_owned()].to_vec(),
             position: Some(1),
             include_regions: Vec::new(),
+            impression_urls: ["example.net".to_owned()].to_vec(),
         },
     );
     adm_settings.insert(
         "Los Pollos Hermanos".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_url: ["www.lph-nm.biz".to_owned()].to_vec(),
+            advertiser_urls: ["www.lph-nm.biz".to_owned()].to_vec(),
             position: Some(2),
             include_regions: Vec::new(),
+            impression_urls: ["example.net".to_owned()].to_vec(),
         },
     );
     adm_settings
@@ -151,9 +154,10 @@ async fn basic_filtered() {
     adm_settings.insert(
         "Example".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_url: ["www.example.ninja".to_owned()].to_vec(),
+            advertiser_urls: ["www.example.ninja".to_owned()].to_vec(),
             position: Some(100),
             include_regions: Vec::new(),
+            impression_urls: ["example.net".to_owned()].to_vec(),
         },
     );
     adm_settings.remove("Dunder Mifflin");

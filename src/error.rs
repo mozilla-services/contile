@@ -35,6 +35,12 @@ pub enum HandlerErrorKind {
 
     #[error("Validation error: {:?}", _0)]
     Validation(String),
+
+    #[error("Unexpected Site Host: {:?}", _0)]
+    UnexpectedSiteHost(String),
+
+    #[error("Unexpected Impression Host: {:?}", _0)]
+    UnexpectedImpressionHost(String),
 }
 
 impl HandlerErrorKind {
@@ -53,6 +59,8 @@ impl HandlerErrorKind {
             HandlerErrorKind::Internal(_) => 510,
             HandlerErrorKind::Reqwest(_) => 520,
             HandlerErrorKind::Validation(_) => 600,
+            HandlerErrorKind::UnexpectedSiteHost(_) => 601,
+            HandlerErrorKind::UnexpectedImpressionHost(_) => 602,
         }
     }
 

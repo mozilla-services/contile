@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
-use url::{Host, Url};
+use url::Url;
 
-use crate::error::{HandlerError, HandlerResult};
+use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 use crate::server::ServerState;
 use crate::settings::Settings;
 //use crate::server::img_storage;
@@ -22,7 +22,8 @@ pub struct AdmFilter {
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AdmAdvertiserFilterSettings {
     // valid
-    pub(crate) advertiser_url: Vec<String>,
+    pub(crate) advertiser_urls: Vec<String>,
+    pub(crate) impression_urls: Vec<String>,
     pub(crate) position: Option<u8>,
     pub(crate) include_regions: Vec<String>,
 }
@@ -30,6 +31,41 @@ pub struct AdmAdvertiserFilterSettings {
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 
 impl AdmFilter {
+    /// Check the impression URL to see if it's valid.
+    ///
+    /// This extends `filter_and_process`
+    fn check_impression(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+    ) -> HandlerResult<()> {
+        let parsed: Url = match tile.impression_url.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(HandlerErrorKind::UnexpectedImpressionHost(format!(
+                    "Invalid host: {:?} {:?}",
+                    e,
+                    tile.impression_url.to_string()
+                ))
+                .into());
+            }
+        };
+        let host = match parsed.host() {
+            Some(v) => v.to_string(),
+            None => {
+                return Err(HandlerErrorKind::UnexpectedImpressionHost(format!(
+                    "Missing impression host: {:?}",
+                    tile.impression_url
+                ))
+                .into());
+            }
+        };
+        if !filter.impression_urls.contains(&host) {
+            return Err(HandlerErrorKind::UnexpectedImpressionHost(host).into());
+        }
+        Ok(())
+    }
+
     /// Filter and process tiles from ADM:
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
@@ -38,29 +74,49 @@ impl AdmFilter {
         let parsed: Url = match tile.advertiser_url.parse() {
             Ok(v) => v,
             Err(e) => {
-                warn!(
-                    "Could not parse advertiser URL {:?} : {:?}",
-                    tile.advertiser_url, e
+                error!(
+                    "{:?}",
+                    HandlerErrorKind::UnexpectedSiteHost(format!(
+                        "Invalid host: {:?} {:?}",
+                        e,
+                        tile.advertiser_url.to_string()
+                    ))
                 );
                 return None;
             }
         };
-        let host = parsed.host().unwrap_or_else(|| {
-            error!("Could not get host from parsed url: {:?}", parsed);
-            Host::Domain("UNKNOWN")
-        });
+        let host = match parsed.host() {
+            Some(v) => v.to_string(),
+            None => {
+                error!(
+                    "{:?}",
+                    HandlerErrorKind::Validation(format!(
+                        "Missing host from advertiser URL: {:?}",
+                        parsed
+                    ))
+                );
+                return None;
+            }
+        };
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        match self.filter_map.get(&host.to_string()) {
+        let mut result = tile;
+        // TODO: Add a "DEFAULT" filter set to match against?
+        match self.filter_map.get(&host) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
-                let mut result = tile;
+                match self.check_impression(filter, &mut result) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("{:?}", e);
+                        return None;
+                    }
+                }
                 result.position = filter.position;
-                dbg!("👍🏻", host);
                 Some(result)
             }
             None => {
-                dbg!("👎🏻", host);
+                error!("{:?}", HandlerErrorKind::UnexpectedSiteHost(host));
                 None
             }
         }
@@ -92,8 +148,8 @@ impl From<&Settings> for HandlerResult<AdmFilter> {
             // map the settings to the URL we're going to be checking
             let mut d_settings = setting.clone();
             // we already have this info, no need to duplicate it.
-            d_settings.advertiser_url = vec![];
-            for url in setting.advertiser_url {
+            d_settings.advertiser_urls = vec![];
+            for url in setting.advertiser_urls {
                 // TODO: maybe use a reference for this data instead of cloning?
                 filter_map.insert(url, d_settings.clone());
             }
@@ -158,6 +214,7 @@ pub async fn get_tiles(
         .error_for_status()?
         .json()
         .await?;
+    // TODO: Is there a better way to raise the error possibly inside of `filter_and_process`?
     response.tiles = response
         .tiles
         .into_iter()
