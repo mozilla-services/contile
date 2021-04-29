@@ -243,7 +243,7 @@ async fn basic_default() {
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     let names: Vec<&str> = tiles
-        .into_iter()
+        .iter()
         .map(|tile| {
             tile.as_object()
                 .unwrap()
@@ -253,7 +253,7 @@ async fn basic_default() {
                 .unwrap()
         })
         .collect();
-    assert!(names.contains(&"Dunder Mifflin") == false);
+    assert!(!names.contains(&"Dunder Mifflin"));
 }
 
 #[actix_rt::test]
