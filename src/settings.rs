@@ -54,6 +54,8 @@ pub struct Settings {
     pub tiles_ttl: u32,
     /// list of allowed vendors (Array in JSON format)
     pub adm_settings: AdmSettings,
+    /// path to MaxMind location database
+    pub maxminddb_loc: Option<String>,
     /// Settings related to the google cloud storage
     pub storage: StorageSettings,
     /// Adm partner ID
@@ -77,6 +79,7 @@ impl Default for Settings {
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             tiles_ttl: 15 * 60,
             adm_settings: AdmSettings::default(),
+            maxminddb_loc: None,
             storage: StorageSettings::default(),
             partner_id: "demofeed".to_owned(),
             sub1: "123456789".to_owned(),

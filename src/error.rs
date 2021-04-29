@@ -41,6 +41,9 @@ pub enum HandlerErrorKind {
 
     #[error("Unexpected Impression Host: {:?}", _0)]
     UnexpectedImpressionHost(String),
+
+    #[error("Location error: {:?}", _0)]
+    Location(String),
 }
 
 impl HandlerErrorKind {
@@ -61,6 +64,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Validation(_) => 600,
             HandlerErrorKind::UnexpectedSiteHost(_) => 601,
             HandlerErrorKind::UnexpectedImpressionHost(_) => 602,
+            HandlerErrorKind::Location(_) => 530,
         }
     }
 

@@ -17,10 +17,11 @@ use crate::{
 
 pub mod cache;
 pub mod img_storage;
+pub mod location;
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
@@ -28,8 +29,27 @@ pub struct ServerState {
     pub adm_country_ip_map: Arc<BTreeMap<String, String>>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
+    pub mmdb: location::Location,
     pub settings: Settings,
     pub filter: AdmFilter,
+}
+
+impl std::fmt::Debug for ServerState {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mmdb_status = if self.mmdb.is_available() {
+            "is set"
+        } else {
+            "is not set"
+        };
+        fmt.debug_struct("ServerState")
+            .field("metrics", &self.metrics)
+            .field("adm_endpoint_url", &self.adm_endpoint_url)
+            .field("adm_country_ip_map", &self.adm_country_ip_map)
+            .field("reqwest_client", &self.reqwest_client)
+            .field("tiles_cache", &self.tiles_cache)
+            .field("mmdb", &mmdb_status.to_owned())
+            .finish()
+    }
 }
 
 pub struct Server;
@@ -68,6 +88,7 @@ impl Server {
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::new(),
             tiles_cache: cache::TilesCache::new(75),
+            mmdb: (&settings).into(),
             settings: settings.clone(),
             filter,
         };
