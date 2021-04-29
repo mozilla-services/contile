@@ -241,10 +241,19 @@ async fn basic_default() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    let names:Vec<&str> = tiles.into_iter().map(|tile| tile.as_object().unwrap().get("name").unwrap().as_str().unwrap()).collect();
+    let names: Vec<&str> = tiles
+        .into_iter()
+        .map(|tile| {
+            tile.as_object()
+                .unwrap()
+                .get("name")
+                .unwrap()
+                .as_str()
+                .unwrap()
+        })
+        .collect();
     assert!(names.contains(&"Dunder Mifflin") == false);
 }
-
 
 #[actix_rt::test]
 async fn invalid_placement() {
