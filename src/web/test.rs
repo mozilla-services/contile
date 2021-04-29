@@ -8,7 +8,7 @@ use actix_web::{
 use serde_json::Value;
 
 use crate::{
-    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings},
+    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings, DEFAULT},
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
@@ -84,28 +84,38 @@ fn adm_settings() -> AdmSettings {
     adm_settings.insert(
         "Acme".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_urls: ["www.acme.biz".to_owned()].to_vec(),
+            advertiser_hosts: ["www.acme.biz".to_owned()].to_vec(),
             position: Some(0),
             include_regions: Vec::new(),
-            impression_urls: ["example.net".to_owned()].to_vec(),
+            impression_hosts: vec![],
         },
     );
     adm_settings.insert(
         "Dunder Mifflin".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_urls: ["www.dunderm.biz".to_owned()].to_vec(),
+            advertiser_hosts: ["www.dunderm.biz".to_owned()].to_vec(),
             position: Some(1),
             include_regions: Vec::new(),
-            impression_urls: ["example.net".to_owned()].to_vec(),
+            impression_hosts: ["example.com".to_owned()].to_vec(),
         },
     );
     adm_settings.insert(
         "Los Pollos Hermanos".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_urls: ["www.lph-nm.biz".to_owned()].to_vec(),
+            advertiser_hosts: ["www.lph-nm.biz".to_owned()].to_vec(),
             position: Some(2),
             include_regions: Vec::new(),
-            impression_urls: ["example.net".to_owned()].to_vec(),
+            impression_hosts: vec![],
+        },
+    );
+    // This is the "default" setting definitions.
+    adm_settings.insert(
+        DEFAULT.to_owned(),
+        AdmAdvertiserFilterSettings {
+            advertiser_hosts: [DEFAULT.to_owned()].to_vec(),
+            position: None,
+            include_regions: Vec::new(),
+            impression_hosts: ["example.net".to_owned()].to_vec(),
         },
     );
     adm_settings
@@ -154,10 +164,10 @@ async fn basic_filtered() {
     adm_settings.insert(
         "Example".to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_urls: ["www.example.ninja".to_owned()].to_vec(),
+            advertiser_hosts: ["www.example.ninja".to_owned()].to_vec(),
             position: Some(100),
             include_regions: Vec::new(),
-            impression_urls: ["example.net".to_owned()].to_vec(),
+            impression_hosts: ["example.net".to_owned()].to_vec(),
         },
     );
     adm_settings.remove("Dunder Mifflin");
@@ -198,6 +208,43 @@ async fn basic_filtered() {
         }
     }
 }
+
+#[actix_rt::test]
+async fn basic_default() {
+    let (_, addr) = init_mock_adm();
+
+    let adm_settings = adm_settings();
+
+    let settings = Settings {
+        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_settings,
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles?country=UK&placement=newtab")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    let names:Vec<&str> = tiles.into_iter().map(|tile| tile.as_object().unwrap().get("name").unwrap().as_str().unwrap()).collect();
+    assert!(names.contains(&"Dunder Mifflin") == false);
+}
+
 
 #[actix_rt::test]
 async fn invalid_placement() {
