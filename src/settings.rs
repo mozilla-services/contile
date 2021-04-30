@@ -52,6 +52,8 @@ pub struct Settings {
     pub adm_country_ip_map: String,
     /// max tiles to accept from ADM (default: 2)
     pub adm_max_tiles: u8,
+    /// number of tiles to query from ADM (default: 10)
+    pub adm_query_tile_count: u8,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
     /// list of allowed vendors (Array in JSON format)
@@ -80,6 +82,7 @@ impl Default for Settings {
             adm_endpoint_url: "".to_owned(),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             adm_max_tiles: 2,
+            adm_query_tile_count: 10,
             tiles_ttl: 15 * 60,
             adm_settings: AdmSettings::default(),
             maxminddb_loc: None,

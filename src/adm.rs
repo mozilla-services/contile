@@ -178,11 +178,7 @@ impl AdmFilter {
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
                 // `default`.
-                result.position = if filter.position.is_none() {
-                    default.position
-                } else {
-                    filter.position
-                };
+                result.position = filter.position.or(default.position);
                 Some(result)
             }
             None => {
@@ -273,7 +269,7 @@ pub async fn get_tiles(
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
             // when omitted (despite AdM claiming it would default to 1)
-            ("results", &settings.adm_max_tiles.to_string()),
+            ("results", &settings.adm_query_tile_count.to_string()),
         ],
     )
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
