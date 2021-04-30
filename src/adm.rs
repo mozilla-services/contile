@@ -3,8 +3,11 @@ use std::collections::{BTreeMap, HashMap};
 use url::Url;
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
+use crate::server::location::LocationResult;
 use crate::server::ServerState;
 use crate::settings::Settings;
+use crate::tags::Tags;
+use crate::web::middleware::sentry as l_sentry;
 //use crate::server::img_storage;
 
 pub(crate) const DEFAULT: &str = "DEFAULT";
@@ -38,6 +41,11 @@ pub struct AdmAdvertiserFilterSettings {
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 
 impl AdmFilter {
+    /// Report the error directly to sentry
+    fn report(&self, error: &HandlerError, tags: &Tags) {
+        l_sentry::report(tags, sentry::event_from_error(error));
+    }
+
     /// Check the impression URL to see if it's valid.
     ///
     /// This extends `filter_and_process`
@@ -77,17 +85,18 @@ impl AdmFilter {
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
     /// - Modifies tiles for output to the client (adding additional fields, etc.)
-    pub fn filter_and_process(&self, tile: AdmTile) -> Option<AdmTile> {
+    pub fn filter_and_process(&self, tile: AdmTile, tags: &Tags) -> Option<AdmTile> {
         let parsed: Url = match tile.advertiser_url.parse() {
             Ok(v) => v,
             Err(e) => {
-                error!(
-                    "{:?}",
-                    HandlerErrorKind::UnexpectedSiteHost(format!(
+                self.report(
+                    &HandlerErrorKind::UnexpectedSiteHost(format!(
                         "Invalid host: {:?} {:?}",
                         e,
                         tile.advertiser_url.to_string()
                     ))
+                    .into(),
+                    tags,
                 );
                 return None;
             }
@@ -95,12 +104,13 @@ impl AdmFilter {
         let host = match parsed.host() {
             Some(v) => v.to_string(),
             None => {
-                error!(
-                    "{:?}",
-                    HandlerErrorKind::Validation(format!(
+                self.report(
+                    &HandlerErrorKind::Validation(format!(
                         "Missing host from advertiser URL: {:?}",
                         parsed
                     ))
+                    .into(),
+                    tags,
                 );
                 return None;
             }
@@ -121,7 +131,7 @@ impl AdmFilter {
                 match self.check_impression(impression_filter, &mut result) {
                     Ok(_) => {}
                     Err(e) => {
-                        error!("{:?}", e);
+                        self.report(&e, tags);
                         return None;
                     }
                 }
@@ -133,7 +143,7 @@ impl AdmFilter {
                 Some(result)
             }
             None => {
-                error!("{:?}", HandlerErrorKind::UnexpectedSiteHost(host));
+                self.report(&HandlerErrorKind::UnexpectedSiteHost(host).into(), tags);
                 None
             }
         }
@@ -198,10 +208,11 @@ pub struct AdmTile {
 pub async fn get_tiles(
     reqwest_client: &reqwest::Client,
     adm_endpoint_url: &str,
-    location: (String, String), // TODO: in lieu of Location
+    location: &LocationResult,
     stripped_ua: &str,
     placement: &str,
     state: &ServerState,
+    tags: &Tags,
 ) -> Result<AdmTileResponse, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
@@ -214,8 +225,8 @@ pub async fn get_tiles(
             ("partner", settings.partner_id.as_str()),
             ("sub1", settings.sub1.as_str()),
             // ("sub2", placement),
-            ("country-code", location.0.as_str()),
-            ("region-code", location.1.as_str()),
+            ("country-code", &location.country()),
+            ("region-code", &location.region()),
             // ("dma-code", location.dma),
             // ("form-factor", form_factor),
             ("os-family", stripped_ua),
@@ -244,7 +255,7 @@ pub async fn get_tiles(
     response.tiles = response
         .tiles
         .into_iter()
-        .filter_map(|tile| state.filter.filter_and_process(tile))
+        .filter_map(|tile| state.filter.filter_and_process(tile, tags))
         .collect();
     Ok(response)
 }
