@@ -204,6 +204,7 @@ async fn basic_filtered() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    // remember, we cap at `settings.adm_max_tiles` (currently 2)
     assert!(tiles.len() == 2);
     for tile in tiles {
         let tile = tile.as_object().expect("!tile.is_object()");

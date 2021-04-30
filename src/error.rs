@@ -43,7 +43,7 @@ pub enum HandlerErrorKind {
     UnexpectedHost(&'static str, String),
 
     #[error("Unexpected Advertiser: {:?}", _0)]
-    UnexpectedAdvertizer(String),
+    UnexpectedAdvertiser(String),
 
     #[error("Missing {} Host: {:?}", _0, _1)]
     MissingHost(&'static str, String),
@@ -71,7 +71,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::InvalidHost(_, _) => 601,
             HandlerErrorKind::UnexpectedHost(_, _) => 602,
             HandlerErrorKind::MissingHost(_, _) => 603,
-            HandlerErrorKind::UnexpectedAdvertizer(_) => 604,
+            HandlerErrorKind::UnexpectedAdvertiser(_) => 604,
             HandlerErrorKind::Location(_) => 530,
         }
     }

@@ -41,39 +41,43 @@ pub struct AdmAdvertiserFilterSettings {
 
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 
-macro_rules! check_url {
-    ($url:expr, $species:expr, $filter:expr, $tags: expr) => {{
-        let parsed: Url = match $url.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                $tags.add_tag("type", $species);
-                $tags.add_extra("parse_error", &e.to_string());
-                $tags.add_extra("url", $url);
-                return Err(HandlerErrorKind::InvalidHost($species, $url.to_string()).into());
-            }
-        };
-        let host = match parsed.host() {
-            Some(v) => v.to_string(),
-            None => {
-                $tags.add_tag("type", $species);
-                $tags.add_extra("url", $url);
-                return Err(HandlerErrorKind::MissingHost($species, parsed.to_string()).into());
-            }
-        };
-        if !$filter.contains(&host) {
-            $tags.add_tag("type", $species);
-            $tags.add_extra("url", $url);
-            return Err(HandlerErrorKind::UnexpectedHost($species, host).into());
+/// Check that a given URL is valid according to it's corresponding filter
+fn check_url(
+    url: &str,
+    species: &'static str,
+    filter: &[String],
+    tags: &mut Tags,
+) -> HandlerResult<()> {
+    let parsed: Url = match url.parse() {
+        Ok(v) => v,
+        Err(e) => {
+            tags.add_tag("type", species);
+            tags.add_extra("parse_error", &e.to_string());
+            tags.add_extra("url", &url);
+            return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
         }
-        Ok(())
-    }};
+    };
+    let host = match parsed.host() {
+        Some(v) => v.to_string(),
+        None => {
+            tags.add_tag("type", species);
+            tags.add_extra("url", &url);
+            return Err(HandlerErrorKind::MissingHost(species, parsed.to_string()).into());
+        }
+    };
+    if !filter.contains(&host) {
+        tags.add_tag("type", species);
+        tags.add_extra("url", &url);
+        return Err(HandlerErrorKind::UnexpectedHost(species, host).into());
+    }
+    Ok(())
 }
 
 impl AdmFilter {
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
         // dbg!(&error, &tags);
-        // TOOD: if not error.is_reportable, just add to metrics.
+        // TODO: if not error.is_reportable, just add to metrics.
         l_sentry::report(tags, sentry::event_from_error(error));
     }
 
@@ -84,11 +88,11 @@ impl AdmFilter {
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
-        check_url!(
+        check_url(
             &tile.advertiser_url,
-            "Advertizer",
-            filter.advertiser_hosts,
-            tags
+            "Advertiser",
+            &filter.advertiser_hosts,
+            tags,
         )
     }
 
@@ -99,7 +103,7 @@ impl AdmFilter {
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
-        check_url!(&tile.click_url, "Click", filter.click_hosts, tags)
+        check_url(&tile.click_url, "Click", &filter.click_hosts, tags)
     }
 
     /// Check the impression URL to see if it's valid.
@@ -111,11 +115,11 @@ impl AdmFilter {
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
-        check_url!(
+        check_url(
             &tile.impression_url,
             "Impression",
-            filter.impression_hosts,
-            tags
+            &filter.impression_hosts,
+            tags,
         )
     }
 
@@ -171,6 +175,9 @@ impl AdmFilter {
                         return None;
                     }
                 }
+                // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
+                // defined. In either case `None` is a valid return, but we should favor `filter` over
+                // `default`.
                 result.position = if filter.position.is_none() {
                     default.position
                 } else {
@@ -180,7 +187,7 @@ impl AdmFilter {
             }
             None => {
                 self.report(
-                    &HandlerErrorKind::UnexpectedAdvertizer(tile.name).into(),
+                    &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
                     tags,
                 );
                 None
@@ -250,7 +257,6 @@ pub async fn get_tiles(
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
     // validate this on startup)
-    // let user_loc =
     let settings = state.settings.clone();
     let adm_url = Url::parse_with_params(
         adm_endpoint_url,
@@ -267,7 +273,7 @@ pub async fn get_tiles(
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
             // when omitted (despite AdM claiming it would default to 1)
-            ("results", "10"),
+            ("results", &settings.adm_max_tiles.to_string()),
         ],
     )
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
@@ -289,6 +295,7 @@ pub async fn get_tiles(
         .tiles
         .into_iter()
         .filter_map(|tile| state.filter.filter_and_process(tile, tags))
+        .take(settings.adm_max_tiles as usize)
         .collect();
     Ok(response)
 }

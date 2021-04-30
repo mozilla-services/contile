@@ -47,7 +47,7 @@ pub struct StoreResult {
 impl StoreImage {
     pub async fn create(settings: &Settings) -> HandlerResult<Self> {
         let sset = settings.storage.clone();
-        // TOOD: Validate bucket name?
+        // TODO: Validate bucket name?
         // https://cloud.google.com/storage/docs/naming-buckets
         dbg!("Try creating bucket...");
         let bucket = match Bucket::create(&cloud_storage::NewBucket {

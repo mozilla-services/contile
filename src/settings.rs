@@ -50,7 +50,9 @@ pub struct Settings {
     pub adm_endpoint_url: String,
     /// adm country to default IP map (Hash in JSON format)
     pub adm_country_ip_map: String,
-    /// Expire tiles after this many seconds
+    /// max tiles to accept from ADM (default: 2)
+    pub adm_max_tiles: u8,
+    /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
     /// list of allowed vendors (Array in JSON format)
     pub adm_settings: AdmSettings,
@@ -58,9 +60,9 @@ pub struct Settings {
     pub maxminddb_loc: Option<String>,
     /// Settings related to the google cloud storage
     pub storage: StorageSettings,
-    /// Adm partner ID
+    /// Adm partner ID (default: "demofeed")
     pub partner_id: String,
-    /// Adm sub1 value
+    /// Adm sub1 value (default: "123456789")
     pub sub1: String,
 }
 
@@ -77,6 +79,7 @@ impl Default for Settings {
             actix_keep_alive: None,
             adm_endpoint_url: "".to_owned(),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
+            adm_max_tiles: 2,
             tiles_ttl: 15 * 60,
             adm_settings: AdmSettings::default(),
             maxminddb_loc: None,
