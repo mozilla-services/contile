@@ -257,7 +257,7 @@ pub async fn get_tiles(
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
     // validate this on startup)
-    let settings = state.settings.clone();
+    let settings = &state.settings;
     let adm_url = Url::parse_with_params(
         adm_endpoint_url,
         &[
@@ -290,7 +290,6 @@ pub async fn get_tiles(
         .error_for_status()?
         .json()
         .await?;
-    // TODO: Is there a better way to raise the error possibly inside of `filter_and_process`?
     response.tiles = response
         .tiles
         .into_iter()
