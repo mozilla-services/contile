@@ -36,11 +36,17 @@ pub enum HandlerErrorKind {
     #[error("Validation error: {:?}", _0)]
     Validation(String),
 
-    #[error("Unexpected Site Host: {:?}", _0)]
-    UnexpectedSiteHost(String),
+    #[error("Invalid {} Host: {:?}", _0, _1)]
+    InvalidHost(&'static str, String),
 
-    #[error("Unexpected Impression Host: {:?}", _0)]
-    UnexpectedImpressionHost(String),
+    #[error("Unexpected {} Host: {:?}", _0, _1)]
+    UnexpectedHost(&'static str, String),
+
+    #[error("Unexpected Advertiser: {:?}", _0)]
+    UnexpectedAdvertizer(String),
+
+    #[error("Missing {} Host: {:?}", _0, _1)]
+    MissingHost(&'static str, String),
 
     #[error("Location error: {:?}", _0)]
     Location(String),
@@ -62,17 +68,19 @@ impl HandlerErrorKind {
             HandlerErrorKind::Internal(_) => 510,
             HandlerErrorKind::Reqwest(_) => 520,
             HandlerErrorKind::Validation(_) => 600,
-            HandlerErrorKind::UnexpectedSiteHost(_) => 601,
-            HandlerErrorKind::UnexpectedImpressionHost(_) => 602,
+            HandlerErrorKind::InvalidHost(_, _) => 601,
+            HandlerErrorKind::UnexpectedHost(_, _) => 602,
+            HandlerErrorKind::MissingHost(_, _) => 603,
+            HandlerErrorKind::UnexpectedAdvertizer(_) => 604,
             HandlerErrorKind::Location(_) => 530,
         }
     }
 
     /*
     // Optionally record metric for certain states
-    pub fn on_response(&self, state: &ServerState) {
-        if self.is_conflict() {
-            Metrics::from(state).incr("storage.confict")
+    pub fn is_reportable(&self) -> bool {
+        match self {
+            _ => true
         }
     }
     */

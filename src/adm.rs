@@ -34,16 +34,72 @@ pub struct AdmFilter {
 pub struct AdmAdvertiserFilterSettings {
     pub(crate) advertiser_hosts: Vec<String>,
     pub(crate) impression_hosts: Vec<String>,
+    pub(crate) click_hosts: Vec<String>,
     pub(crate) position: Option<u8>,
     pub(crate) include_regions: Vec<String>,
 }
 
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 
+macro_rules! check_url {
+    ($url:expr, $species:expr, $filter:expr, $tags: expr) => {{
+        let parsed: Url = match $url.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                $tags.add_tag("type", $species);
+                $tags.add_extra("parse_error", &e.to_string());
+                $tags.add_extra("url", $url);
+                return Err(HandlerErrorKind::InvalidHost($species, $url.to_string()).into());
+            }
+        };
+        let host = match parsed.host() {
+            Some(v) => v.to_string(),
+            None => {
+                $tags.add_tag("type", $species);
+                $tags.add_extra("url", $url);
+                return Err(HandlerErrorKind::MissingHost($species, parsed.to_string()).into());
+            }
+        };
+        if !$filter.contains(&host) {
+            $tags.add_tag("type", $species);
+            $tags.add_extra("url", $url);
+            return Err(HandlerErrorKind::UnexpectedHost($species, host).into());
+        }
+        Ok(())
+    }};
+}
+
 impl AdmFilter {
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
+        // dbg!(&error, &tags);
+        // TOOD: if not error.is_reportable, just add to metrics.
         l_sentry::report(tags, sentry::event_from_error(error));
+    }
+
+    /// Check the advertiser URL
+    fn check_advertiser(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        check_url!(
+            &tile.advertiser_url,
+            "Advertizer",
+            filter.advertiser_hosts,
+            tags
+        )
+    }
+
+    /// Check the click URL
+    fn check_click(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        check_url!(&tile.click_url, "Click", filter.click_hosts, tags)
     }
 
     /// Check the impression URL to see if it's valid.
@@ -53,82 +109,62 @@ impl AdmFilter {
         &self,
         filter: &AdmAdvertiserFilterSettings,
         tile: &mut AdmTile,
+        tags: &mut Tags,
     ) -> HandlerResult<()> {
-        let parsed: Url = match tile.impression_url.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(HandlerErrorKind::UnexpectedImpressionHost(format!(
-                    "Invalid host: {:?} {:?}",
-                    e,
-                    tile.impression_url.to_string()
-                ))
-                .into());
-            }
-        };
-        let host = match parsed.host() {
-            Some(v) => v.to_string(),
-            None => {
-                return Err(HandlerErrorKind::UnexpectedImpressionHost(format!(
-                    "Missing impression host: {:?}",
-                    tile.impression_url
-                ))
-                .into());
-            }
-        };
-        if !filter.impression_hosts.contains(&host) {
-            return Err(HandlerErrorKind::UnexpectedImpressionHost(host).into());
-        }
-        Ok(())
+        check_url!(
+            &tile.impression_url,
+            "Impression",
+            filter.impression_hosts,
+            tags
+        )
     }
 
     /// Filter and process tiles from ADM:
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
     /// - Modifies tiles for output to the client (adding additional fields, etc.)
-    pub fn filter_and_process(&self, tile: AdmTile, tags: &Tags) -> Option<AdmTile> {
-        let parsed: Url = match tile.advertiser_url.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                self.report(
-                    &HandlerErrorKind::UnexpectedSiteHost(format!(
-                        "Invalid host: {:?} {:?}",
-                        e,
-                        tile.advertiser_url.to_string()
-                    ))
-                    .into(),
-                    tags,
-                );
-                return None;
-            }
-        };
-        let host = match parsed.host() {
-            Some(v) => v.to_string(),
-            None => {
-                self.report(
-                    &HandlerErrorKind::Validation(format!(
-                        "Missing host from advertiser URL: {:?}",
-                        parsed
-                    ))
-                    .into(),
-                    tags,
-                );
-                return None;
-            }
-        };
+    pub fn filter_and_process(&self, tile: AdmTile, tags: &mut Tags) -> Option<AdmTile> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        let mut result = tile;
-        match self.filter_set.get(&host) {
+        let mut result = tile.clone();
+        match self.filter_set.get(&tile.name.to_lowercase()) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
                 let none = AdmAdvertiserFilterSettings::default();
-                let default = self.filter_set.get(DEFAULT).unwrap_or(&none);
+                let default = self
+                    .filter_set
+                    .get(&DEFAULT.to_lowercase())
+                    .unwrap_or(&none);
+                let adv_filter = if filter.advertiser_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
                 let impression_filter = if filter.impression_hosts.is_empty() {
                     default
                 } else {
                     filter
                 };
-                match self.check_impression(impression_filter, &mut result) {
+                let click_filter = if filter.click_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
+                match self.check_advertiser(adv_filter, &mut result, tags) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        self.report(&e, tags);
+                        return None;
+                    }
+                }
+                match self.check_click(click_filter, &mut result, tags) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        self.report(&e, tags);
+                        return None;
+                    }
+                }
+                match self.check_impression(impression_filter, &mut result, tags) {
                     Ok(_) => {}
                     Err(e) => {
                         self.report(&e, tags);
@@ -143,7 +179,10 @@ impl AdmFilter {
                 Some(result)
             }
             None => {
-                self.report(&HandlerErrorKind::UnexpectedSiteHost(host).into(), tags);
+                self.report(
+                    &HandlerErrorKind::UnexpectedAdvertizer(tile.name).into(),
+                    tags,
+                );
                 None
             }
         }
@@ -178,15 +217,9 @@ impl From<&Settings> for HandlerResult<AdmFilter> {
     fn from(settings: &Settings) -> Self {
         let mut filter_map: BTreeMap<String, AdmAdvertiserFilterSettings> = BTreeMap::new();
         for (adv, setting) in settings.adm_settings.clone() {
-            dbg!("Processing records for {:?}", adv);
+            dbg!("Processing records for {:?}", &adv);
             // map the settings to the URL we're going to be checking
-            let mut d_settings = setting.clone();
-            // we already have this info, no need to duplicate it.
-            d_settings.advertiser_hosts = vec![];
-            for url in setting.advertiser_hosts {
-                // TODO: maybe use a reference for this data instead of cloning?
-                filter_map.insert(url, d_settings.clone());
-            }
+            filter_map.insert(adv.to_lowercase(), setting);
         }
         Ok(AdmFilter {
             filter_set: filter_map,
@@ -212,7 +245,7 @@ pub async fn get_tiles(
     stripped_ua: &str,
     placement: &str,
     state: &ServerState,
-    tags: &Tags,
+    tags: &mut Tags,
 ) -> Result<AdmTileResponse, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should

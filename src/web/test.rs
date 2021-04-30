@@ -87,8 +87,9 @@ fn adm_settings() -> AdmSettings {
         AdmAdvertiserFilterSettings {
             advertiser_hosts: ["www.acme.biz".to_owned()].to_vec(),
             position: Some(0),
-            include_regions: Vec::new(),
+            include_regions: vec![],
             impression_hosts: vec![],
+            click_hosts: vec![],
         },
     );
     adm_settings.insert(
@@ -96,8 +97,9 @@ fn adm_settings() -> AdmSettings {
         AdmAdvertiserFilterSettings {
             advertiser_hosts: ["www.dunderm.biz".to_owned()].to_vec(),
             position: Some(1),
-            include_regions: Vec::new(),
+            include_regions: vec![],
             impression_hosts: ["example.com".to_owned()].to_vec(),
+            click_hosts: vec![],
         },
     );
     adm_settings.insert(
@@ -105,18 +107,20 @@ fn adm_settings() -> AdmSettings {
         AdmAdvertiserFilterSettings {
             advertiser_hosts: ["www.lph-nm.biz".to_owned()].to_vec(),
             position: Some(2),
-            include_regions: Vec::new(),
+            include_regions: vec![],
             impression_hosts: vec![],
+            click_hosts: vec![],
         },
     );
     // This is the "default" setting definitions.
     adm_settings.insert(
         DEFAULT.to_owned(),
         AdmAdvertiserFilterSettings {
-            advertiser_hosts: [DEFAULT.to_owned()].to_vec(),
+            advertiser_hosts: vec![],
             position: None,
-            include_regions: Vec::new(),
+            include_regions: vec![],
             impression_hosts: ["example.net".to_owned()].to_vec(),
+            click_hosts: ["example.com".to_owned()].to_vec(),
         },
     );
     adm_settings
@@ -169,6 +173,7 @@ async fn basic_filtered() {
             position: Some(100),
             include_regions: Vec::new(),
             impression_hosts: ["example.net".to_owned()].to_vec(),
+            click_hosts: ["example.com".to_owned()].to_vec(),
         },
     );
     adm_settings.remove("Dunder Mifflin");

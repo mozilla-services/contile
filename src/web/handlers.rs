@@ -82,7 +82,7 @@ pub async fn get_tiles(
         &stripped_ua,
         &treq.placement,
         &state,
-        &tags,
+        &mut tags,
     )
     .await?;
     let tiles = serde_json::to_string(&response)

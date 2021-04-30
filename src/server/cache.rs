@@ -67,6 +67,7 @@ async fn tile_cache_updater(state: &ServerState) {
     trace!("tile_cache_updater..");
     let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
     for key in keys {
+        let mut tags = Tags::default();
         let result = adm::get_tiles(
             reqwest_client,
             adm_endpoint_url,
@@ -78,7 +79,7 @@ async fn tile_cache_updater(state: &ServerState) {
             &key.platform,
             &key.placement,
             &state,
-            &Tags::default(),
+            &mut tags,
         )
         .await;
 
