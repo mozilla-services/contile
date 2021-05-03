@@ -122,8 +122,10 @@ pub async fn get_tiles(
                 // (This is starting to become a pattern. 🤔)
                 let mut tags = Tags::from(request.head());
                 tags.add_extra("err", es);
+                tags.add_tag("level", "warning");
                 l_sentry::report(&tags, sentry::event_from_error(&e));
                 //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
+                warn!("ADM Server error: {:?}", e);
                 "[]".to_owned()
             }
             _ => return Err(e),

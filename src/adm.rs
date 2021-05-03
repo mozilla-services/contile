@@ -48,12 +48,17 @@ pub async fn get_tiles(
         .get(adm_url)
         .header(reqwest::header::USER_AGENT, stripped_ua)
         .send()
-        .await?
+        .await
+        .map_err(|e| {
+            // ADM servers are down, or improperly configured
+            HandlerErrorKind::BadAdmResponse(format!("ADM Server Error: {:?}", e))
+        })?
         .error_for_status()?
         .json()
         .await
         .map_err(|e| {
-            HandlerErrorKind::BadAdmResponse(format!("Returned invalid response: {:?}", e))
+            // ADM servers are not returning correct information
+            HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
         })?;
     response.tiles = response
         .tiles
