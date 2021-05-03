@@ -1,6 +1,7 @@
 //! API Handlers
 use actix_http::http::Uri;
 use actix_web::{web, HttpRequest, HttpResponse};
+use serde_json::json;
 
 use super::user_agent;
 use crate::{
@@ -126,7 +127,7 @@ pub async fn get_tiles(
                 l_sentry::report(&tags, sentry::event_from_error(&e));
                 //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
                 warn!("ADM Server error: {:?}", e);
-                "[]".to_owned()
+                json!({"tiles":[]}).to_string()
             }
             _ => return Err(e),
         },
