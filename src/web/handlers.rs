@@ -10,6 +10,7 @@ use crate::{
     server::{cache, ServerState},
     tags::Tags,
     web::extractors::TilesRequest,
+    web::middleware::sentry as l_sentry,
 };
 
 pub async fn get_image(
@@ -90,24 +91,44 @@ pub async fn get_tiles(
             .body(&tiles.json));
     }
 
-    let response = adm::get_tiles(
+    let tiles = match adm::get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
         fake_ip,
         &stripped_ua,
         &treq.placement,
     )
-    .await?;
-    let tiles = serde_json::to_string(&response)
-        .map_err(|e| HandlerError::internal(&format!("Response failed to serialize: {}", e)))?;
-    trace!("get_tiles: cache miss: {:?}", audience_key);
-    metrics.incr("tiles_cache.miss");
-    state.tiles_cache.write().await.insert(
-        audience_key,
-        cache::Tiles {
-            json: tiles.clone(),
+    .await
+    {
+        Ok(response) => {
+            // adM sometimes returns an invalid response. We don't want to cache that.
+            let tiles = serde_json::to_string(&response).map_err(|e| {
+                HandlerError::internal(&format!("Response failed to serialize: {}", e))
+            })?;
+            trace!("get_tiles: cache miss: {:?}", audience_key);
+            metrics.incr("tiles_cache.miss");
+            state.tiles_cache.write().await.insert(
+                audience_key,
+                cache::Tiles {
+                    json: tiles.clone(),
+                },
+            );
+            tiles
+        }
+        Err(e) => match e.kind() {
+            HandlerErrorKind::BadAdmResponse(es) => {
+                warn!("Bad response from ADM: {:?}", e);
+                // Report directly to sentry
+                // (This is starting to become a pattern. 🤔)
+                let mut tags = Tags::from(request.head());
+                tags.add_extra("err", es);
+                l_sentry::report(&tags, sentry::event_from_error(&e));
+                //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
+                "[]".to_owned()
+            }
+            _ => return Err(e),
         },
-    );
+    };
 
     Ok(HttpResponse::Ok()
         .content_type("application/json")

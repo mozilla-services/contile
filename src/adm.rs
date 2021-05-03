@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::error::HandlerError;
+use crate::error::{HandlerError, HandlerErrorKind};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdmTileResponse {
     pub tiles: Vec<AdmTile>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct AdmTile {
     pub id: u64,
     pub name: String,
@@ -44,8 +44,6 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     trace!("get_tiles GET {}", adm_url);
-    // XXX: handle empty responses -- AdM sends empty json in that case
-    // 'Error("missing field `tiles`"'
     let mut response: AdmTileResponse = reqwest_client
         .get(adm_url)
         .header(reqwest::header::USER_AGENT, stripped_ua)
@@ -53,7 +51,10 @@ pub async fn get_tiles(
         .await?
         .error_for_status()?
         .json()
-        .await?;
+        .await
+        .map_err(|e| {
+            HandlerErrorKind::BadAdmResponse(format!("Returned invalid response: {:?}", e))
+        })?;
     response.tiles = response
         .tiles
         .into_iter()
