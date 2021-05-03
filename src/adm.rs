@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::{collections::HashMap, fmt::Debug};
 use url::Url;
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
@@ -18,10 +18,15 @@ pub struct AdmTileResponse {
 }
 
 /// Filter criteria for adm Tiles
+/// Each "filter"  is a set of [AdmAdvertiserFilterSettings] that are
+/// specific to a given Advertiser name (the names are matched against
+/// the tiles fetch request)
+/// In addition there is a special [DEFAULT] value which is a filter
+/// that will be applied to all advertisers that do not supply their
+/// own values.
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
-    /// list of allowed base host strings.
-    pub filter_set: BTreeMap<String, AdmAdvertiserFilterSettings>,
+    pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
 }
 
 /// The AdmAdvertiserFilterSettings contain the settings for the various
@@ -30,16 +35,30 @@ pub struct AdmFilter {
 /// information that may be used as a DEFAULT, or commonly appearing set
 /// of data.
 /// See `impl From<Settings>` for details of the structure.
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
+    /// Set of valid hosts for the `advertiser_url`
     pub(crate) advertiser_hosts: Vec<String>,
+    /// Set of valid hosts for the `impression_url`
     pub(crate) impression_hosts: Vec<String>,
+    /// Set of valid hosts for the `click_url`
     pub(crate) click_hosts: Vec<String>,
+    /// valid position for the tile
     pub(crate) position: Option<u8>,
+    /// Set of valid regions for the tile (e.g ["en", "en-US/TX"])
     pub(crate) include_regions: Vec<String>,
 }
 
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
+
+impl From<&Settings> for AdmSettings {
+    fn from(settings: &Settings) -> Self {
+        if settings.adm_settings.is_empty() {
+            return Self::default();
+        }
+        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings")
+    }
+}
 
 /// Check that a given URL is valid according to it's corresponding filter
 fn check_url(
@@ -139,6 +158,8 @@ impl AdmFilter {
                     .filter_set
                     .get(&DEFAULT.to_lowercase())
                     .unwrap_or(&none);
+                // if the filter doesn't have anything defined, try using what's in the default.
+                // Sadly, `vec.or()` doesn't exist, so do this a bit "long hand"
                 let adv_filter = if filter.advertiser_hosts.is_empty() {
                     default
                 } else {
@@ -154,26 +175,17 @@ impl AdmFilter {
                 } else {
                     filter
                 };
-                match self.check_advertiser(adv_filter, &mut result, tags) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        self.report(&e, tags);
-                        return None;
-                    }
+                if let Err(e) = self.check_advertiser(adv_filter, &mut result, tags) {
+                    self.report(&e, tags);
+                    return None;
                 }
-                match self.check_click(click_filter, &mut result, tags) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        self.report(&e, tags);
-                        return None;
-                    }
+                if let Err(e) = self.check_click(click_filter, &mut result, tags) {
+                    self.report(&e, tags);
+                    return None;
                 }
-                match self.check_impression(impression_filter, &mut result, tags) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        self.report(&e, tags);
-                        return None;
-                    }
+                if let Err(e) = self.check_impression(impression_filter, &mut result, tags) {
+                    self.report(&e, tags);
+                    return None;
                 }
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
@@ -200,7 +212,7 @@ impl AdmFilter {
 ///     /* The allowed hosts for URLs */
 ///     "advertiser_hosts": ["www.example.org", "example.org"],
 ///     /* Valid tile positions for this advertiser (empty for "all") */
-///     "positions": [1, 2],
+///     "positions": 1,
 ///     /* Valid target regions for this advertiser
 ///        (use "en-US" for "all in english speaking United States") */
 ///     "include_regions": ["en-US/TX", "en-US/CA"],
@@ -218,8 +230,8 @@ impl AdmFilter {
 ///
 impl From<&Settings> for HandlerResult<AdmFilter> {
     fn from(settings: &Settings) -> Self {
-        let mut filter_map: BTreeMap<String, AdmAdvertiserFilterSettings> = BTreeMap::new();
-        for (adv, setting) in settings.adm_settings.clone() {
+        let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
+        for (adv, setting) in AdmSettings::from(settings) {
             dbg!("Processing records for {:?}", &adv);
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
@@ -259,8 +271,7 @@ pub async fn get_tiles(
         &[
             ("partner", settings.partner_id.as_str()),
             ("sub1", settings.sub1.as_str()),
-            // ("sub2", placement),
-            ("country-code", &location.country()),
+            //("country-code", &location.country()),
             ("region-code", &location.region()),
             // ("dma-code", location.dma),
             // ("form-factor", form_factor),

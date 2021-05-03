@@ -9,11 +9,22 @@ use serde::Deserialize;
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
 
+/// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize)]
 pub struct StorageSettings {
     project_name: String,
     bucket_name: String,
     endpoint: String,
+}
+
+/// Instantiate from [Settings]
+impl From<&Settings> for StorageSettings {
+    fn from(settings: &Settings) -> Self {
+        if settings.storage.is_empty() {
+            return Self::default();
+        }
+        serde_json::from_str(&settings.storage).expect("Invalud storage settings")
+    }
 }
 
 impl Default for StorageSettings {
@@ -46,7 +57,7 @@ pub struct StoreResult {
 
 impl StoreImage {
     pub async fn create(settings: &Settings) -> HandlerResult<Self> {
-        let sset = settings.storage.clone();
+        let sset = StorageSettings::from(settings);
         // TODO: Validate bucket name?
         // https://cloud.google.com/storage/docs/naming-buckets
         dbg!("Try creating bucket...");

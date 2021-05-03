@@ -1,5 +1,5 @@
 //! Main application server
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -26,7 +26,7 @@ pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
     pub adm_endpoint_url: String,
-    pub adm_country_ip_map: Arc<BTreeMap<String, String>>,
+    pub adm_country_ip_map: Arc<HashMap<String, String>>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub mmdb: location::Location,

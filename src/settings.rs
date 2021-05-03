@@ -1,6 +1,6 @@
 //! Application settings objects and initialization
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
@@ -26,6 +26,9 @@ static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
 }
 "#;
 
+// TODO: Call this `EnvSettings` that serializes into
+// real `Settings`?
+//
 /// Configuration settings and options
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
@@ -56,12 +59,16 @@ pub struct Settings {
     pub adm_query_tile_count: u8,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
-    /// list of allowed vendors (Array in JSON format)
-    pub adm_settings: AdmSettings,
+    /// list of allowed vendors (Hash in JSON format)
+    /// This consists of an advertiser name, and the associated filter settings
+    /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
+    /// Unspecfied [AdmAdvertiserFilterSetttings] will use Default values specified
+    /// in `Default` (or the application default if not specified)
+    pub adm_settings: String,
     /// path to MaxMind location database
     pub maxminddb_loc: Option<String>,
-    /// Settings related to the google cloud storage
-    pub storage: StorageSettings,
+    /// [StorageSettings] related to the google cloud storage
+    pub storage: String,
     /// Adm partner ID (default: "demofeed")
     pub partner_id: String,
     /// Adm sub1 value (default: "123456789")
@@ -84,9 +91,9 @@ impl Default for Settings {
             adm_max_tiles: 2,
             adm_query_tile_count: 10,
             tiles_ttl: 15 * 60,
-            adm_settings: AdmSettings::default(),
+            adm_settings: "".to_owned(),
             maxminddb_loc: None,
-            storage: StorageSettings::default(),
+            storage: "".to_owned(),
             partner_id: "demofeed".to_owned(),
             sub1: "123456789".to_owned(),
         }
@@ -113,6 +120,9 @@ impl Settings {
 
         Ok(match s.try_into::<Self>() {
             Ok(s) => {
+                // preflight check the storage
+                StorageSettings::from(&s);
+                AdmSettings::from(&s);
                 // Adjust the max values if required.
                 s
             }
@@ -143,8 +153,8 @@ impl Settings {
     }
 
     /// convert the `adm_country_ip_map` setting from a string to a hashmap
-    pub(crate) fn build_adm_country_ip_map(&self) -> BTreeMap<String, String> {
-        let mut map: BTreeMap<String, String> =
+    pub(crate) fn build_adm_country_ip_map(&self) -> HashMap<String, String> {
+        let mut map: HashMap<String, String> =
             serde_json::from_str(&self.adm_country_ip_map).expect("Invalid ADM_COUNTRY_IP_MAP");
         map = map
             .into_iter()

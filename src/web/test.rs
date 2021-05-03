@@ -5,7 +5,7 @@ use actix_web::{
     dev, http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
     HttpRequest, HttpResponse, HttpServer,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{
     adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings, DEFAULT},
@@ -131,7 +131,7 @@ async fn basic() {
     let (_, addr) = init_mock_adm();
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
-        adm_settings: adm_settings(),
+        adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
@@ -180,7 +180,7 @@ async fn basic_filtered() {
 
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
-        adm_settings,
+        adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
@@ -224,7 +224,7 @@ async fn basic_default() {
 
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
-        adm_settings,
+        adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;

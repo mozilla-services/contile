@@ -66,7 +66,6 @@ pub async fn get_tiles(
         platform: stripped_ua.clone(),
         placement: treq.placement.clone(),
     };
-    let location = LocationResult::from(request.head());
     if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
         trace!("get_tiles: cache hit: {:?}", audience_key);
         metrics.incr("tiles_cache.hit");
