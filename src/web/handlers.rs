@@ -31,7 +31,7 @@ pub async fn get_tiles(
     let header = request.head();
     let c_info = request.connection_info();
     let ip_addr_str = c_info.remote_addr().unwrap_or(fake_ip);
-    let location = if state.mmdb.is_available() {
+    let mut location = if state.mmdb.is_available() {
         let addr = match ip_addr_str.parse() {
             Ok(v) => v,
             Err(e) => {
@@ -47,6 +47,7 @@ pub async fn get_tiles(
         Some(LocationResult::from(header))
     }
     .unwrap_or_default();
+    location.fake_ip = fake_ip.to_owned(); //TODO: remove once final ADM API is live.
 
     let mut tags = Tags::default();
     {

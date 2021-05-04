@@ -270,6 +270,8 @@ pub async fn get_tiles(
         &[
             ("partner", settings.partner_id.as_str()),
             ("sub1", settings.sub1.as_str()),
+            ("ip", &location.fake_ip), // TODO: remove once ADM API finalized
+            ("ua", &stripped_ua),      // TODO: remove once ADM API finalized
             //("country-code", &location.country()),
             ("region-code", &location.region()),
             // ("dma-code", location.dma),
