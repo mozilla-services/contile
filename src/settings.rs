@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
+use crate::adm::AdmSettings;
 use crate::server::img_storage::StorageSettings;
 
 static PREFIX: &str = "contile";
@@ -25,23 +26,53 @@ static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
 }
 "#;
 
+// TODO: Call this `EnvSettings` that serializes into
+// real `Settings`?
+//
+/// Configuration settings and options
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Settings {
+    /// Enable verbos debugging output (default: false)
     pub debug: bool,
+    /// Service port (default: 8000)
     pub port: u16,
+    /// Service hostname (default: 127.0.0.1)
     pub host: String,
+    /// Enable "human readable" logging messages (default: false)
     pub human_logs: bool,
+    /// Metric default label (default: "contile")
     pub statsd_label: String,
+    /// Metric reporting host address (default: None)
     pub statsd_host: Option<String>,
+    /// Metric reporting host port
     pub statsd_port: u16,
+    /// Enable actix "keep alive" period in seconds (default: None)
     pub actix_keep_alive: Option<u64>,
+    /// adm Endpoint URL
     pub adm_endpoint_url: String,
+    /// adm country to default IP map (Hash in JSON format)
     pub adm_country_ip_map: String,
-    /// Expire tiles after this many seconds
+    /// max tiles to accept from ADM (default: 2)
+    pub adm_max_tiles: u8,
+    /// number of tiles to query from ADM (default: 10)
+    pub adm_query_tile_count: u8,
+    /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
+    /// list of allowed vendors (Hash in JSON format)
+    /// This consists of an advertiser name, and the associated filter settings
+    /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
+    /// Unspecfied [AdmAdvertiserFilterSetttings] will use Default values specified
+    /// in `Default` (or the application default if not specified)
+    pub adm_settings: String,
+    /// path to MaxMind location database
     pub maxminddb_loc: Option<String>,
-    pub storage: StorageSettings,
+    /// [StorageSettings] related to the google cloud storage
+    pub storage: String,
+    /// Adm partner ID (default: "demofeed")
+    pub partner_id: String,
+    /// Adm sub1 value (default: "123456789")
+    pub sub1: String,
 }
 
 impl Default for Settings {
@@ -57,9 +88,14 @@ impl Default for Settings {
             actix_keep_alive: None,
             adm_endpoint_url: "".to_owned(),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
+            adm_max_tiles: 2,
+            adm_query_tile_count: 10,
             tiles_ttl: 15 * 60,
+            adm_settings: "".to_owned(),
             maxminddb_loc: None,
-            storage: StorageSettings::default(),
+            storage: "".to_owned(),
+            partner_id: "demofeed".to_owned(),
+            sub1: "123456789".to_owned(),
         }
     }
 }
@@ -84,6 +120,9 @@ impl Settings {
 
         Ok(match s.try_into::<Self>() {
             Ok(s) => {
+                // preflight check the storage
+                StorageSettings::from(&s);
+                AdmSettings::from(&s);
                 // Adjust the max values if required.
                 s
             }
@@ -113,7 +152,8 @@ impl Settings {
         format!("http://{}:{}", self.host, self.port)
     }
 
-    pub fn build_adm_country_ip_map(&self) -> HashMap<String, String> {
+    /// convert the `adm_country_ip_map` setting from a string to a hashmap
+    pub(crate) fn build_adm_country_ip_map(&self) -> HashMap<String, String> {
         let mut map: HashMap<String, String> =
             serde_json::from_str(&self.adm_country_ip_map).expect("Invalid ADM_COUNTRY_IP_MAP");
         map = map
