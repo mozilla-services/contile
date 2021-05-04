@@ -146,10 +146,9 @@ impl AdmFilter {
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
     /// - Modifies tiles for output to the client (adding additional fields, etc.)
-    pub fn filter_and_process(&self, tile: AdmTile, tags: &mut Tags) -> Option<AdmTile> {
+    pub fn filter_and_process(&self, mut tile: AdmTile, tags: &mut Tags) -> Option<AdmTile> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        let mut result = tile.clone();
         match self.filter_set.get(&tile.name.to_lowercase()) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
@@ -175,23 +174,23 @@ impl AdmFilter {
                 } else {
                     filter
                 };
-                if let Err(e) = self.check_advertiser(adv_filter, &mut result, tags) {
+                if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     self.report(&e, tags);
                     return None;
                 }
-                if let Err(e) = self.check_click(click_filter, &mut result, tags) {
+                if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
                     self.report(&e, tags);
                     return None;
                 }
-                if let Err(e) = self.check_impression(impression_filter, &mut result, tags) {
+                if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
                     self.report(&e, tags);
                     return None;
                 }
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
                 // `default`.
-                result.position = filter.position.or(default.position);
-                Some(result)
+                tile.position = filter.position.or(default.position);
+                Some(tile)
             }
             None => {
                 self.report(
