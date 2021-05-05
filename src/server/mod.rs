@@ -8,7 +8,8 @@ use actix_web::{
 use cadence::StatsdClient;
 
 use crate::{
-    error::HandlerError,
+    adm::AdmFilter,
+    error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     settings::Settings,
     web::{dockerflow, handlers, middleware},
@@ -30,6 +31,7 @@ pub struct ServerState {
     pub tiles_cache: cache::TilesCache,
     pub mmdb: location::Location,
     pub settings: Settings,
+    pub filter: AdmFilter,
 }
 
 impl std::fmt::Debug for ServerState {
@@ -79,6 +81,7 @@ macro_rules! build_app {
 
 impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
+        let filter = HandlerResult::<AdmFilter>::from(&settings)?;
         let state = ServerState {
             metrics: Box::new(metrics_from_opts(&settings)?),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
@@ -87,6 +90,7 @@ impl Server {
             tiles_cache: cache::TilesCache::new(75),
             mmdb: (&settings).into(),
             settings: settings.clone(),
+            filter,
         };
 
         // causing panic in arbiter thread

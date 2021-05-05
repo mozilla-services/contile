@@ -9,8 +9,11 @@ use serde::{self, Serialize};
 use crate::error::{HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
 
+const GOOG_LOC_HEADER: &str = "x-client-geo-location";
+
 #[derive(Serialize, Debug, Default, Clone)]
 pub struct LocationResult {
+    pub fake_ip: String, // TODO: remove once ADM API is finalized
     #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,7 +28,6 @@ pub struct LocationResult {
 impl From<&RequestHead> for LocationResult {
     /// Scan the headers to see if there's anything we can use to derive the location
     fn from(head: &RequestHead) -> Self {
-        const GOOG_LOC_HEADER: &str = "x-client-geo-location";
         let headers = head.headers();
         if let Some(loc_string) = headers.get(GOOG_LOC_HEADER) {
             dbg!("Found google header", loc_string);
@@ -38,6 +40,25 @@ impl From<&RequestHead> for LocationResult {
         }
         dbg!("No Google header found");
         Self::default()
+    }
+}
+
+impl LocationResult {
+    pub fn is_available(head: RequestHead) -> bool {
+        let headers = head.headers();
+        headers.get(GOOG_LOC_HEADER).is_some()
+    }
+
+    pub fn region(&self) -> String {
+        self.provinces
+            .clone()
+            .unwrap_or_default()
+            .pop()
+            .unwrap_or_default()
+    }
+
+    pub fn country(&self) -> String {
+        self.country.clone().unwrap_or_default()
     }
 }
 

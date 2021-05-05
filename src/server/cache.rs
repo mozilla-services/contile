@@ -3,6 +3,8 @@ use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duratio
 use cadence::Counted;
 use tokio::sync::RwLock;
 
+use crate::server::location::LocationResult;
+use crate::tags::Tags;
 use crate::{adm, server::ServerState};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -11,9 +13,9 @@ pub struct AudienceKey {
     pub country: String,
     /// Not yet supported: Region/subdivision (e.g. a US state) in ISO
     /// 3166-2 format
-    //pub region: String,
+    pub region: String,
     /// Only here for use by the periodic updater
-    pub fake_ip: String,
+    // pub fake_ip: String,
     pub platform: String,
     pub placement: String,
 }
@@ -65,12 +67,19 @@ async fn tile_cache_updater(state: &ServerState) {
     trace!("tile_cache_updater..");
     let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
     for key in keys {
+        let mut tags = Tags::default();
         let result = adm::get_tiles(
             reqwest_client,
             adm_endpoint_url,
-            &key.fake_ip,
+            &LocationResult {
+                country: Some(key.country.clone()),
+                provinces: Some(vec![key.region.clone()]),
+                ..Default::default()
+            },
             &key.platform,
             &key.placement,
+            &state,
+            &mut tags,
         )
         .await;
 
