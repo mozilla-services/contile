@@ -50,6 +50,9 @@ pub enum HandlerErrorKind {
 
     #[error("Location error: {:?}", _0)]
     Location(String),
+
+    #[error("Bad Adm response: {:?}", _0)]
+    BadAdmResponse(String),
 }
 
 impl HandlerErrorKind {
@@ -67,6 +70,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::General(_) => 500,
             HandlerErrorKind::Internal(_) => 510,
             HandlerErrorKind::Reqwest(_) => 520,
+            HandlerErrorKind::BadAdmResponse(_) => 521,
             HandlerErrorKind::Validation(_) => 600,
             HandlerErrorKind::InvalidHost(_, _) => 601,
             HandlerErrorKind::UnexpectedHost(_, _) => 602,

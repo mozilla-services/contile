@@ -288,16 +288,22 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     trace!("get_tiles GET {}", adm_url);
-    // XXX: handle empty responses -- AdM sends empty json in that case
-    // 'Error("missing field `tiles`"'
     let mut response: AdmTileResponse = reqwest_client
         .get(adm_url)
         .header(reqwest::header::USER_AGENT, stripped_ua)
         .send()
-        .await?
+        .await
+        .map_err(|e| {
+            // ADM servers are down, or improperly configured
+            HandlerErrorKind::BadAdmResponse(format!("ADM Server Error: {:?}", e))
+        })?
         .error_for_status()?
         .json()
-        .await?;
+        .await
+        .map_err(|e| {
+            // ADM servers are not returning correct information
+            HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
+        })?;
     response.tiles = response
         .tiles
         .into_iter()
