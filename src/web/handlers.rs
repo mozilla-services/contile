@@ -95,10 +95,16 @@ pub async fn get_tiles(
             })?;
             trace!("get_tiles: cache miss: {:?}", audience_key);
             metrics.incr("tiles_cache.miss");
+            let mut hash_val = 0;
+            for tile in &response.tiles {
+                // adding would overflow so do a xor instead.
+                hash_val ^= tile.hash()
+            }
             state.tiles_cache.write().await.insert(
                 audience_key,
                 cache::Tiles {
                     json: tiles.clone(),
+                    hash: hash_val,
                 },
             );
             tiles

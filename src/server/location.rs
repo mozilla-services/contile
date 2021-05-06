@@ -9,7 +9,15 @@ use serde::{self, Serialize};
 use crate::error::{HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
 
-const GOOG_LOC_HEADER: &str = "x-client-geo-location";
+/* Google GCP Load Balance provides the ability to define
+   [Custom Headers](https://cloud.google.com/load-balancing/docs/custom-headers)
+   which can be supplied to the backend calling app. In this case, we'll presume
+   that the following custom header was defined:
+   `--custom-request-header 'X-Client-Geo-Location: {client_region}, {client_country}'`
+*/
+pub const GOOG_LOC_HEADER: &str = "x-client-geo-location";
+#[cfg(test)]
+pub const GOOG_LOC_TEST_HEADER: &str = "Oklahoma, US";
 
 #[derive(Serialize, Debug, Default, Clone)]
 pub struct LocationResult {
@@ -32,11 +40,13 @@ impl From<&RequestHead> for LocationResult {
         if let Some(loc_string) = headers.get(GOOG_LOC_HEADER) {
             dbg!("Found google header", loc_string);
             let mut parts: Vec<&str> = loc_string.to_str().unwrap_or("").split(',').collect();
-            return Self {
-                city: parts.pop().map(ToOwned::to_owned),
-                country: parts.pop().map(ToOwned::to_owned),
+            let reply = Self {
+                country: parts.pop().map(|v| v.trim().to_owned()),
+                city: parts.pop().map(|v| v.trim().to_owned()),
                 ..Default::default()
             };
+            dbg!(&reply);
+            return reply;
         }
         dbg!("No Google header found");
         Self::default()

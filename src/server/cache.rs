@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 
 use cadence::Counted;
@@ -23,6 +24,7 @@ pub struct AudienceKey {
 #[derive(Debug)]
 pub struct Tiles {
     pub json: String,
+    pub hash: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -86,25 +88,35 @@ async fn tile_cache_updater(state: &ServerState) {
         match result {
             Ok(response) => {
                 //trace!("tile_cache_updater: {:#?}", response);
-                let tiles = match serde_json::to_string(&response) {
-                    Ok(tiles) => tiles,
+                let json_tiles = match serde_json::to_string(&response) {
+                    Ok(tile_string) => tile_string,
                     Err(e) => {
                         error!("tile_cache_updater: response error {}", e);
                         metrics.incr_with_tags("tile_cache_updater.error").send();
                         continue;
                     }
                 };
+                let mut new_hash = 0;
+                for tile in &response.tiles {
+                    new_hash += tile.hash()
+                }
                 // XXX: not a great comparison (comparing json Strings)..
                 let new_tiles = {
                     tiles_cache
                         .read()
                         .await
                         .get(&key)
-                        .map_or(true, |cached_tiles| tiles != cached_tiles.json)
+                        .map_or(true, |cached_tiles| new_hash != cached_tiles.hash)
                 };
                 if new_tiles {
                     trace!("tile_cache_updater updating: {:?}", &key);
-                    tiles_cache.write().await.insert(key, Tiles { json: tiles });
+                    tiles_cache.write().await.insert(
+                        key,
+                        Tiles {
+                            json: json_tiles,
+                            hash: new_hash,
+                        },
+                    );
                     metrics.incr_with_tags("tile_cache_updater.update").send();
                 }
             }

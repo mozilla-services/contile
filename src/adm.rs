@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug};
+use std::hash::{Hash, Hasher};
+use std::{
+    collections::{hash_map::DefaultHasher, HashMap},
+    fmt::Debug,
+};
 use url::Url;
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
@@ -250,6 +254,18 @@ pub struct AdmTile {
     pub image_url: String,
     pub impression_url: String,
     pub position: Option<u8>,
+}
+
+impl AdmTile {
+    pub fn hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        format!(
+            "{}:{}:{}:{}:{}",
+            self.name, self.advertiser_url, self.click_url, self.image_url, self.impression_url
+        )
+        .hash(&mut hasher);
+        hasher.finish()
+    }
 }
 
 pub async fn get_tiles(

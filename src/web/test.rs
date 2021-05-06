@@ -12,7 +12,11 @@ use crate::{
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
-    server::{cache, location::Location, ServerState},
+    server::{
+        cache,
+        location::{Location, GOOG_LOC_HEADER, GOOG_LOC_TEST_HEADER},
+        ServerState,
+    },
     settings::{test_settings, Settings},
     web::{dockerflow, handlers, middleware},
 };
@@ -139,6 +143,7 @@ async fn basic() {
     let req = test::TestRequest::get()
         .uri("/v1/tiles?country=UK&placement=newtab")
         .header(header::USER_AGENT, UA)
+        .header(GOOG_LOC_HEADER, GOOG_LOC_TEST_HEADER)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -188,6 +193,7 @@ async fn basic_filtered() {
     let req = test::TestRequest::get()
         .uri("/v1/tiles?country=UK&placement=newtab")
         .header(header::USER_AGENT, UA)
+        .header(GOOG_LOC_HEADER, GOOG_LOC_TEST_HEADER)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -232,6 +238,7 @@ async fn basic_default() {
     let req = test::TestRequest::get()
         .uri("/v1/tiles?country=UK&placement=newtab")
         .header(header::USER_AGENT, UA)
+        .header(GOOG_LOC_HEADER, GOOG_LOC_TEST_HEADER)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
