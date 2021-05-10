@@ -1,7 +1,47 @@
+use std::fmt;
+
 use woothee::{
     parser::{Parser, WootheeResult},
     woothee::VALUE_UNKNOWN,
 };
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum FormFactor {
+    Desktop,
+    Phone,
+    Tablet,
+    Other,
+}
+
+impl fmt::Display for FormFactor {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = format!("{:?}", self).to_lowercase();
+        write!(fmt, "{}", name)
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum OsFamily {
+    Windows,
+    Mac,
+    Linux,
+    Ios,
+    Android,
+    ChromeOs,
+    BlackBerry,
+    Other,
+}
+
+impl fmt::Display for OsFamily {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // XXX: could use "correct" case (rendering this w/ serde will make
+        // that easier)
+        let name = format!("{:?}", self).to_lowercase();
+        write!(fmt, "{}", name)
+    }
+}
 
 /// Strip a Firefox User-Agent string, returning a version only varying in Base
 /// OS (e.g. Mac, Windows, Linux) and Firefox major version number
@@ -26,6 +66,23 @@ pub fn strip_ua(ua: &str) -> String {
         platform,
         major = major
     )
+}
+
+pub fn get_device_info(ua: &str) -> (OsFamily, FormFactor) {
+    let WootheeResult { os, .. } = Parser::new().parse(ua).unwrap_or_default();
+
+    let os_family = match os {
+        _ if os.starts_with("Windows") => OsFamily::Windows,
+        "Mac OSX" => OsFamily::Mac,
+        "Linux" => OsFamily::Linux,
+        _ => OsFamily::Other,
+    };
+    let form_factor = if matches!(os_family, OsFamily::Other) {
+        FormFactor::Other
+    } else {
+        FormFactor::Desktop
+    };
+    (os_family, form_factor)
 }
 
 #[cfg(test)]

@@ -30,6 +30,8 @@ pub async fn get_tiles(
             .expect("Invalid ADM_COUNTRY_IP_MAP setting")
     };
     let stripped_ua = user_agent::strip_ua(&treq.ua);
+    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua);
+
     let header = request.head();
     let c_info = request.connection_info();
     let ip_addr_str = c_info.remote_addr().unwrap_or(fake_ip);
@@ -57,7 +59,6 @@ pub async fn get_tiles(
         tags.add_extra("region", &location.region());
         tags.add_extra("ip", ip_addr_str);
         tags.add_extra("ua", &stripped_ua);
-        tags.add_extra("sub2", &treq.placement);
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
@@ -65,9 +66,9 @@ pub async fn get_tiles(
     let audience_key = cache::AudienceKey {
         country: location.country(),
         region: location.region(),
-        // fake_ip: fake_ip.clone(),
         platform: stripped_ua.clone(),
-        placement: treq.placement.clone(),
+        os_family,
+        form_factor,
     };
     if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
         trace!("get_tiles: cache hit: {:?}", audience_key);
@@ -82,7 +83,8 @@ pub async fn get_tiles(
         &state.adm_endpoint_url,
         &location,
         &stripped_ua,
-        &treq.placement,
+        os_family,
+        form_factor,
         &state,
         &mut tags,
     )
