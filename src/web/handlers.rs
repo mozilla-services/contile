@@ -9,8 +9,7 @@ use crate::{
     metrics::Metrics,
     server::{cache, location::LocationResult, ServerState},
     tags::Tags,
-    web::extractors::TilesRequest,
-    web::middleware::sentry as l_sentry,
+    web::{extractors::TilesRequest, middleware::sentry as l_sentry},
 };
 
 pub async fn get_tiles(

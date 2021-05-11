@@ -4,10 +4,11 @@ use cadence::Counted;
 use tokio::sync::RwLock;
 
 use crate::{
+    adm,
     server::location::LocationResult,
+    server::ServerState,
     tags::Tags,
     web::{FormFactor, OsFamily},
-    {adm, server::ServerState},
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
