@@ -1,13 +1,13 @@
-use std::collections::BTreeMap;
-use std::net::IpAddr;
-use std::sync::Arc;
+use std::{collections::BTreeMap, net::IpAddr, sync::Arc};
 
 use actix_http::RequestHead;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
 
-use crate::error::{HandlerErrorKind, HandlerResult};
-use crate::settings::Settings;
+use crate::{
+    error::{HandlerErrorKind, HandlerResult},
+    settings::Settings,
+};
 
 /* Google GCP Load Balance provides the ability to define
    [Custom Headers](https://cloud.google.com/load-balancing/docs/custom-headers)

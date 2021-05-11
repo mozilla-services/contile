@@ -1,17 +1,18 @@
 use serde::{Deserialize, Serialize};
-use std::hash::{Hash, Hasher};
 use std::{
     collections::{hash_map::DefaultHasher, HashMap},
     fmt::Debug,
+    hash::{Hash, Hasher},
 };
 use url::Url;
 
-use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
-use crate::server::location::LocationResult;
-use crate::server::ServerState;
-use crate::settings::Settings;
-use crate::tags::Tags;
-use crate::web::middleware::sentry as l_sentry;
+use crate::{
+    error::{HandlerError, HandlerErrorKind, HandlerResult},
+    server::{location::LocationResult, ServerState},
+    settings::Settings,
+    tags::Tags,
+    web::middleware::sentry as l_sentry,
+};
 //use crate::server::img_storage;
 
 pub(crate) const DEFAULT: &str = "DEFAULT";
