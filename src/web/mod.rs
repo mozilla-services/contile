@@ -8,3 +8,4 @@ mod test;
 mod user_agent;
 
 pub use dockerflow::DOCKER_FLOW_ENDPOINTS;
+pub use user_agent::{FormFactor, OsFamily};

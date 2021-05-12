@@ -1,14 +1,15 @@
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fmt::Debug};
+
+use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
-use crate::server::location::LocationResult;
-use crate::server::ServerState;
-use crate::settings::Settings;
-use crate::tags::Tags;
-use crate::web::middleware::sentry as l_sentry;
-//use crate::server::img_storage;
+use crate::{
+    error::{HandlerError, HandlerErrorKind, HandlerResult},
+    server::{location::LocationResult, ServerState},
+    settings::Settings,
+    tags::Tags,
+    web::{middleware::sentry as l_sentry, FormFactor, OsFamily},
+};
 
 pub(crate) const DEFAULT: &str = "DEFAULT";
 
@@ -252,12 +253,14 @@ pub struct AdmTile {
     pub position: Option<u8>,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn get_tiles(
     reqwest_client: &reqwest::Client,
     adm_endpoint_url: &str,
     location: &LocationResult,
     stripped_ua: &str,
-    placement: &str,
+    os_family: OsFamily,
+    form_factor: FormFactor,
     state: &ServerState,
     tags: &mut Tags,
 ) -> Result<AdmTileResponse, HandlerError> {
@@ -275,9 +278,9 @@ pub async fn get_tiles(
             ("country-code", &location.country()),
             ("region-code", &location.region()),
             // ("dma-code", location.dma),
-            // ("form-factor", form_factor),
-            ("os-family", stripped_ua),
-            ("sub2", placement),
+            ("form-factor", &form_factor.to_string()),
+            ("os-family", &os_family.to_string()),
+            ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
             // when omitted (despite AdM claiming it would default to 1)
