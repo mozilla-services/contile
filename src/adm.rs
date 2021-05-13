@@ -1,6 +1,6 @@
-use actix_http::http::{HeaderValue, header::HeaderMap};
+use actix_http::http::{header::HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, fs::File, io::{BufReader}, path::Path,};
+use std::{collections::HashMap, fmt::Debug, fs::File, io::BufReader, path::Path};
 use url::Url;
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
@@ -19,17 +19,22 @@ pub struct AdmTileResponse {
 }
 
 impl AdmTileResponse {
-    pub fn fake_response(settings: &Settings, mut response_file:String) -> HandlerResult<Self> {
+    pub fn fake_response(settings: &Settings, mut response_file: String) -> HandlerResult<Self> {
         response_file.retain(char::is_alphanumeric);
         let path = Path::new(&settings.test_file_path).join(format!("{}.json", response_file));
         if path.exists() {
-            let file = File::open(path.as_os_str()).map_err(|e| HandlerError::internal(&e.to_string()))?;
+            let file =
+                File::open(path.as_os_str()).map_err(|e| HandlerError::internal(&e.to_string()))?;
             let reader = BufReader::new(file);
-            let content =serde_json::from_reader(reader).map_err(|e| HandlerError::internal(&e.to_string()))?;
+            let content = serde_json::from_reader(reader)
+                .map_err(|e| HandlerError::internal(&e.to_string()))?;
             dbg!(&content);
-            return Ok(content)
+            return Ok(content);
         }
-        Err(HandlerError::internal(&format!("Invalid test file {}", response_file)))
+        Err(HandlerError::internal(&format!(
+            "Invalid test file {}",
+            response_file
+        )))
     }
 }
 
@@ -72,26 +77,38 @@ impl From<&Settings> for AdmSettings {
             // TODO: Read these out of a file?
             let mut def = Self::default();
             if settings.test_mode {
-                def.insert("acme".to_owned(), AdmAdvertiserFilterSettings{
-                    advertiser_hosts: vec!["www.acme.biz".to_owned()],
-                    position: Some(0),
-                    ..Default::default()
-                });
-                def.insert("dunder mifflin".to_owned(), AdmAdvertiserFilterSettings{
-                    advertiser_hosts: vec!["www.dunderm.biz".to_owned()],
-                    position: Some(1),
-                    ..Default::default()
-                });
-                def.insert("los pollos hermanos".to_owned(), AdmAdvertiserFilterSettings{
-                    advertiser_hosts: vec!["www.lph-nm.biz".to_owned()],
-                    ..Default::default()
-                });
-                def.insert("default".to_owned(), AdmAdvertiserFilterSettings{
-                    advertiser_hosts: vec!["example.com".to_string()],
-                    impression_hosts: vec!["example.net".to_string()],
-                    click_hosts: vec!["example.com".to_string()],
-                    ..Default::default()
-                });
+                def.insert(
+                    "acme".to_owned(),
+                    AdmAdvertiserFilterSettings {
+                        advertiser_hosts: vec!["www.acme.biz".to_owned()],
+                        position: Some(0),
+                        ..Default::default()
+                    },
+                );
+                def.insert(
+                    "dunder mifflin".to_owned(),
+                    AdmAdvertiserFilterSettings {
+                        advertiser_hosts: vec!["www.dunderm.biz".to_owned()],
+                        position: Some(1),
+                        ..Default::default()
+                    },
+                );
+                def.insert(
+                    "los pollos hermanos".to_owned(),
+                    AdmAdvertiserFilterSettings {
+                        advertiser_hosts: vec!["www.lph-nm.biz".to_owned()],
+                        ..Default::default()
+                    },
+                );
+                def.insert(
+                    "default".to_owned(),
+                    AdmAdvertiserFilterSettings {
+                        advertiser_hosts: vec!["example.com".to_string()],
+                        impression_hosts: vec!["example.net".to_string()],
+                        click_hosts: vec!["example.com".to_string()],
+                        ..Default::default()
+                    },
+                );
             };
             return def;
         }
@@ -291,6 +308,7 @@ pub struct AdmTile {
     pub position: Option<u8>,
 }
 
+#[allow(clippy::clippy::too_many_arguments)]
 pub async fn get_tiles(
     reqwest_client: &reqwest::Client,
     adm_endpoint_url: &str,
@@ -331,7 +349,13 @@ pub async fn get_tiles(
     let mut response: AdmTileResponse = if state.settings.test_mode {
         // we can be a bit unforgiving here because we want to absolutely block bad things.
         let default = HeaderValue::from_str("default").unwrap();
-        let test_response = headers.unwrap().get("fake-response").unwrap_or(&default).to_str().unwrap().to_owned();
+        let test_response = headers
+            .unwrap()
+            .get("fake-response")
+            .unwrap_or(&default)
+            .to_str()
+            .unwrap()
+            .to_owned();
         dbg!("Getting fake response:", &test_response);
         AdmTileResponse::fake_response(&state.settings, test_response)?
     } else {
