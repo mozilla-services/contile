@@ -56,11 +56,11 @@ macro_rules! init_app {
 }
 
 /// Bind a mock of the AdM Tiles API to a random port on localhost
-fn init_mock_adm() -> (dev::Server, SocketAddr) {
-    let server = HttpServer::new(|| {
-        App::new().route(
+fn init_mock_adm(response: String) -> (dev::Server, SocketAddr) {
+    let server = HttpServer::new(move || {
+        App::new().data(response.clone()).route(
             "/",
-            web::get().to(|req: HttpRequest| {
+            web::get().to(|req: HttpRequest, resp: web::Data<String>| {
                 trace!(
                     "mock_adm: {:#?} {:#?} {:#?}",
                     req.path(),
@@ -69,7 +69,7 @@ fn init_mock_adm() -> (dev::Server, SocketAddr) {
                 );
                 HttpResponse::Ok()
                     .content_type("application/json")
-                    .body(MOCK_RESPONSE1)
+                    .body(resp.get_ref())
             }),
         )
     });
@@ -98,7 +98,7 @@ fn adm_settings() -> AdmSettings {
             advertiser_hosts: ["www.dunderm.biz".to_owned()].to_vec(),
             position: Some(1),
             include_regions: vec![],
-            impression_hosts: ["example.com".to_owned()].to_vec(),
+            impression_hosts: [].to_vec(),
             click_hosts: vec![],
         },
     );
@@ -128,7 +128,7 @@ fn adm_settings() -> AdmSettings {
 
 #[actix_rt::test]
 async fn basic() {
-    let (_, addr) = init_mock_adm();
+    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings()).to_string(),
@@ -162,8 +162,68 @@ async fn basic() {
 }
 
 #[actix_rt::test]
+async fn basic_bad_reply() {
+    let missing_aespflag = r#"{
+        "tiles": [
+            {
+                "id": 601,
+                "name": "Acme",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
+                "image_url": "https://cdn.example.com/601.jpg",
+                "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
+                "impression_url": "https://example.net/static?id=0000"
+            },
+            {
+                "id": 703,
+                "name": "Dunder Mifflin",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A&aespFlag=altinst",
+                "image_url": "https://cdn.example.com/703.jpg",
+                "advertiser_url": "https://www.dunderm.biz/?tag=bar&ref=baz",
+                "impression_url": "https://example.net/static?id=DEADB33F"
+            }
+        ]}"#;
+    let (_, addr) = init_mock_adm(missing_aespflag.to_owned());
+    let settings = Settings {
+        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_settings: json!(adm_settings()).to_string(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles?country=UK&placement=newtab")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert!(tiles.len() == 1);
+    assert!(
+        &tiles[0]
+            .as_object()
+            .unwrap()
+            .get("name")
+            .unwrap()
+            .to_string()
+            == "\"Dunder Mifflin\""
+    );
+}
+
+#[actix_rt::test]
 async fn basic_filtered() {
-    let (_, addr) = init_mock_adm();
+    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let mut adm_settings = adm_settings();
     adm_settings.insert(
@@ -218,7 +278,7 @@ async fn basic_filtered() {
 
 #[actix_rt::test]
 async fn basic_default() {
-    let (_, addr) = init_mock_adm();
+    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let adm_settings = adm_settings();
 
@@ -264,7 +324,7 @@ async fn basic_default() {
 
 #[actix_rt::test]
 async fn invalid_placement() {
-    let (_, addr) = init_mock_adm();
+    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         ..get_test_settings()
