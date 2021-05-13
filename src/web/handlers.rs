@@ -76,6 +76,12 @@ pub async fn get_tiles(
             .content_type("application/json")
             .body(&tiles.json));
     }
+    // be aggressive about not passing headers unless we absolutely need to
+    let headers = if state.settings.test_mode {
+        Some(request.head().headers())
+    } else {
+        None
+    };
 
     let tiles = match adm::get_tiles(
         &state.reqwest_client,
@@ -85,6 +91,7 @@ pub async fn get_tiles(
         &treq.placement,
         &state,
         &mut tags,
+        headers,
     )
     .await
     {

@@ -1,5 +1,6 @@
+use actix_http::http::{HeaderValue, header::HeaderMap};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, fs::File, io::{BufReader}, path::Path,};
 use url::Url;
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
@@ -15,6 +16,21 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdmTileResponse {
     pub tiles: Vec<AdmTile>,
+}
+
+impl AdmTileResponse {
+    pub fn fake_response(settings: &Settings, mut response_file:String) -> HandlerResult<Self> {
+        response_file.retain(char::is_alphanumeric);
+        let path = Path::new(&settings.test_file_path).join(format!("{}.json", response_file));
+        if path.exists() {
+            let file = File::open(path.as_os_str()).map_err(|e| HandlerError::internal(&e.to_string()))?;
+            let reader = BufReader::new(file);
+            let content =serde_json::from_reader(reader).map_err(|e| HandlerError::internal(&e.to_string()))?;
+            dbg!(&content);
+            return Ok(content)
+        }
+        Err(HandlerError::internal(&format!("Invalid test file {}", response_file)))
+    }
 }
 
 /// Filter criteria for adm Tiles
@@ -35,7 +51,7 @@ pub struct AdmFilter {
 /// information that may be used as a DEFAULT, or commonly appearing set
 /// of data.
 /// See `impl From<Settings>` for details of the structure.
-#[derive(Clone, Debug, Deserialize, Default, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
     /// Set of valid hosts for the `advertiser_url`
     pub(crate) advertiser_hosts: Vec<String>,
@@ -50,11 +66,34 @@ pub struct AdmAdvertiserFilterSettings {
 }
 
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
-
 impl From<&Settings> for AdmSettings {
     fn from(settings: &Settings) -> Self {
         if settings.adm_settings.is_empty() {
-            return Self::default();
+            // TODO: Read these out of a file?
+            let mut def = Self::default();
+            if settings.test_mode {
+                def.insert("acme".to_owned(), AdmAdvertiserFilterSettings{
+                    advertiser_hosts: vec!["www.acme.biz".to_owned()],
+                    position: Some(0),
+                    ..Default::default()
+                });
+                def.insert("dunder mifflin".to_owned(), AdmAdvertiserFilterSettings{
+                    advertiser_hosts: vec!["www.dunderm.biz".to_owned()],
+                    position: Some(1),
+                    ..Default::default()
+                });
+                def.insert("los pollos hermanos".to_owned(), AdmAdvertiserFilterSettings{
+                    advertiser_hosts: vec!["www.lph-nm.biz".to_owned()],
+                    ..Default::default()
+                });
+                def.insert("default".to_owned(), AdmAdvertiserFilterSettings{
+                    advertiser_hosts: vec!["example.com".to_string()],
+                    impression_hosts: vec!["example.net".to_string()],
+                    click_hosts: vec!["example.com".to_string()],
+                    ..Default::default()
+                });
+            };
+            return def;
         }
         serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings")
     }
@@ -260,6 +299,7 @@ pub async fn get_tiles(
     placement: &str,
     state: &ServerState,
     tags: &mut Tags,
+    headers: Option<&HeaderMap>,
 ) -> Result<AdmTileResponse, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
@@ -288,22 +328,30 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     trace!("get_tiles GET {}", adm_url);
-    let mut response: AdmTileResponse = reqwest_client
-        .get(adm_url)
-        .header(reqwest::header::USER_AGENT, stripped_ua)
-        .send()
-        .await
-        .map_err(|e| {
-            // ADM servers are down, or improperly configured
-            HandlerErrorKind::BadAdmResponse(format!("ADM Server Error: {:?}", e))
-        })?
-        .error_for_status()?
-        .json()
-        .await
-        .map_err(|e| {
-            // ADM servers are not returning correct information
-            HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
-        })?;
+    let mut response: AdmTileResponse = if state.settings.test_mode {
+        // we can be a bit unforgiving here because we want to absolutely block bad things.
+        let default = HeaderValue::from_str("default").unwrap();
+        let test_response = headers.unwrap().get("fake-response").unwrap_or(&default).to_str().unwrap().to_owned();
+        dbg!("Getting fake response:", &test_response);
+        AdmTileResponse::fake_response(&state.settings, test_response)?
+    } else {
+        reqwest_client
+            .get(adm_url)
+            .header(reqwest::header::USER_AGENT, stripped_ua)
+            .send()
+            .await
+            .map_err(|e| {
+                // ADM servers are down, or improperly configured
+                HandlerErrorKind::BadAdmResponse(format!("ADM Server Error: {:?}", e))
+            })?
+            .error_for_status()?
+            .json()
+            .await
+            .map_err(|e| {
+                // ADM servers are not returning correct information
+                HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
+            })?
+    };
     response.tiles = response
         .tiles
         .into_iter()

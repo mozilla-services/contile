@@ -80,6 +80,7 @@ async fn tile_cache_updater(state: &ServerState) {
             &key.placement,
             &state,
             &mut tags,
+            None,
         )
         .await;
 

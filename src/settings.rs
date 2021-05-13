@@ -73,6 +73,10 @@ pub struct Settings {
     pub partner_id: String,
     /// Adm sub1 value (default: "123456789")
     pub sub1: String,
+    /// Run in "integration test mode"
+    pub test_mode: bool,
+    /// path to the test files
+    pub test_file_path: String,
 }
 
 impl Default for Settings {
@@ -96,6 +100,8 @@ impl Default for Settings {
             storage: "".to_owned(),
             partner_id: "demofeed".to_owned(),
             sub1: "123456789".to_owned(),
+            test_mode: false,
+            test_file_path: "./tools/test/test_data/".to_owned(),
         }
     }
 }
@@ -119,7 +125,12 @@ impl Settings {
         s.merge(Environment::with_prefix(&PREFIX.to_uppercase()).separator("__"))?;
 
         Ok(match s.try_into::<Self>() {
-            Ok(s) => {
+            Ok(mut s) => {
+                if s.test_mode {
+                    dbg!("!! Running in test mode!");
+                    s.adm_endpoint_url = "http://localhost:8675/".to_owned();
+                    s.debug = true;
+                }
                 // preflight check the storage
                 StorageSettings::from(&s);
                 AdmSettings::from(&s);
