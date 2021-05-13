@@ -4,9 +4,13 @@ use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duratio
 use cadence::Counted;
 use tokio::sync::RwLock;
 
-use crate::server::location::LocationResult;
-use crate::tags::Tags;
-use crate::{adm, server::ServerState};
+use crate::{
+    adm,
+    server::location::LocationResult,
+    server::ServerState,
+    tags::Tags,
+    web::{FormFactor, OsFamily},
+};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct AudienceKey {
@@ -18,7 +22,8 @@ pub struct AudienceKey {
     /// Only here for use by the periodic updater
     // pub fake_ip: String,
     pub platform: String,
-    pub placement: String,
+    pub os_family: OsFamily,
+    pub form_factor: FormFactor,
 }
 
 #[derive(Debug)]
@@ -75,12 +80,13 @@ async fn tile_cache_updater(state: &ServerState) {
             adm_endpoint_url,
             &LocationResult {
                 country: Some(key.country.clone()),
-                provinces: Some(vec![key.region.clone()]),
+                subdivision: Some(key.region.clone()),
                 ..Default::default()
             },
             &key.platform,
-            &key.placement,
-            &state,
+            key.os_family,
+            key.form_factor,
+            state,
             &mut tags,
         )
         .await;
