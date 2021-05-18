@@ -59,7 +59,7 @@ pub struct Settings {
     pub adm_query_tile_count: u8,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
-    /// list of allowed vendors (Hash in JSON format)
+    /// ADM tile settings (either as JSON or a path to a JSON file)
     /// This consists of an advertiser name, and the associated filter settings
     /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
     /// Unspecfied [AdmAdvertiserFilterSetttings] will use Default values specified
@@ -84,7 +84,7 @@ impl Default for Settings {
         Settings {
             debug: false,
             port: DEFAULT_PORT,
-            host: "127.0.0.1".to_owned(),
+            host: "localhost".to_owned(),
             human_logs: false,
             statsd_label: PREFIX.to_owned(),
             statsd_host: None,
@@ -130,6 +130,9 @@ impl Settings {
                     dbg!("!! Running in test mode!");
                     s.adm_endpoint_url = "http://localhost:8675/".to_owned();
                     s.debug = true;
+                }
+                if s.adm_endpoint_url.is_empty() {
+                    return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
                 }
                 // preflight check the storage
                 StorageSettings::from(&s);
