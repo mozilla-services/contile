@@ -106,6 +106,9 @@ impl AdmFilter {
     }
 
     /// Check the click URL
+    ///
+    /// Internally, this will use the hard-coded `req_keys` and `opt_keys` to specify
+    /// the required and optional query parameter keys that can appear in the click_url
     fn check_click(
         &self,
         filter: &AdmAdvertiserFilterSettings,
@@ -116,16 +119,17 @@ impl AdmFilter {
         let species = "Click";
         tags.add_tag("type", species);
         tags.add_extra("url", &url);
+
         // Check the required fields are present for the `click_url`
-        // pg 15 of 5.7.21 spec.
-        let mut check_keys = vec![
-            "ctag".to_owned(),
-            "version".to_owned(),
-            "key".to_owned(),
-            "ci".to_owned(),
-            "aespFlag".to_owned(),
-        ];
-        check_keys.sort();
+        // pg 15 of 5.7.21 spec. (sort for efficiency)
+        // The list of sorted required query param keys for click_urls
+        let req_keys = vec!["aespFlag", "ci", "ctag", "key", "version"];
+        // the list of optionally appearing query param keys
+        let opt_keys = vec!["click-status"];
+
+        let mut all_keys = req_keys.clone();
+        all_keys.extend(opt_keys.clone());
+
         let parsed: Url = match url.parse() {
             Ok(v) => v,
             Err(e) => {
@@ -138,8 +142,26 @@ impl AdmFilter {
             .map(|p| p.0.to_string())
             .collect::<Vec<String>>();
         query_keys.sort();
-        if !(check_url(parsed, "Click", &filter.click_hosts)? && query_keys == check_keys) {
+
+        // run the gauntlet of checks.
+        if !check_url(parsed, "Click", &filter.click_hosts)? {
+            dbg!("bad url", url.to_string());
+            tags.add_extra("reason", "bad host");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+        }
+        for key in req_keys {
+            if !query_keys.contains(&key.to_owned()) {
+                dbg!("missing param", key, url.to_string());
+                tags.add_extra("reason", "missing required query param");
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
+        }
+        for key in query_keys {
+            if !all_keys.contains(&key.as_str()) {
+                dbg!("invalid param", key, url.to_string());
+                tags.add_extra("reason", "invalid query param");
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
         }
         Ok(())
     }
