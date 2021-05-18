@@ -344,8 +344,8 @@ mod test {
         if location.is_available() {
             // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
             let result = location.mmdb_locate(test_ip, &langs).await?.unwrap();
-            assert_eq!(result.city, Some("Sacramento".to_owned()));
-            assert_eq!(result.subdivision, Some("California".to_owned()));
+            assert_eq!(result.city, Some("Milton".to_owned()));
+            assert_eq!(result.subdivision, Some("Washington".to_owned()));
             assert_eq!(result.country, Some("United States".to_owned()));
         } else {
             println!("⚠Location Database not found, cannot test location, skipping");
