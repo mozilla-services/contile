@@ -8,7 +8,7 @@ use actix_web::{
 use cadence::StatsdClient;
 
 use crate::{
-    adm::AdmFilter,
+    web::adm::AdmFilter,
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     settings::Settings,
@@ -18,6 +18,7 @@ use crate::{
 pub mod cache;
 pub mod img_storage;
 pub mod location;
+pub mod user_agent;
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
-use crate::adm::AdmSettings;
+use crate::web::adm::AdmSettings;
 use crate::server::img_storage::StorageSettings;
 
 static PREFIX: &str = "contile";

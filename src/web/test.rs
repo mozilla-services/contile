@@ -8,12 +8,12 @@ use actix_web::{
 use serde_json::{json, Value};
 
 use crate::{
-    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings, DEFAULT},
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
     server::{cache, location::Location, ServerState},
     settings::{test_settings, Settings},
+    web::adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings, DEFAULT},
     web::{dockerflow, handlers, middleware},
 };
 

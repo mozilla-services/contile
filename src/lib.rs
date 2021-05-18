@@ -4,7 +4,6 @@
 #[macro_use]
 extern crate slog_scope;
 
-pub mod adm;
 #[macro_use]
 pub mod logging;
 pub mod error;
