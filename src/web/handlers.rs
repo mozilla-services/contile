@@ -20,21 +20,23 @@ pub async fn get_tiles(
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
 
-    let fake_ip = if let Some(ip) = state.adm_country_ip_map.get(&treq.country) {
-        ip
-    } else {
-        state
+    let cinfo = request.connection_info();
+    let ip_addr_str = cinfo.remote_addr().unwrap_or({
+        let default = state
             .adm_country_ip_map
             .get("US")
-            .expect("Invalid ADM_COUNTRY_IP_MAP setting")
-    };
+            .expect("Invalid ADM_COUNTRY_IP_MAP settting");
+        if let Some(country) = &treq.country {
+            state.adm_country_ip_map.get(country).unwrap_or(default)
+        } else {
+            default
+        }
+    });
     let stripped_ua = user_agent::strip_ua(&treq.ua);
     let (os_family, form_factor) = user_agent::get_device_info(&treq.ua);
 
     let header = request.head();
-    let c_info = request.connection_info();
-    let ip_addr_str = c_info.remote_addr().unwrap_or(fake_ip);
-    let mut location = if state.mmdb.is_available() {
+    let location = if state.mmdb.is_available() {
         let addr = match ip_addr_str.parse() {
             Ok(v) => v,
             Err(e) => {
@@ -50,7 +52,6 @@ pub async fn get_tiles(
         Some(LocationResult::from(header))
     }
     .unwrap_or_default();
-    location.fake_ip = fake_ip.to_owned(); //TODO: remove once final ADM API is live.
 
     let mut tags = Tags::default();
     {
