@@ -280,7 +280,9 @@ mod test {
     use crate::error::HandlerResult;
     use std::collections::BTreeMap;
 
-    const MMDB_LOC: &str = "mmdb/GeoLite2-City.mmdb";
+    const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
+    const TEST_ADDR: &str = "216.160.83.56";
+
     #[test]
     fn test_preferred_language() {
         let langs = preferred_languages("en-US,es;q=0.1,en;q=0.5,*;q=0.2".to_owned(), "en");
@@ -332,7 +334,7 @@ mod test {
 
     #[actix_rt::test]
     async fn test_location_good() -> HandlerResult<()> {
-        let test_ip: IpAddr = "63.245.208.195".parse().unwrap(); // Mozilla
+        let test_ip: IpAddr = TEST_ADDR.parse().unwrap(); // Mozilla
         let langs = vec!["en".to_owned()];
         let settings = Settings {
             maxminddb_loc: Some(MMDB_LOC.to_owned()),
