@@ -333,7 +333,6 @@ pub async fn get_tiles(
     reqwest_client: &reqwest::Client,
     adm_endpoint_url: &str,
     location: &LocationResult,
-    stripped_ua: &str,
     os_family: OsFamily,
     form_factor: FormFactor,
     state: &ServerState,
@@ -349,7 +348,6 @@ pub async fn get_tiles(
             ("partner", settings.partner_id.as_str()),
             ("sub1", settings.sub1.as_str()),
             ("ip", &location.fake_ip), // TODO: remove once ADM API finalized
-            ("ua", &stripped_ua),      // TODO: remove once ADM API finalized
             ("country-code", &location.country()),
             ("region-code", &location.region()),
             // ("dma-code", location.dma),
@@ -368,7 +366,6 @@ pub async fn get_tiles(
     trace!("get_tiles GET {}", adm_url);
     let mut response: AdmTileResponse = reqwest_client
         .get(adm_url)
-        .header(reqwest::header::USER_AGENT, stripped_ua)
         .send()
         .await
         .map_err(|e| {

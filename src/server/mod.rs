@@ -19,6 +19,9 @@ pub mod cache;
 pub mod img_storage;
 pub mod location;
 
+/// User-Agent sent to adM
+static REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
 #[derive(Clone)]
@@ -89,7 +92,9 @@ impl Server {
             metrics: Box::new(metrics_from_opts(&settings)?),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
-            reqwest_client: reqwest::Client::new(),
+            reqwest_client: reqwest::Client::builder()
+                .user_agent(REQWEST_USER_AGENT)
+                .build()?,
             tiles_cache: cache::TilesCache::new(75),
             mmdb: (&settings).into(),
             settings: settings.clone(),
