@@ -191,7 +191,7 @@ impl AdmFilter {
             .map(|p| p.0.to_string())
             .collect::<Vec<String>>();
         query_keys.sort();
-        if !(query_keys == vec!["id"]) {
+        if query_keys != vec!["id"] {
             dbg!("missing param", "id", url.to_string());
             tags.add_extra("reason", "invalid query param");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
