@@ -53,7 +53,6 @@ impl From<&RequestHead> for LocationResult {
                 ..Default::default()
             };
         }
-        dbg!("No Google header found");
         Self::default()
     }
 }
