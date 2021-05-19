@@ -20,6 +20,8 @@ pub mod img_storage;
 pub mod location;
 pub mod user_agent;
 
+pub use user_agent::{FormFactor, OsFamily};
+
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
 #[derive(Clone)]

@@ -8,8 +8,7 @@ use crate::{
     metrics::Metrics,
     server::{cache, location::LocationResult, ServerState, user_agent},
     tags::Tags,
-    web::extractors::TilesRequest,
-    web::middleware::sentry as l_sentry,
+    web::{extractors::TilesRequest, middleware::sentry as l_sentry},
 };
 
 pub async fn get_tiles(
@@ -20,19 +19,23 @@ pub async fn get_tiles(
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
 
-    let fake_ip = if let Some(ip) = state.adm_country_ip_map.get(&treq.country) {
-        ip
-    } else {
-        state
+    let cinfo = request.connection_info();
+    let ip_addr_str = cinfo.remote_addr().unwrap_or({
+        let default = state
             .adm_country_ip_map
             .get("US")
-            .expect("Invalid ADM_COUNTRY_IP_MAP setting")
-    };
+            .expect("Invalid ADM_COUNTRY_IP_MAP settting");
+        if let Some(country) = &treq.country {
+            state.adm_country_ip_map.get(country).unwrap_or(default)
+        } else {
+            default
+        }
+    });
     let stripped_ua = user_agent::strip_ua(&treq.ua);
+    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua);
+
     let header = request.head();
-    let c_info = request.connection_info();
-    let ip_addr_str = c_info.remote_addr().unwrap_or(fake_ip);
-    let mut location = if state.mmdb.is_available() {
+    let location = if state.mmdb.is_available() {
         let addr = match ip_addr_str.parse() {
             Ok(v) => v,
             Err(e) => {
@@ -48,7 +51,6 @@ pub async fn get_tiles(
         Some(LocationResult::from(header))
     }
     .unwrap_or_default();
-    location.fake_ip = fake_ip.to_owned(); //TODO: remove once final ADM API is live.
 
     let mut tags = Tags::default();
     {
@@ -56,7 +58,6 @@ pub async fn get_tiles(
         tags.add_extra("region", &location.region());
         tags.add_extra("ip", ip_addr_str);
         tags.add_extra("ua", &stripped_ua);
-        tags.add_extra("sub2", &treq.placement);
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
@@ -64,9 +65,9 @@ pub async fn get_tiles(
     let audience_key = cache::AudienceKey {
         country: location.country(),
         region: location.region(),
-        // fake_ip: fake_ip.clone(),
         platform: stripped_ua.clone(),
-        placement: treq.placement.clone(),
+        os_family,
+        form_factor,
     };
     if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
         trace!("get_tiles: cache hit: {:?}", audience_key);
@@ -87,7 +88,8 @@ pub async fn get_tiles(
         &state.adm_endpoint_url,
         &location,
         &stripped_ua,
-        &treq.placement,
+        os_family,
+        form_factor,
         &state,
         &mut tags,
         headers,

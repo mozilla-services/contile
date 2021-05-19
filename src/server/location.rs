@@ -17,7 +17,7 @@ pub struct LocationResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub provinces: Option<Vec<String>>,
+    pub subdivision: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -31,10 +31,21 @@ impl From<&RequestHead> for LocationResult {
         let headers = head.headers();
         if let Some(loc_string) = headers.get(GOOG_LOC_HEADER) {
             dbg!("Found google header", loc_string);
-            let mut parts: Vec<&str> = loc_string.to_str().unwrap_or("").split(',').collect();
+            let mut parts = loc_string.to_str().unwrap_or("").split(',');
+            let country = parts.next().map(ToOwned::to_owned);
+            let subdivision = parts.next().map(|subdivision| {
+                // client_region_subdivision: a "Unicode CLDR subdivision ID,
+                // such as USCA or CAON"
+                if subdivision.len() < 3 {
+                    subdivision
+                } else {
+                    &subdivision[2..]
+                }
+                .to_owned()
+            });
             return Self {
-                city: parts.pop().map(ToOwned::to_owned),
-                country: parts.pop().map(ToOwned::to_owned),
+                subdivision,
+                country,
                 ..Default::default()
             };
         }
@@ -50,11 +61,7 @@ impl LocationResult {
     }
 
     pub fn region(&self) -> String {
-        self.provinces
-            .clone()
-            .unwrap_or_default()
-            .pop()
-            .unwrap_or_default()
+        self.subdivision.clone().unwrap_or_default()
     }
 
     pub fn country(&self) -> String {
@@ -156,7 +163,7 @@ pub fn preferred_languages(accepted_lang_header: String, default: &str) -> Vec<S
 /// This rounds up from the dialect if possible.
 fn get_preferred_language_element(
     langs: &[String],
-    elements: BTreeMap<&str, &str>,
+    elements: &BTreeMap<&str, &str>,
 ) -> Option<String> {
     for lang in langs {
         // It's a wildcard, so just return the first possible choice.
@@ -241,24 +248,17 @@ impl Location {
         match self.iploc.clone().unwrap().lookup::<City<'_>>(ip_addr) {
             Ok(location) => {
                 if let Some(names) = location.city.and_then(|c| c.names) {
-                    result.city = get_preferred_language_element(&preferred_languages, names)
+                    result.city = get_preferred_language_element(&preferred_languages, &names)
                 };
                 if let Some(names) = location.country.and_then(|c| c.names) {
-                    result.country = get_preferred_language_element(&preferred_languages, names)
+                    result.country = get_preferred_language_element(&preferred_languages, &names)
                 };
                 if let Some(divs) = location.subdivisions {
-                    let mut provinces = Vec::new();
-                    for item in divs {
-                        if let Some(names) = item.names {
-                            if let Some(province) =
-                                get_preferred_language_element(&preferred_languages, names)
-                            {
-                                provinces.push(province);
-                            }
+                    if let Some(subdivision) = divs.get(0) {
+                        if let Some(names) = &subdivision.names {
+                            result.subdivision =
+                                get_preferred_language_element(&preferred_languages, names);
                         }
-                    }
-                    if !provinces.is_empty() {
-                        result.provinces = Some(provinces);
                     }
                 }
                 if let Some(location) = location.location {
@@ -280,7 +280,9 @@ mod test {
     use crate::error::HandlerResult;
     use std::collections::BTreeMap;
 
-    const MMDB_LOC: &str = "mmdb/GeoLite2-City.mmdb";
+    const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
+    const TEST_ADDR: &str = "216.160.83.56";
+
     #[test]
     fn test_preferred_language() {
         let langs = preferred_languages("en-US,es;q=0.1,en;q=0.5,*;q=0.2".to_owned(), "en");
@@ -321,24 +323,18 @@ mod test {
         elements.insert("ja", "カリフォルニア州");
         assert_eq!(
             Some("California".to_owned()),
-            get_preferred_language_element(&langs, elements.clone())
+            get_preferred_language_element(&langs, &elements)
         );
-        assert_eq!(
-            None,
-            get_preferred_language_element(&bad_lang, elements.clone())
-        );
+        assert_eq!(None, get_preferred_language_element(&bad_lang, &elements));
         // Return Dutch, since it's the first key listed.
-        assert!(get_preferred_language_element(&any_lang, elements.clone()).is_some());
+        assert!(get_preferred_language_element(&any_lang, &elements).is_some());
         let goof_lang = vec!["🙄💩".to_owned()];
-        assert_eq!(
-            None,
-            get_preferred_language_element(&goof_lang, elements.clone())
-        );
+        assert_eq!(None, get_preferred_language_element(&goof_lang, &elements));
     }
 
     #[actix_rt::test]
     async fn test_location_good() -> HandlerResult<()> {
-        let test_ip: IpAddr = "63.245.208.195".parse().unwrap(); // Mozilla
+        let test_ip: IpAddr = TEST_ADDR.parse().unwrap(); // Mozilla
         let langs = vec!["en".to_owned()];
         let settings = Settings {
             maxminddb_loc: Some(MMDB_LOC.to_owned()),
@@ -348,8 +344,8 @@ mod test {
         if location.is_available() {
             // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
             let result = location.mmdb_locate(test_ip, &langs).await?.unwrap();
-            assert_eq!(result.city, Some("Sacramento".to_owned()));
-            assert_eq!(result.provinces, Some(["California".to_owned()].to_vec()));
+            assert_eq!(result.city, Some("Milton".to_owned()));
+            assert_eq!(result.subdivision, Some("Washington".to_owned()));
             assert_eq!(result.country, Some("United States".to_owned()));
         } else {
             println!("⚠Location Database not found, cannot test location, skipping");

@@ -1,7 +1,47 @@
+use std::fmt;
+
 use woothee::{
     parser::{Parser, WootheeResult},
     woothee::VALUE_UNKNOWN,
 };
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum FormFactor {
+    Desktop,
+    Phone,
+    Tablet,
+    Other,
+}
+
+impl fmt::Display for FormFactor {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = format!("{:?}", self).to_lowercase();
+        write!(fmt, "{}", name)
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum OsFamily {
+    Windows,
+    MacOs,
+    Linux,
+    IOs,
+    Android,
+    ChromeOs,
+    BlackBerry,
+    Other,
+}
+
+impl fmt::Display for OsFamily {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // XXX: could use "correct" case (rendering this w/ serde will make
+        // that easier)
+        let name = format!("{:?}", self).to_lowercase();
+        write!(fmt, "{}", name)
+    }
+}
 
 /// Strip a Firefox User-Agent string, returning a version only varying in Base
 /// OS (e.g. Mac, Windows, Linux) and Firefox major version number
@@ -10,13 +50,14 @@ pub fn strip_ua(ua: &str) -> String {
         name, os, version, ..
     } = Parser::new().parse(ua).unwrap_or_default();
 
-    let platform = match os {
-        _ if os.starts_with("Windows") => "Windows NT 10.0; Win64; x64",
-        "Mac OSX" => "Macintosh; Intel Mac OS X 10.15",
-        "Linux" => "X11; Ubuntu; Linux x86_64",
+    let os = os.to_lowercase();
+    let platform = match os.as_str() {
+        _ if os.starts_with("windows") => "Windows NT 10.0; Win64; x64",
+        "mac osx" => "Macintosh; Intel Mac OS X 10.15",
+        "linux" => "X11; Ubuntu; Linux x86_64",
         _ => "Other",
     };
-    let major = if name != "Firefox" || version == VALUE_UNKNOWN {
+    let major = if name.to_lowercase().as_str() != "firefox" || version == VALUE_UNKNOWN {
         "?"
     } else {
         version.split('.').take(1).collect::<Vec<_>>()[0]
@@ -28,13 +69,41 @@ pub fn strip_ua(ua: &str) -> String {
     )
 }
 
+pub fn get_device_info(ua: &str) -> (OsFamily, FormFactor) {
+    let wresult = Parser::new().parse(ua).unwrap_or_default();
+
+    let os = wresult.os.to_lowercase();
+    let os_family = match os.as_str() {
+        _ if os.starts_with("windows") => OsFamily::Windows,
+        "mac osx" => OsFamily::MacOs,
+        "linux" => OsFamily::Linux,
+        "iphone" | "ipad" => OsFamily::IOs,
+        "android" => OsFamily::Android,
+        "chromeos" => OsFamily::ChromeOs,
+        "blackberry" => OsFamily::BlackBerry,
+        _ => OsFamily::Other,
+    };
+    let form_factor = match wresult.category {
+        "pc" => FormFactor::Desktop,
+        "smartphone" if os.as_str() == "ipad" => FormFactor::Tablet,
+        "smartphone" => FormFactor::Phone,
+        _ => FormFactor::Other,
+    };
+    (os_family, form_factor)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::strip_ua;
+    use super::{get_device_info, strip_ua, FormFactor, OsFamily};
 
     macro_rules! assert_strip_eq {
         ($value:expr, $stripped:expr) => {
             assert_eq!(strip_ua($value), $stripped);
+        };
+    }
+    macro_rules! assert_get_device_info {
+        ($value:expr, $os_family:expr, $form_factor:expr) => {
+            assert_eq!(get_device_info($value), ($os_family, $form_factor));
         };
     }
 
@@ -44,6 +113,11 @@ mod tests {
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11.2; rv:85.0) Gecko/20100101 Firefox/85.0",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:85.0) Gecko/20100101 Firefox/85.0"
         );
+        assert_get_device_info!(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11.2; rv:85.0) Gecko/20100101 Firefox/85.0",
+            OsFamily::MacOs,
+            FormFactor::Desktop
+        );
     }
 
     #[test]
@@ -52,6 +126,11 @@ mod tests {
             "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0"
         );
+        assert_get_device_info!(
+            "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0",
+            OsFamily::Windows,
+            FormFactor::Desktop
+        );
     }
 
     #[test]
@@ -59,6 +138,11 @@ mod tests {
         assert_strip_eq!(
             "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:82.0.1) Gecko/20100101 Firefox/82.0.1",
             "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0"
+        );
+        assert_get_device_info!(
+            "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:82.0.1) Gecko/20100101 Firefox/82.0.1",
+            OsFamily::Linux,
+            FormFactor::Desktop
         );
     }
 
@@ -81,10 +165,47 @@ mod tests {
     }
 
     #[test]
+    fn android() {
+        assert_get_device_info!(
+            "Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/85.0",
+            OsFamily::Android,
+            FormFactor::Phone
+        );
+    }
+
+    #[test]
+    fn ios() {
+        assert_get_device_info!(
+            "Mozilla/5.0 (iPad; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
+            OsFamily::IOs,
+            FormFactor::Tablet
+        );
+        assert_get_device_info!(
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
+            OsFamily::IOs,
+            FormFactor::Phone
+        );
+    }
+
+    #[test]
+    fn chromeos() {
+        assert_get_device_info!(
+            "Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36",
+            OsFamily::ChromeOs,
+            FormFactor::Desktop
+        );
+    }
+
+    #[test]
     fn other_ua() {
         assert_strip_eq!(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:?.0) Gecko/20100101 Firefox/?.0"
+        );
+        assert_get_device_info!(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
+            OsFamily::MacOs,
+            FormFactor::Desktop
         );
     }
 }
