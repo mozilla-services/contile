@@ -1,33 +1,13 @@
-//! ADM partner integration
-//!
-//! This module handles most of the ADM fetch, validation, and management
-//! for tile data. ADM provides a list of partners, along with a set of
-//! tile information (e.g. the name of the partner, various URLs, etc.)
-//! We only allow a known set of partners, and validate that the tile info
-//! offered matches expected values.
-
 use std::{collections::HashMap, fmt::Debug};
 
-use serde::{Deserialize, Serialize};
 use url::Url;
 
+use super::{AdmAdvertiserFilterSettings, AdmTile, DEFAULT};
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
-    server::{location::LocationResult, ServerState},
-    settings::Settings,
     tags::Tags,
-    web::{middleware::sentry as l_sentry, FormFactor, OsFamily},
+    web::middleware::sentry as l_sentry,
 };
-
-/// The name of the "Default" node, which is used as a fall back if no data
-/// is defined for a given partner.
-pub(crate) const DEFAULT: &str = "DEFAULT";
-
-/// The response message sent to the User Agent.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct AdmTileResponse {
-    pub tiles: Vec<AdmTile>,
-}
 
 /// Filter criteria for ADM Tiles
 ///
@@ -40,38 +20,6 @@ pub struct AdmTileResponse {
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
-}
-
-/// The AdmAdvertiserFilterSettings contain the settings for the various
-/// ADM provided partners.
-///
-/// These are specified as a JSON formatted hash
-/// that contains the components. A special "DEFAULT" setting provides
-/// information that may be used as a DEFAULT, or commonly appearing set
-/// of data.
-#[derive(Clone, Debug, Deserialize, Default, Serialize)]
-pub struct AdmAdvertiserFilterSettings {
-    /// Set of valid hosts for the `advertiser_url`
-    pub(crate) advertiser_hosts: Vec<String>,
-    /// Set of valid hosts for the `impression_url`
-    pub(crate) impression_hosts: Vec<String>,
-    /// Set of valid hosts for the `click_url`
-    pub(crate) click_hosts: Vec<String>,
-    /// valid position for the tile
-    pub(crate) position: Option<u8>,
-    /// Set of valid regions for the tile (e.g ["en", "en-US/TX"])
-    pub(crate) include_regions: Vec<String>,
-}
-
-pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
-
-impl From<&Settings> for AdmSettings {
-    fn from(settings: &Settings) -> Self {
-        if settings.adm_settings.is_empty() {
-            return Self::default();
-        }
-        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings")
-    }
 }
 
 /// Check that a given URL is valid according to it's corresponding filter
@@ -273,117 +221,4 @@ impl AdmFilter {
             }
         }
     }
-}
-
-/// Construct the AdmFilter from the provided settings.
-///
-/// This uses a JSON construct of settings, e.g.
-/// ```javascript
-/// /* for the Example Co advertiser... */
-/// {"Example": {
-///     /* The allowed hosts for URLs */
-///     "advertiser_hosts": ["www.example.org", "example.org"],
-///     /* Valid tile positions for this advertiser (empty for "all") */
-///     "positions": 1,
-///     /* Valid target regions for this advertiser
-///        (use "en-US" for "all in english speaking United States") */
-///     "include_regions": ["en-US/TX", "en-US/CA"],
-///     /* Allowed hosts for impression URLs.
-///        Empty means to use the impression URLs in "DEFAULT" */
-///     "impression_hosts: [],
-///     },
-///     ...,
-///  "DEFAULT": {
-///    /* The default impression URL host to check for. */
-///    "impression_hosts": ["example.net"]
-///     }
-/// }
-/// ```
-///
-impl From<&Settings> for HandlerResult<AdmFilter> {
-    fn from(settings: &Settings) -> Self {
-        let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
-        for (adv, setting) in AdmSettings::from(settings) {
-            dbg!("Processing records for {:?}", &adv);
-            // map the settings to the URL we're going to be checking
-            filter_map.insert(adv.to_lowercase(), setting);
-        }
-        Ok(AdmFilter {
-            filter_set: filter_map,
-        })
-    }
-}
-
-/// The tile data provided by ADM
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct AdmTile {
-    pub id: u64,
-    pub name: String,
-    pub advertiser_url: String,
-    pub click_url: String,
-    pub image_url: String,
-    pub impression_url: String,
-    pub position: Option<u8>,
-}
-
-/// Main handler for the User Agent HTTP request
-///
-#[allow(clippy::too_many_arguments)]
-pub async fn get_tiles(
-    reqwest_client: &reqwest::Client,
-    adm_endpoint_url: &str,
-    location: &LocationResult,
-    os_family: OsFamily,
-    form_factor: FormFactor,
-    state: &ServerState,
-    tags: &mut Tags,
-) -> Result<AdmTileResponse, HandlerError> {
-    // XXX: Assumes adm_endpoint_url includes
-    // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
-    // validate this on startup)
-    let settings = &state.settings;
-    let adm_url = Url::parse_with_params(
-        adm_endpoint_url,
-        &[
-            ("partner", settings.partner_id.as_str()),
-            ("sub1", settings.sub1.as_str()),
-            ("ip", &location.fake_ip), // TODO: remove once ADM API finalized
-            ("country-code", &location.country()),
-            ("region-code", &location.region()),
-            // ("dma-code", location.dma),
-            ("form-factor", &form_factor.to_string()),
-            ("os-family", &os_family.to_string()),
-            ("sub2", "newtab"),
-            ("v", "1.0"),
-            // XXX: some value for results seems required, it defaults to 0
-            // when omitted (despite AdM claiming it would default to 1)
-            ("results", &settings.adm_query_tile_count.to_string()),
-        ],
-    )
-    .map_err(|e| HandlerError::internal(&e.to_string()))?;
-    let adm_url = adm_url.as_str();
-
-    trace!("get_tiles GET {}", adm_url);
-    let mut response: AdmTileResponse = reqwest_client
-        .get(adm_url)
-        .send()
-        .await
-        .map_err(|e| {
-            // ADM servers are down, or improperly configured
-            HandlerErrorKind::BadAdmResponse(format!("ADM Server Error: {:?}", e))
-        })?
-        .error_for_status()?
-        .json()
-        .await
-        .map_err(|e| {
-            // ADM servers are not returning correct information
-            HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
-        })?;
-    response.tiles = response
-        .tiles
-        .into_iter()
-        .filter_map(|tile| state.filter.filter_and_process(tile, tags))
-        .take(settings.adm_max_tiles as usize)
-        .collect();
-    Ok(response)
 }
