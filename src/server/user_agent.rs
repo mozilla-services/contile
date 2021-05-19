@@ -1,3 +1,4 @@
+//! Provide a stripped down version of the User Agent string.
 use std::fmt;
 
 use woothee::{
@@ -5,6 +6,7 @@ use woothee::{
     woothee::VALUE_UNKNOWN,
 };
 
+/// Describe the browser form factor (per ADM)
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum FormFactor {
@@ -21,6 +23,7 @@ impl fmt::Display for FormFactor {
     }
 }
 
+/// List of Operating System Families
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum OsFamily {
@@ -69,6 +72,7 @@ pub fn strip_ua(ua: &str) -> String {
     )
 }
 
+/// Return the [OsFamily] and [FormFactor] from the raw UserAgent string
 pub fn get_device_info(ua: &str) -> (OsFamily, FormFactor) {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
 

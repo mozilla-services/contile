@@ -62,7 +62,7 @@ pub struct Settings {
     /// ADM tile settings (either as JSON or a path to a JSON file)
     /// This consists of an advertiser name, and the associated filter settings
     /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
-    /// Unspecfied [AdmAdvertiserFilterSetttings] will use Default values specified
+    /// Unspecfied [crate::web::adm::AdmAdvertiserFilterSettings] will use Default values specified
     /// in `Default` (or the application default if not specified)
     pub adm_settings: String,
     /// path to MaxMind location database

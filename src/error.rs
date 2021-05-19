@@ -1,3 +1,4 @@
+//! Common errors
 use backtrace::Backtrace;
 use std::error::Error;
 use std::fmt;
@@ -14,47 +15,61 @@ use actix_web::{
 };
 use thiserror::Error;
 
+/// The standard Result type for Contile (returns Error = [`HandlerError`])
 pub type HandlerResult<T> = result::Result<T, HandlerError>;
 
+/// The Standard Error for most of Contile
 #[derive(Debug)]
 pub struct HandlerError {
     kind: HandlerErrorKind,
     backtrace: Backtrace,
 }
 
+/// The specific context types of HandlerError.
 #[derive(Debug, Error)]
 pub enum HandlerErrorKind {
+    /// An unspecified General error, usually via an external service or crate
     #[error("General error: {:?}", _0)]
     General(String),
 
+    /// A specific Internal error.
     #[error("Internal error: {:?}", _0)]
     Internal(String),
 
+    /// An error fetching information from ADM
     #[error("Reqwest error: {:?}", _0)]
     Reqwest(#[from] reqwest::Error),
 
+    /// An error validating the tile information recv'd from ADM
     #[error("Validation error: {:?}", _0)]
     Validation(String),
 
+    /// A tile contained an invalid host url
     #[error("Invalid {} Host: {:?}", _0, _1)]
     InvalidHost(&'static str, String),
 
+    /// A tile was from an unrecognized host
     #[error("Unexpected {} Host: {:?}", _0, _1)]
     UnexpectedHost(&'static str, String),
 
+    /// A tile contained an unrecognized `advertiser_url` host
     #[error("Unexpected Advertiser: {:?}", _0)]
     UnexpectedAdvertiser(String),
 
+    /// A tile was missing a host, or presented an unparsable one.
     #[error("Missing {} Host: {:?}", _0, _1)]
     MissingHost(&'static str, String),
 
+    /// The Location information for the request could not be resolved
     #[error("Location error: {:?}", _0)]
     Location(String),
 
+    /// ADM returned an invalid or unexpected response
     #[error("Bad Adm response: {:?}", _0)]
     BadAdmResponse(String),
 }
 
+/// A set of Error Context utilities
 impl HandlerErrorKind {
     /// Return a response Status to be rendered for an error
     pub fn http_status(&self) -> StatusCode {

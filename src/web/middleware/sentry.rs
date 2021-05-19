@@ -1,3 +1,4 @@
+//! Sentry error event reporting middleware wrapper for Actix
 use std::task::Context;
 use std::{
     cell::{RefCell, RefMut},
@@ -74,6 +75,9 @@ pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
     }
 }
 
+/// Report an event with [crate::tags::Tags]
+///
+/// [Event]s can be derived using `sentry::event_from_error(Error)`
 pub fn report(tags: &Tags, mut event: Event<'static>) {
     let tags = tags.clone();
     event.tags = tags.clone().tag_tree();

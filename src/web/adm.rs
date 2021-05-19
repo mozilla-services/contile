@@ -1,6 +1,20 @@
+//! ADM partner integration
+//!
+//! This module handles most of the ADM fetch, validation, and management
+//! for tile data. ADM provides a list of partners, along with a set of
+//! tile information (e.g. the name of the partner, various URLs, etc.)
+//! We only allow a known set of partners, and validate that the tile info
+//! offered matches expected values.
+
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    fs::File,
+    io::BufReader,
+    path::Path};
+
 use actix_http::http::{header::HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt::Debug, fs::File, io::BufReader, path::Path};
 use url::Url;
 
 use crate::{
@@ -11,13 +25,17 @@ use crate::{
     web::middleware::sentry as l_sentry,
 };
 
+/// The name of the "Default" node, which is used as a fall back if no data
+/// is defined for a given partner.
 pub(crate) const DEFAULT: &str = "DEFAULT";
 
+/// The response message sent to the User Agent.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdmTileResponse {
     pub tiles: Vec<AdmTile>,
 }
 
+/// For testing, provide the ability to return a fake response based on a header.
 impl AdmTileResponse {
     pub fn fake_response(settings: &Settings, mut response_file: String) -> HandlerResult<Self> {
         response_file.retain(char::is_alphanumeric);
@@ -40,9 +58,12 @@ impl AdmTileResponse {
 
 /// Filter criteria for adm Tiles
 /// Each "filter"  is a set of [AdmAdvertiserFilterSettings] that are
+/// Filter criteria for ADM Tiles
+///
+/// Each "filter"  is a set of [crate::web::adm::AdmAdvertiserFilterSettings] that are
 /// specific to a given Advertiser name (the names are matched against
 /// the tiles fetch request)
-/// In addition there is a special [DEFAULT] value which is a filter
+/// In addition there is a special `DEFAULT` value which is a filter
 /// that will be applied to all advertisers that do not supply their
 /// own values.
 #[derive(Default, Clone, Debug)]
@@ -51,7 +72,9 @@ pub struct AdmFilter {
 }
 
 /// The AdmAdvertiserFilterSettings contain the settings for the various
-/// ADM provided partners. These are specified as a JSON formatted hash
+/// ADM provided partners.
+///
+/// These are specified as a JSON formatted hash
 /// that contains the components. A special "DEFAULT" setting provides
 /// information that may be used as a DEFAULT, or commonly appearing set
 /// of data.
@@ -157,6 +180,7 @@ fn check_url(
     Ok(())
 }
 
+/// Filter a given tile data set provided by ADM and validate the various elements
 impl AdmFilter {
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
@@ -269,6 +293,7 @@ impl AdmFilter {
 }
 
 /// Construct the AdmFilter from the provided settings.
+///
 /// This uses a JSON construct of settings, e.g.
 /// ```javascript
 /// /* for the Example Co advertiser... */
@@ -306,6 +331,7 @@ impl From<&Settings> for HandlerResult<AdmFilter> {
     }
 }
 
+/// The tile data provided by ADM
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AdmTile {
     pub id: u64,
@@ -317,6 +343,8 @@ pub struct AdmTile {
     pub position: Option<u8>,
 }
 
+/// Main handler for the User Agent HTTP request
+///
 #[allow(clippy::too_many_arguments)]
 pub async fn get_tiles(
     reqwest_client: &reqwest::Client,

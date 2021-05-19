@@ -1,3 +1,4 @@
+//! Tile cache manager
 use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 
 use cadence::Counted;
@@ -10,6 +11,8 @@ use crate::{
     web::adm,
 };
 
+/// AudienceKey is the primary key used to store and fetch tiles from the
+/// local cache.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct AudienceKey {
     /// Country in ISO 3166-1 alpha-2 format
@@ -17,18 +20,21 @@ pub struct AudienceKey {
     /// Not yet supported: Region/subdivision (e.g. a US state) in ISO
     /// 3166-2 format
     pub region: String,
-    /// Only here for use by the periodic updater
-    // pub fake_ip: String,
+    /// The stripped User Agent string.(see [crate::server::strip_ua])
     pub platform: String,
+    /// A simplified version of the Platform (see [crate::server::OsFamily]
     pub os_family: OsFamily,
+    /// A simplified version of the display format (see [crate::server::FormFactor]
     pub form_factor: FormFactor,
 }
 
+/// The stored Tile cache data
 #[derive(Debug)]
 pub struct Tiles {
     pub json: String,
 }
 
+/// The simple tile Cache
 #[derive(Debug, Clone)]
 pub struct TilesCache {
     inner: Arc<RwLock<HashMap<AudienceKey, Tiles>>>,

@@ -1,3 +1,10 @@
+//! Standard mozilla ops dockerflow functions
+//!
+//! These include
+//! * `__heartbeat__` - used to determine app availability
+//! * `__lbheartbeat__` - used to determine load balancer availability
+//! * `__version__` - report the version info (including github commit and sig)
+
 use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest, HttpResponse};

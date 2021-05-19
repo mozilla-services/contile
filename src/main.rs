@@ -1,3 +1,5 @@
+//! Main application entry point
+
 use std::error::Error;
 
 #[macro_use]

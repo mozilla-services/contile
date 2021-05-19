@@ -1,3 +1,6 @@
+//! Provide a useful, standardized way to pass meta information for
+//! Sentry and Metrics.
+//!
 use core::cell::RefMut;
 use std::collections::{BTreeMap, HashMap};
 
@@ -17,15 +20,15 @@ use serde_json::value::Value;
 use slog::{Key, Record, KV};
 use woothee::parser::{Parser, WootheeResult};
 
-// List of valid user-agent attributes to keep, anything not in this
-// list is considered 'Other'. We log the user-agent on connect always
-// to retain the full string, but for DD more tags are expensive so we
-// limit to these.
+/// List of valid user-agent attributes to keep, anything not in this
+/// list is considered 'Other'. We log the user-agent on connect always
+/// to retain the full string, but for DD more tags are expensive so we
+/// limit to these.
 const VALID_UA_BROWSER: &[&str] = &["Chrome", "Firefox", "Safari", "Opera"];
 
-// See dataset.rs in https://github.com/woothee/woothee-rust for the
-// full list (WootheeResult's 'os' field may fall back to its 'name'
-// field). Windows has many values and we only care that its Windows
+/// See dataset.rs in https://github.com/woothee/woothee-rust for the
+/// full list (WootheeResult's 'os' field may fall back to its 'name'
+/// field). Windows has many values and we only care that its Windows
 const VALID_UA_OS: &[&str] = &["Firefox OS", "Linux", "Mac OSX"];
 
 /// Primative User Agent parser.
