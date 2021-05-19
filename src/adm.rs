@@ -62,35 +62,17 @@ impl From<&Settings> for AdmSettings {
 }
 
 /// Check that a given URL is valid according to it's corresponding filter
-fn check_url(
-    url: &str,
-    species: &'static str,
-    filter: &[String],
-    tags: &mut Tags,
-) -> HandlerResult<()> {
-    let parsed: Url = match url.parse() {
-        Ok(v) => v,
-        Err(e) => {
-            tags.add_tag("type", species);
-            tags.add_extra("parse_error", &e.to_string());
-            tags.add_extra("url", &url);
-            return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
-        }
-    };
-    let host = match parsed.host() {
+fn check_url(url: Url, species: &'static str, filter: &[String]) -> HandlerResult<bool> {
+    let host = match url.host() {
         Some(v) => v.to_string(),
         None => {
-            tags.add_tag("type", species);
-            tags.add_extra("url", &url);
-            return Err(HandlerErrorKind::MissingHost(species, parsed.to_string()).into());
+            return Err(HandlerErrorKind::MissingHost(species, url.to_string()).into());
         }
     };
     if !filter.contains(&host) {
-        tags.add_tag("type", species);
-        tags.add_extra("url", &url);
         return Err(HandlerErrorKind::UnexpectedHost(species, host).into());
     }
-    Ok(())
+    Ok(true)
 }
 
 impl AdmFilter {
@@ -108,22 +90,80 @@ impl AdmFilter {
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
-        check_url(
-            &tile.advertiser_url,
-            "Advertiser",
-            &filter.advertiser_hosts,
-            tags,
-        )
+        let url = &tile.advertiser_url;
+        let species = "Advertiser";
+        tags.add_tag("type", species);
+        tags.add_extra("url", &url);
+        let parsed: Url = match url.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                tags.add_extra("parse_error", &e.to_string());
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
+        };
+        check_url(parsed, species, &filter.advertiser_hosts)?;
+        Ok(())
     }
 
     /// Check the click URL
+    ///
+    /// Internally, this will use the hard-coded `req_keys` and `opt_keys` to specify
+    /// the required and optional query parameter keys that can appear in the click_url
     fn check_click(
         &self,
         filter: &AdmAdvertiserFilterSettings,
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
-        check_url(&tile.click_url, "Click", &filter.click_hosts, tags)
+        let url = &tile.click_url;
+        let species = "Click";
+        tags.add_tag("type", species);
+        tags.add_extra("url", &url);
+
+        // Check the required fields are present for the `click_url`
+        // pg 15 of 5.7.21 spec. (sort for efficiency)
+        // The list of sorted required query param keys for click_urls
+        let req_keys = vec!["aespFlag", "ci", "ctag", "key", "version"];
+        // the list of optionally appearing query param keys
+        let opt_keys = vec!["click-status"];
+
+        let mut all_keys = req_keys.clone();
+        all_keys.extend(opt_keys.clone());
+
+        let parsed: Url = match url.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                tags.add_extra("parse_error", &e.to_string());
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
+        };
+        let mut query_keys = parsed
+            .query_pairs()
+            .map(|p| p.0.to_string())
+            .collect::<Vec<String>>();
+        query_keys.sort();
+
+        // run the gauntlet of checks.
+        if !check_url(parsed, "Click", &filter.click_hosts)? {
+            dbg!("bad url", url.to_string());
+            tags.add_extra("reason", "bad host");
+            return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+        }
+        for key in req_keys {
+            if !query_keys.contains(&key.to_owned()) {
+                dbg!("missing param", key, url.to_string());
+                tags.add_extra("reason", "missing required query param");
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
+        }
+        for key in query_keys {
+            if !all_keys.contains(&key.as_str()) {
+                dbg!("invalid param", key, url.to_string());
+                tags.add_extra("reason", "invalid query param");
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
+        }
+        Ok(())
     }
 
     /// Check the impression URL to see if it's valid.
@@ -135,12 +175,29 @@ impl AdmFilter {
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
-        check_url(
-            &tile.impression_url,
-            "Impression",
-            &filter.impression_hosts,
-            tags,
-        )
+        let url = &tile.impression_url;
+        let species = "Impression";
+        tags.add_tag("type", species);
+        tags.add_extra("url", &url);
+        let parsed: Url = match url.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                tags.add_extra("parse_error", &e.to_string());
+                return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+            }
+        };
+        let mut query_keys = parsed
+            .query_pairs()
+            .map(|p| p.0.to_string())
+            .collect::<Vec<String>>();
+        query_keys.sort();
+        if query_keys != vec!["id"] {
+            dbg!("missing param", "id", url.to_string());
+            tags.add_extra("reason", "invalid query param");
+            return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+        }
+        check_url(parsed, species, &filter.impression_hosts)?;
+        Ok(())
     }
 
     /// Filter and process tiles from ADM:
