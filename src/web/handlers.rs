@@ -3,11 +3,11 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use serde_json::json;
 
 use crate::{
-    web::adm,
     error::{HandlerError, HandlerErrorKind},
     metrics::Metrics,
-    server::{cache, location::LocationResult, ServerState, user_agent},
+    server::{cache, location::LocationResult, user_agent, ServerState},
     tags::Tags,
+    web::adm,
     web::{extractors::TilesRequest, middleware::sentry as l_sentry},
 };
 

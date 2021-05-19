@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 
 use crate::{
     server::location::LocationResult,
-    server::{ServerState,FormFactor, OsFamily},
+    server::{FormFactor, OsFamily, ServerState},
     tags::Tags,
     web::adm,
 };

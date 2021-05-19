@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
-use crate::web::adm::AdmSettings;
 use crate::server::img_storage::StorageSettings;
+use crate::web::adm::AdmSettings;
 
 static PREFIX: &str = "contile";
 
@@ -108,7 +108,10 @@ impl Default for Settings {
 
 impl Settings {
     /// Load the settings from the config file if supplied, then the environment.
-    pub fn with_env_and_config_file(filename: &Option<String>, debug:Option<bool>) -> Result<Self, ConfigError> {
+    pub fn with_env_and_config_file(
+        filename: &Option<String>,
+        debug: Option<bool>,
+    ) -> Result<Self, ConfigError> {
         let mut s = Config::default();
 
         // Merge the config file if supplied

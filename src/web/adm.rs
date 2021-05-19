@@ -6,12 +6,7 @@
 //! We only allow a known set of partners, and validate that the tile info
 //! offered matches expected values.
 
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    fs::File,
-    io::BufReader,
-    path::Path};
+use std::{collections::HashMap, fmt::Debug, fs::File, io::BufReader, path::Path};
 
 use actix_http::http::{header::HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -19,7 +14,7 @@ use url::Url;
 
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
-    server::{location::LocationResult, ServerState, FormFactor, OsFamily},
+    server::{location::LocationResult, FormFactor, OsFamily, ServerState},
     settings::Settings,
     tags::Tags,
     web::middleware::sentry as l_sentry,

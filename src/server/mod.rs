@@ -8,10 +8,10 @@ use actix_web::{
 use cadence::StatsdClient;
 
 use crate::{
-    web::adm::AdmFilter,
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     settings::Settings,
+    web::adm::AdmFilter,
     web::{dockerflow, handlers, middleware},
 };
 
@@ -20,7 +20,7 @@ pub mod img_storage;
 pub mod location;
 pub mod user_agent;
 
-pub use user_agent::{FormFactor, OsFamily, strip_ua};
+pub use user_agent::{strip_ua, FormFactor, OsFamily};
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
