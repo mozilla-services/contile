@@ -1,3 +1,5 @@
+//! Metric collection and reporting via the `cadence` library.
+
 use std::net::UdpSocket;
 use std::time::Instant;
 
@@ -11,6 +13,7 @@ use crate::server::ServerState;
 use crate::settings::Settings;
 use crate::tags::Tags;
 
+/// A convenience wrapper to time a given operation
 #[derive(Debug, Clone)]
 pub struct MetricTimer {
     pub label: String,
@@ -18,6 +21,7 @@ pub struct MetricTimer {
     pub tags: Tags,
 }
 
+/// The metric wrapper
 #[derive(Debug, Clone)]
 pub struct Metrics {
     client: Option<StatsdClient>,
@@ -25,6 +29,7 @@ pub struct Metrics {
     timer: Option<MetricTimer>,
 }
 
+/// Record the duration of a given Timer metric, if one has been set.
 impl Drop for Metrics {
     fn drop(&mut self) {
         let tags = self.tags.clone().unwrap_or_default();
@@ -94,6 +99,7 @@ impl From<&ServerState> for Metrics {
 }
 
 impl Metrics {
+    /// No-op metric
     pub fn sink() -> StatsdClient {
         StatsdClient::builder("", NopMetricSink).build()
     }
@@ -106,6 +112,9 @@ impl Metrics {
         }
     }
 
+    /// Start a timer for a given closure.
+    ///
+    /// Duration is calculated when this timer is dropped.
     pub fn start_timer(&mut self, label: &str, tags: Option<Tags>) {
         let mut mtags = self.tags.clone().unwrap_or_default();
         if let Some(t) = tags {
@@ -120,11 +129,12 @@ impl Metrics {
         });
     }
 
-    // increment a counter with no tags data.
+    /// Increment a counter with no tags data.
     pub fn incr(&self, label: &str) {
         self.incr_with_tags(label, None)
     }
 
+    /// Increment a given metric with optional [crate::tags::Tags]
     pub fn incr_with_tags(&self, label: &str, tags: Option<Tags>) {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.incr_with_tags(label);
@@ -149,10 +159,12 @@ impl Metrics {
         }
     }
 
+    /// increment by count with no tags
     pub fn count(&self, label: &str, count: i64) {
         self.count_with_tags(label, count, None)
     }
 
+    /// increment by count with [crate::tags::Tags] information
     pub fn count_with_tags(&self, label: &str, count: i64, tags: Option<Tags>) {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.count_with_tags(label, count);
@@ -178,6 +190,7 @@ impl Metrics {
     }
 }
 
+/// Fetch the metric information from the current [HttpRequest]
 pub fn metrics_from_req(req: &HttpRequest) -> Result<Box<StatsdClient>, Error> {
     Ok(req
         .app_data::<Data<ServerState>>()

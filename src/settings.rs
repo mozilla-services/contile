@@ -62,7 +62,7 @@ pub struct Settings {
     /// list of allowed vendors (Hash in JSON format)
     /// This consists of an advertiser name, and the associated filter settings
     /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
-    /// Unspecfied [AdmAdvertiserFilterSetttings] will use Default values specified
+    /// Unspecfied [crate::adm::AdmAdvertiserFilterSettings] will use Default values specified
     /// in `Default` (or the application default if not specified)
     pub adm_settings: String,
     /// path to MaxMind location database

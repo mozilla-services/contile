@@ -1,3 +1,5 @@
+//! Mozilla logging initialization and configuration
+
 use std::io;
 
 use crate::error::HandlerResult;
@@ -5,6 +7,13 @@ use crate::error::HandlerResult;
 use slog::{self, slog_o, Drain};
 use slog_mozlog_json::MozLogJson;
 
+/// Handle logging initialization.
+///
+/// This uses the `slog_mozlog` crate
+/// to extend `slog` logging. The `json` argument flags if output should
+/// be in JSON format (the default for production logging), or in
+/// a more human readable form. For Contile, this is configured using
+/// the `human_logs` setting (see [crate::settings::Settings])
 pub fn init_logging(json: bool) -> HandlerResult<()> {
     let logger = if json {
         let hostname = hostname::get()
@@ -41,6 +50,7 @@ pub fn init_logging(json: bool) -> HandlerResult<()> {
     Ok(())
 }
 
+/// Reset the logger
 pub fn reset_logging() {
     let logger = slog::Logger::root(slog::Discard, slog_o!());
     slog_scope::set_global_logger(logger).cancel_reset();

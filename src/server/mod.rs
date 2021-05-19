@@ -52,8 +52,10 @@ impl std::fmt::Debug for ServerState {
     }
 }
 
+/// The main Actix server
 pub struct Server;
 
+/// Simplified Actix app builder (used by both the app and unit test)
 #[macro_export]
 macro_rules! build_app {
     ($state: expr) => {
@@ -80,6 +82,7 @@ macro_rules! build_app {
 }
 
 impl Server {
+    /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
         let filter = HandlerResult::<AdmFilter>::from(&settings)?;
         let state = ServerState {

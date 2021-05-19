@@ -1,3 +1,4 @@
+//! Fetch and store a given remote image into Google Storage for CDN caching
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
 use cloud_storage::{
@@ -37,6 +38,7 @@ impl Default for StorageSettings {
     }
 }
 
+/// Image storage container
 #[derive(Default)]
 pub struct StoreImage {
     // bucket isn't really needed here, since `Object` stores and manages itself,
@@ -46,6 +48,7 @@ pub struct StoreImage {
     settings: StorageSettings,
 }
 
+/// Stored image information, suitable for determining the URL to present to the CDN
 #[derive(Debug)]
 pub struct StoreResult {
     pub url: uri::Uri,
@@ -53,9 +56,10 @@ pub struct StoreResult {
     pub object: Object,
 }
 
+/// Store a given image into Google Storage
 // TODO: Reduce all the `Internal` errors to more specific storage based ones
-
 impl StoreImage {
+    /// Connect and optionally create a new Google Storage bucket based off [Settings]
     pub async fn create(settings: &Settings) -> HandlerResult<Self> {
         let sset = StorageSettings::from(settings);
         // TODO: Validate bucket name?
@@ -133,10 +137,12 @@ impl StoreImage {
         })
     }
 
+    /// Generate an image path for data storage into Google Storage
     fn gen_path(uri: &uri::Uri) -> String {
         format!("{}{}", uri.host().expect("No host!?"), uri.path())
     }
 
+    /// Generate the public URI for the stored image.
     fn gen_public_url(&self, image_path: &str) -> String {
         format!(
             "{endpoint}/{project_name}/{bucket_name}/{image_path}",
@@ -147,11 +153,14 @@ impl StoreImage {
         )
     }
 
+    /// Store an image fetched from the passed `uri` into Google Cloud Storage
+    ///
+    /// This will absolutely fetch and store the img into the bucket.
+    /// We don't do any form of check to see if it matches what we got before.
+    /// If you have "Storage Legacy Bucket Writer" previous content is overwritten.
+    /// (e.g. set the path to be the SHA1 of the bytes or whatever.)
+
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoreResult> {
-        // This will absolutely fetch and store the img into the bucket.
-        // We don't do any form of check to see if it matches what we got before.
-        // If you have "Storage Legacy Bucket Writer" previous content is overwritten.
-        // (e.g. set the path to be the SHA1 of the bytes or whatever.)
         dbg!("fetching...", &uri);
         /*
         // Should we preserve the name of the image?
@@ -205,6 +214,7 @@ impl StoreImage {
         }
     }
 
+    /// Download an image from a given [uri::Uri] and store it to Google Cloud Storage
     pub async fn fetch(&self, uri: &uri::Uri) -> HandlerResult<Option<StoreResult>> {
         let image_path = Self::gen_path(&uri);
         match Object::read(&self.settings.bucket_name, &image_path).await {
