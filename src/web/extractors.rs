@@ -19,14 +19,14 @@ const VALID_PLACEMENTS: &[&str] = &["urlbar", "newtab", "search"];
 
 #[derive(Debug, Deserialize)]
 pub struct TilesParams {
-    country: String,
-    placement: String,
+    country: Option<String>,
+    placement: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct TilesRequest {
-    pub country: String,
-    pub placement: String,
+    pub country: Option<String>,
+    pub placement: Option<String>,
     pub ua: String,
 }
 
@@ -46,15 +46,20 @@ impl FromRequest for TilesRequest {
                 .unwrap_or_default();
 
             let params = web::Query::<TilesParams>::from_request(&req, &mut Payload::None).await?;
-            let placement = params.placement.to_lowercase();
-            if !validate_placement(&placement) {
-                Err(HandlerErrorKind::Validation(
-                    "Invalid placement parameter".to_owned(),
-                ))?;
-            }
-
+            let placement = match &params.placement {
+                Some(v) => {
+                    let placement = v.to_lowercase();
+                    if !validate_placement(&v) {
+                        Err(HandlerErrorKind::Validation(
+                            "Invalid placement parameter".to_owned(),
+                        ))?;
+                    };
+                    Some(placement)
+                }
+                None => None,
+            };
             Ok(Self {
-                country: params.country.to_uppercase(),
+                country: params.country.clone().map(|v| v.to_uppercase()),
                 placement,
                 ua: ua.to_owned(),
             })
