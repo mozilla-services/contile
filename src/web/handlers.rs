@@ -12,6 +12,10 @@ use crate::{
     web::{extractors::TilesRequest, middleware::sentry as l_sentry},
 };
 
+/// Handler for `.../v1/tiles` endpoint
+///
+/// Normalizes User Agent info and searches cache for possible tile suggestions.
+/// On a miss, it will attempt to fetch new tiles from ADM.
 pub async fn get_tiles(
     treq: TilesRequest,
     metrics: Metrics,
