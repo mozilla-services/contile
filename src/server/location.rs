@@ -280,7 +280,9 @@ mod test {
     use crate::error::HandlerResult;
     use std::collections::BTreeMap;
 
-    const MMDB_LOC: &str = "mmdb/GeoLite2-City.mmdb";
+    const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
+    const TEST_ADDR: &str = "216.160.83.56";
+
     #[test]
     fn test_preferred_language() {
         let langs = preferred_languages("en-US,es;q=0.1,en;q=0.5,*;q=0.2".to_owned(), "en");
@@ -332,7 +334,7 @@ mod test {
 
     #[actix_rt::test]
     async fn test_location_good() -> HandlerResult<()> {
-        let test_ip: IpAddr = "63.245.208.195".parse().unwrap(); // Mozilla
+        let test_ip: IpAddr = TEST_ADDR.parse().unwrap(); // Mozilla
         let langs = vec!["en".to_owned()];
         let settings = Settings {
             maxminddb_loc: Some(MMDB_LOC.to_owned()),
@@ -342,8 +344,8 @@ mod test {
         if location.is_available() {
             // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
             let result = location.mmdb_locate(test_ip, &langs).await?.unwrap();
-            assert_eq!(result.city, Some("Sacramento".to_owned()));
-            assert_eq!(result.subdivision, Some("California".to_owned()));
+            assert_eq!(result.city, Some("Milton".to_owned()));
+            assert_eq!(result.subdivision, Some("Washington".to_owned()));
             assert_eq!(result.country, Some("United States".to_owned()));
         } else {
             println!("⚠Location Database not found, cannot test location, skipping");
