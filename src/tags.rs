@@ -63,6 +63,10 @@ pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
     (wresult, metrics_os, metrics_browser)
 }
 
+/// Tags are a set of meta information passed along with sentry errors and metrics.
+///
+/// Not all tags are distributed out. `tags` are searchable and may cause cardinality issues.
+/// `extra` are not searchable, but may not be sent to [crate::metrics::Metrics].
 #[derive(Clone, Debug)]
 pub struct Tags {
     pub tags: HashMap<String, String>,

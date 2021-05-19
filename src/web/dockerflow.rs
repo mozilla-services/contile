@@ -1,3 +1,10 @@
+//! Mozilla Ops dockerflow endpoints.
+//!
+//! These are common endpoints that are used for process management. These include
+//! * `__heartbeat__` - return process status
+//! * `__lbheartbeat__` - used for load balancer availability
+//! * `__version__` - return the current process version (and github commit)
+
 use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest, HttpResponse};
@@ -5,7 +12,7 @@ use serde_json::Value;
 
 use crate::error::HandlerError;
 
-// Known DockerFlow commands for Ops callbacks
+/// Well Known DockerFlow commands for Ops callbacks
 pub const DOCKER_FLOW_ENDPOINTS: [&str; 4] = [
     "/__heartbeat__",
     "/__lbheartbeat__",

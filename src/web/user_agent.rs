@@ -1,3 +1,5 @@
+//! Simple UserAgent parser/stripper
+
 use std::fmt;
 
 use woothee::{
@@ -5,6 +7,7 @@ use woothee::{
     woothee::VALUE_UNKNOWN,
 };
 
+/// ADM required browser format form
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum FormFactor {
@@ -21,6 +24,7 @@ impl fmt::Display for FormFactor {
     }
 }
 
+/// Simplified Operating System Family
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum OsFamily {
@@ -69,6 +73,7 @@ pub fn strip_ua(ua: &str) -> String {
     )
 }
 
+/// Convert a UserAgent header into a simplified ([OsFamily], [FormFactor])
 pub fn get_device_info(ua: &str) -> (OsFamily, FormFactor) {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
 
