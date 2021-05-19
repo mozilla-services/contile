@@ -9,6 +9,7 @@ use crate::{
     web::middleware::sentry as l_sentry,
 };
 
+#[allow(rustdoc::private_intra_doc_links)]
 /// Filter criteria for ADM Tiles
 ///
 /// Each "filter"  is a set of [crate::adm::AdmAdvertiserFilterSettings] that are
