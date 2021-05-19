@@ -1,3 +1,7 @@
+//! Wrapper for sentry error reporting
+//!
+//! This sends [crate::error::HandlerError] events to Sentry
+
 use std::task::Context;
 use std::{
     cell::{RefCell, RefMut},
@@ -74,6 +78,10 @@ pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
     }
 }
 
+/// Report an error with [crate::tags::Tags] and [Event] directly to sentry
+///
+/// And [Event] can be derived using
+/// `sentry::event_from_error(err:Error)`
 pub fn report(tags: &Tags, mut event: Event<'static>) {
     let tags = tags.clone();
     event.tags = tags.clone().tag_tree();

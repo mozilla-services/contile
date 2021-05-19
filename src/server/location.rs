@@ -1,3 +1,6 @@
+//! Resolve a given IP into a stripped location
+//!
+//! This uses the MaxMindDB geoip2-City database.
 use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -11,6 +14,7 @@ use crate::settings::Settings;
 
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
 
+/// The returned, stripped location.
 #[derive(Serialize, Debug, Default, Clone)]
 pub struct LocationResult {
     pub fake_ip: String, // TODO: remove once ADM API is finalized
@@ -53,6 +57,7 @@ impl From<&RequestHead> for LocationResult {
     }
 }
 
+/// Convenience functions for working with the LocationResult
 impl LocationResult {
     pub fn is_available(head: RequestHead) -> bool {
         let headers = head.headers();
@@ -68,11 +73,13 @@ impl LocationResult {
     }
 }
 
+/// Wrapper for the MaxMindDB handle
 #[derive(Default, Clone)]
 pub struct Location {
     iploc: Option<Arc<maxminddb::Reader<Vec<u8>>>>,
 }
 
+/// Process and convert the MaxMindDB errors into native [crate::error::HandlerError]s
 #[allow(unreachable_patterns)]
 fn handle_mmdb_err(err: &MaxMindDBError) -> Option<HandlerErrorKind> {
     match err {
