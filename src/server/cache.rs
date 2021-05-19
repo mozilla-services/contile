@@ -57,6 +57,7 @@ impl Deref for TilesCache {
     }
 }
 
+/// Background tile refresh process
 pub fn spawn_tile_cache_updater(interval: Duration, state: ServerState) {
     actix_rt::spawn(async move {
         loop {
