@@ -36,7 +36,6 @@ pub async fn get_tiles(
             default
         }
     });
-    let stripped_ua = user_agent::strip_ua(&treq.ua);
     let (os_family, form_factor) = user_agent::get_device_info(&treq.ua);
 
     let header = request.head();
@@ -62,17 +61,15 @@ pub async fn get_tiles(
         tags.add_extra("country", &location.country());
         tags.add_extra("region", &location.region());
         tags.add_extra("ip", ip_addr_str);
-        tags.add_extra("ua", &stripped_ua);
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
 
     let audience_key = cache::AudienceKey {
-        country: location.country(),
-        region: location.region(),
-        platform: stripped_ua.clone(),
-        os_family,
+        country_code: location.country(),
+        region_code: location.region(),
         form_factor,
+        os_family,
     };
     if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
         trace!("get_tiles: cache hit: {:?}", audience_key);
@@ -86,7 +83,6 @@ pub async fn get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
         &location,
-        &stripped_ua,
         os_family,
         form_factor,
         &state,

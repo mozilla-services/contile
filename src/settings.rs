@@ -30,6 +30,7 @@ static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
 // real `Settings`?
 //
 /// Configuration settings and options
+#[allow(rustdoc::private_intra_doc_links)]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Settings {

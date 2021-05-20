@@ -3,7 +3,7 @@
 # Change this to be your application's name
 ARG APPNAME=contile
 
-FROM rust:1.49 as builder
+FROM rust:1.52.1 as builder
 ARG APPNAME
 ADD . /app
 WORKDIR /app

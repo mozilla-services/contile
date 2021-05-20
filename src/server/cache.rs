@@ -17,16 +17,14 @@ use crate::{
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct AudienceKey {
     /// Country in ISO 3166-1 alpha-2 format
-    pub country: String,
-    /// Not yet supported: Region/subdivision (e.g. a US state) in ISO
-    /// 3166-2 format
-    pub region: String,
-    /// The stripped User Agent string.(see [crate::web::strip_ua])
-    pub platform: String,
-    /// A simplified version of the Platform (see [crate::web::OsFamily]
-    pub os_family: OsFamily,
-    /// A simplified version of the display format (see [crate::web::FormFactor]
+    pub country_code: String,
+    /// Region/subdivision (e.g. a US state) in ISO 3166-2 format
+    pub region_code: String,
+    /// The form-factor (e.g. desktop, phone) of the device
     pub form_factor: FormFactor,
+    // XXX: this may not be a targetting parameter? (if so it shouldn't be here)
+    /// The family of Operating System (e.g. windows, macos) of the device
+    pub os_family: OsFamily,
 }
 
 /// The stored Tile cache data
@@ -84,11 +82,10 @@ async fn tile_cache_updater(state: &ServerState) {
             reqwest_client,
             adm_endpoint_url,
             &LocationResult {
-                country: Some(key.country.clone()),
-                subdivision: Some(key.region.clone()),
+                country: Some(key.country_code.clone()),
+                subdivision: Some(key.region_code.clone()),
                 ..Default::default()
             },
-            &key.platform,
             key.os_family,
             key.form_factor,
             state,
