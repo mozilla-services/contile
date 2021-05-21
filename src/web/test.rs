@@ -163,12 +163,12 @@ async fn basic() {
 
 #[actix_rt::test]
 async fn basic_bad_reply() {
-    let missing_aespflag = r#"{
+    let missing_ci = r#"{
         "tiles": [
             {
                 "id": 601,
                 "name": "Acme",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ctag=1612376952400200000",
                 "image_url": "https://cdn.example.com/601.jpg",
                 "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
                 "impression_url": "https://example.net/static?id=0000"
@@ -176,13 +176,13 @@ async fn basic_bad_reply() {
             {
                 "id": 703,
                 "name": "Dunder Mifflin",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A&aespFlag=altinst",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
                 "image_url": "https://cdn.example.com/703.jpg",
                 "advertiser_url": "https://www.dunderm.biz/?tag=bar&ref=baz",
                 "impression_url": "https://example.net/static?id=DEADB33F"
             }
         ]}"#;
-    let (_, addr) = init_mock_adm(missing_aespflag.to_owned());
+    let (_, addr) = init_mock_adm(missing_ci.to_owned());
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings()).to_string(),
