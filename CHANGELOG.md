@@ -1,3 +1,13 @@
+<a name="0.1.1"></a>
+## 0.1.1 (2021-05-24)
+
+
+#### Features
+
+*   minor updates per the latest Tiles API (#97) ([44386c0c](https://github.com/mozilla-services/contile/commit/44386c0cc2c8c1803542764c5d968676947c3c08), closes [#96](https://github.com/mozilla-services/contile/issues/96))
+
+
+
 <a name="0.1.0"></a>
 ## 0.1.0 (2021-05-20)
 
