@@ -127,7 +127,5 @@ pub async fn get_tiles(
         },
     };
 
-    Ok(reply
-        .content_type("application/json")
-        .body(tiles))
+    Ok(reply.content_type("application/json").body(tiles))
 }

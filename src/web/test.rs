@@ -258,7 +258,6 @@ async fn basic_all_bad_reply() {
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
-
 #[actix_rt::test]
 async fn basic_filtered() {
     let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
