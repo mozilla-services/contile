@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 
+use actix_http::http::HeaderValue;
 use actix_http::RequestHead;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
@@ -28,32 +29,45 @@ pub struct LocationResult {
     pub dma: Option<u16>,
 }
 
-/// RequestHead is available for HttpRequest and ServiceRequest
-impl From<&RequestHead> for LocationResult {
-    /// Scan the headers to see if there's anything we can use to derive the location
-    fn from(head: &RequestHead) -> Self {
+/// Read the [RequestHead] from either [HttpRequest] and [ServiceRequest]
+/// and pull the user location
+impl LocationResult {
+    pub fn from_header(head: &RequestHead, settings: Settings) -> Self {
         let headers = head.headers();
-        if let Some(loc_string) = headers.get(GOOG_LOC_HEADER) {
-            dbg!("Found google header", loc_string);
-            let mut parts = loc_string.to_str().unwrap_or("").split(',');
-            let country = parts.next().map(ToOwned::to_owned);
-            let subdivision = parts.next().map(|subdivision| {
-                // client_region_subdivision: a "Unicode CLDR subdivision ID,
-                // such as USCA or CAON"
-                if subdivision.len() < 3 {
-                    subdivision
-                } else {
-                    &subdivision[2..]
-                }
-                .to_owned()
-            });
-            return Self {
-                subdivision,
-                country,
-                ..Default::default()
-            };
+        if let Some(loc_header) = settings.location_test_header {
+            if let Some(header) = headers.get(loc_header) {
+                dbg!("Using test header");
+                return Self::from_headervalue(header);
+            }
+        }
+        if let Some(header) = headers.get(GOOG_LOC_HEADER) {
+            dbg!("Found Google Header");
+            return Self::from_headervalue(header);
         }
         Self::default()
+    }
+
+    /// Read a [HeaderValue] to see if there's anything we can use to derive the location
+    fn from_headervalue(header: &HeaderValue) -> Self {
+        let loc_string = header.to_str().unwrap_or("");
+        let mut parts = loc_string.split(',');
+        let country = parts.next().map(|country| country.trim().to_owned());
+        let subdivision = parts.next().map(|subdivision| {
+            let subdivision = subdivision.trim();
+            // client_region_subdivision: a "Unicode CLDR subdivision ID,
+            // such as USCA or CAON"
+            if subdivision.len() < 3 {
+                subdivision
+            } else {
+                &subdivision[2..]
+            }
+            .to_owned()
+        });
+        Self {
+            subdivision,
+            country,
+            ..Default::default()
+        }
     }
 }
 
@@ -77,6 +91,7 @@ impl LocationResult {
 #[derive(Default, Clone)]
 pub struct Location {
     iploc: Option<Arc<maxminddb::Reader<Vec<u8>>>>,
+    test_header: Option<String>,
 }
 
 /// Process and convert the MaxMindDB errors into native [crate::error::HandlerError]s
@@ -115,6 +130,7 @@ impl From<&Settings> for Location {
     fn from(settings: &Settings) -> Self {
         Self {
             iploc: settings.into(),
+            test_header: settings.location_test_header.clone(),
         }
     }
 }
@@ -286,6 +302,8 @@ mod test {
     use crate::error::HandlerResult;
     use std::collections::BTreeMap;
 
+    use actix_http::http::{HeaderName, HeaderValue};
+
     const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
     const TEST_ADDR: &str = "216.160.83.56";
 
@@ -374,6 +392,27 @@ mod test {
         } else {
             println!("⚠Location Database not found, cannot test location, skipping");
         }
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_custom_header() -> HandlerResult<()> {
+        let test_header = "x-test-location";
+        let settings = Settings {
+            location_test_header: Some(test_header.to_string()),
+            ..Default::default()
+        };
+
+        let mut test_head = RequestHead::default();
+        let hv = "US, USCA";
+        test_head.headers_mut().append(
+            HeaderName::from_static(test_header),
+            HeaderValue::from_static(&hv),
+        );
+
+        let loc = LocationResult::from_header(&test_head, settings);
+        assert!(loc.region() == "CA".to_owned());
+        assert!(loc.country() == "US".to_owned());
         Ok(())
     }
 }
