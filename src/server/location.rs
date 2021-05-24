@@ -32,9 +32,9 @@ pub struct LocationResult {
 /// Read the [RequestHead] from either [HttpRequest] and [ServiceRequest]
 /// and pull the user location
 impl LocationResult {
-    pub fn from_header(head: &RequestHead, settings: Settings) -> Self {
+    pub fn from_header(head: &RequestHead, settings: &Settings) -> Self {
         let headers = head.headers();
-        if let Some(loc_header) = settings.location_test_header {
+        if let Some(ref loc_header) = settings.location_test_header {
             if let Some(header) = headers.get(loc_header) {
                 dbg!("Using test header");
                 return Self::from_headervalue(header);
@@ -410,9 +410,9 @@ mod test {
             HeaderValue::from_static(&hv),
         );
 
-        let loc = LocationResult::from_header(&test_head, settings);
-        assert!(loc.region() == "CA".to_owned());
-        assert!(loc.country() == "US".to_owned());
+        let loc = LocationResult::from_header(&test_head, &settings);
+        assert!(loc.region() == *"CA");
+        assert!(loc.country() == *"US");
         Ok(())
     }
 }

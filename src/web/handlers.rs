@@ -25,7 +25,6 @@ pub async fn get_tiles(
     trace!("get_tiles");
 
     let cinfo = request.connection_info();
-    let settings = state.settings.clone();
     let ip_addr_str = cinfo.remote_addr().unwrap_or({
         let default = state
             .adm_country_ip_map
@@ -51,9 +50,9 @@ pub async fn get_tiles(
             .mmdb
             .mmdb_locate(addr, &["en".to_owned()])
             .await
-            .unwrap_or_else(|_| Some(LocationResult::from_header(header, settings)))
+            .unwrap_or_else(|_| Some(LocationResult::from_header(header, &state.settings)))
     } else {
-        Some(LocationResult::from_header(header, settings))
+        Some(LocationResult::from_header(header, &state.settings))
     }
     .unwrap_or_default();
 
