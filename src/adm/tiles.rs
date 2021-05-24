@@ -71,7 +71,7 @@ pub async fn get_tiles(
         .await
         .map_err(|e| {
             // ADM servers are down, or improperly configured
-            HandlerErrorKind::BadAdmResponse(format!("ADM Server Error: {:?}", e))
+            HandlerErrorKind::AdmServerError(e.to_string())
         })?
         .error_for_status()?
         .json()

@@ -79,6 +79,7 @@ pub async fn get_tiles(
             .body(&tiles.json));
     }
 
+    let mut reply = HttpResponse::Ok();
     let tiles = match adm::get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
@@ -92,6 +93,9 @@ pub async fn get_tiles(
     {
         Ok(response) => {
             // adM sometimes returns an invalid response. We don't want to cache that.
+            if response.tiles.is_empty() {
+                reply = HttpResponse::NoContent();
+            };
             let tiles = serde_json::to_string(&response).map_err(|e| {
                 HandlerError::internal(&format!("Response failed to serialize: {}", e))
             })?;
@@ -116,13 +120,14 @@ pub async fn get_tiles(
                 l_sentry::report(&tags, sentry::event_from_error(&e));
                 //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
                 warn!("ADM Server error: {:?}", e);
+                reply = HttpResponse::NoContent();
                 json!({"tiles":[]}).to_string()
             }
             _ => return Err(e),
         },
     };
 
-    Ok(HttpResponse::Ok()
+    Ok(reply
         .content_type("application/json")
         .body(tiles))
 }
