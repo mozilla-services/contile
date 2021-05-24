@@ -3,7 +3,7 @@
         {
             "id": 601,
             "name": "Acme",
-            "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000&aespFlag=altinst",
+            "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
             "image_url": "https://cdn.example.com/601.jpg",
             "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
             "impression_url": "https://example.net/static?id=0000"
@@ -11,7 +11,7 @@
         {
             "id": 703,
             "name": "Dunder Mifflin",
-            "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A&aespFlag=altinst",
+            "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
             "image_url": "https://cdn.example.com/703.jpg",
             "advertiser_url": "https://www.dunderm.biz/?tag=bar&ref=baz",
             "impression_url": "https://example.com/static?id=DEADB33F"
@@ -19,7 +19,7 @@
         {
             "id": 805,
             "name": "Los Pollos Hermanos",
-            "click_url": "https://example.com/ctp?version=16.0.0&key=3.3&ci=4.4&ctag=1612376952400200000&aespFlag=altinst",
+            "click_url": "https://example.com/ctp?version=16.0.0&key=3.3&ci=4.4&ctag=1612376952400200000",
             "image_url": "https://cdn.example.com/805.jpg",
             "advertiser_url": "https://www.lph-nm.biz/?utm_source=google&utm_campaign=quux*{keyword}_m*{match-type}_d*BARBAZ_22",
             "impression_url": "https://example.net/static?id=ABAD1DEA"

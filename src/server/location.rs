@@ -17,7 +17,6 @@ const GOOG_LOC_HEADER: &str = "x-client-geo-location";
 /// The returned, stripped location.
 #[derive(Serialize, Debug, Default, Clone)]
 pub struct LocationResult {
-    pub fake_ip: String, // TODO: remove once ADM API is finalized
     #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

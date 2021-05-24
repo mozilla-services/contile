@@ -1,5 +1,10 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    iter::FromIterator,
+};
 
+use lazy_static::lazy_static;
 use url::Url;
 
 use super::{AdmAdvertiserFilterSettings, AdmTile, DEFAULT};
@@ -8,6 +13,16 @@ use crate::{
     tags::Tags,
     web::middleware::sentry as l_sentry,
 };
+
+lazy_static! {
+    static ref REQ_CLICK_PARAMS: Vec<&'static str> = vec!["ci", "ctag", "key", "version"];
+    static ref ALL_CLICK_PARAMS: HashSet<&'static str> = {
+        let opt_click_params = vec!["click-status"];
+        let mut all = HashSet::from_iter(REQ_CLICK_PARAMS.clone());
+        all.extend(opt_click_params);
+        all
+    };
+}
 
 #[allow(rustdoc::private_intra_doc_links)]
 /// Filter criteria for ADM Tiles
@@ -56,6 +71,7 @@ impl AdmFilter {
         let url = &tile.advertiser_url;
         let species = "Advertiser";
         tags.add_tag("type", species);
+        tags.add_extra("tile", &tile.name);
         tags.add_extra("url", &url);
         let parsed: Url = match url.parse() {
             Ok(v) => v,
@@ -81,18 +97,11 @@ impl AdmFilter {
         let url = &tile.click_url;
         let species = "Click";
         tags.add_tag("type", species);
+        tags.add_extra("tile", &tile.name);
         tags.add_extra("url", &url);
 
-        // Check the required fields are present for the `click_url`
-        // pg 15 of 5.7.21 spec. (sort for efficiency)
-        // The list of sorted required query param keys for click_urls
-        let req_keys = vec!["aespFlag", "ci", "ctag", "key", "version"];
-        // the list of optionally appearing query param keys
-        let opt_keys = vec!["click-status"];
-
-        let mut all_keys = req_keys.clone();
-        all_keys.extend(opt_keys.clone());
-
+        // Check the required fields are present for the `click_url` pg 15 of
+        // 5.7.21 spec
         let parsed: Url = match url.parse() {
             Ok(v) => v,
             Err(e) => {
@@ -100,11 +109,10 @@ impl AdmFilter {
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
         };
-        let mut query_keys = parsed
+        let query_keys = parsed
             .query_pairs()
             .map(|p| p.0.to_string())
-            .collect::<Vec<String>>();
-        query_keys.sort();
+            .collect::<HashSet<String>>();
 
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &filter.click_hosts)? {
@@ -112,17 +120,19 @@ impl AdmFilter {
             tags.add_extra("reason", "bad host");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
         }
-        for key in req_keys {
-            if !query_keys.contains(&key.to_owned()) {
-                dbg!("missing param", key, url.to_string());
+        for key in &*REQ_CLICK_PARAMS {
+            if !query_keys.contains(*key) {
+                dbg!("missing param", &key, url.to_string());
                 tags.add_extra("reason", "missing required query param");
+                tags.add_extra("param", &key);
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
         }
         for key in query_keys {
-            if !all_keys.contains(&key.as_str()) {
-                dbg!("invalid param", key, url.to_string());
+            if !ALL_CLICK_PARAMS.contains(key.as_str()) {
+                dbg!("invalid param", &key, url.to_string());
                 tags.add_extra("reason", "invalid query param");
+                tags.add_extra("param", &key);
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
         }
@@ -141,6 +151,7 @@ impl AdmFilter {
         let url = &tile.impression_url;
         let species = "Impression";
         tags.add_tag("type", species);
+        tags.add_extra("tile", &tile.name);
         tags.add_extra("url", &url);
         let parsed: Url = match url.parse() {
             Ok(v) => v,
@@ -157,6 +168,7 @@ impl AdmFilter {
         if query_keys != vec!["id"] {
             dbg!("missing param", "id", url.to_string());
             tags.add_extra("reason", "invalid query param");
+            tags.add_extra("param", "id");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
         }
         check_url(parsed, species, &filter.impression_hosts)?;
