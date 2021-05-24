@@ -22,7 +22,8 @@ pub struct AudienceKey {
     pub region_code: String,
     /// The form-factor (e.g. desktop, phone) of the device
     pub form_factor: FormFactor,
-    // XXX: this may not be a targetting parameter? (if so it shouldn't be here)
+    // XXX: *not* currently a targetting parameter (shouldn't be here),
+    // temporarily needed for tile_cache_updater
     /// The family of Operating System (e.g. windows, macos) of the device
     pub os_family: OsFamily,
 }
