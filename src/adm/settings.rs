@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, fs::File, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -21,12 +21,15 @@ pub struct AdmAdvertiserFilterSettings {
     /// Set of valid hosts for the `advertiser_url`
     pub(crate) advertiser_hosts: Vec<String>,
     /// Set of valid hosts for the `impression_url`
+    #[serde(default)]
     pub(crate) impression_hosts: Vec<String>,
     /// Set of valid hosts for the `click_url`
+    #[serde(default)]
     pub(crate) click_hosts: Vec<String>,
     /// valid position for the tile
     pub(crate) position: Option<u8>,
     /// Set of valid regions for the tile (e.g ["en", "en-US/TX"])
+    #[serde(default)]
     pub(crate) include_regions: Vec<String>,
 }
 
@@ -37,7 +40,12 @@ impl From<&Settings> for AdmSettings {
         if settings.adm_settings.is_empty() {
             return Self::default();
         }
-        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings")
+        if Path::new(&settings.adm_settings).exists() {
+            if let Ok(f) = File::open(&settings.adm_settings) {
+                return serde_json::from_reader(f).expect("Invalid ADM Settings file");
+            }
+        }
+        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings JSON string")
     }
 }
 
@@ -70,7 +78,7 @@ impl From<&Settings> for HandlerResult<AdmFilter> {
     fn from(settings: &Settings) -> Self {
         let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
         for (adv, setting) in AdmSettings::from(settings) {
-            dbg!("Processing records for {:?}", &adv);
+            dbg!("Processing records for {:?}", &adv.to_lowercase());
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }

@@ -71,14 +71,15 @@ pub async fn get_tiles(
         form_factor,
         os_family,
     };
-    if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
-        trace!("get_tiles: cache hit: {:?}", audience_key);
-        metrics.incr("tiles_cache.hit");
-        return Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(&tiles.json));
+    if !state.settings.test_mode {
+        if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
+            trace!("get_tiles: cache hit: {:?}", audience_key);
+            metrics.incr("tiles_cache.hit");
+            return Ok(HttpResponse::Ok()
+                .content_type("application/json")
+                .body(&tiles.json));
+        }
     }
-
     let tiles = match adm::get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
@@ -87,6 +88,12 @@ pub async fn get_tiles(
         form_factor,
         &state,
         &mut tags,
+        // be aggressive about not passing headers unless we absolutely need to
+        if state.settings.test_mode {
+            Some(request.head().headers())
+        } else {
+            None
+        },
     )
     .await
     {

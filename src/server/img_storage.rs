@@ -213,30 +213,4 @@ impl StoreImage {
             }
         }
     }
-
-    /// Download an image from a given [uri::Uri] and store it to Google Cloud Storage
-    pub async fn fetch(&self, uri: &uri::Uri) -> HandlerResult<Option<StoreResult>> {
-        let image_path = Self::gen_path(&uri);
-        match Object::read(&self.settings.bucket_name, &image_path).await {
-            Ok(v) => Ok(Some(StoreResult {
-                hash: v.etag.clone(),
-                url: self.gen_public_url(&image_path).parse()?,
-                object: v,
-            })),
-            Err(cloud_storage::Error::Google(ger)) => {
-                if ger.errors_has_reason(&cloud_storage::Reason::Forbidden) {
-                    dbg!("Can't set permission...");
-                    Ok(None)
-                } else {
-                    Err(
-                        HandlerErrorKind::Internal(format!("Could not add read policy {:?}", ger))
-                            .into(),
-                    )
-                }
-            }
-            Err(e) => {
-                Err(HandlerErrorKind::Internal(format!("Error retrieving object {:?}", e)).into())
-            }
-        }
-    }
 }

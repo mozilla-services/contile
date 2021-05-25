@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
-    let settings = settings::Settings::with_env_and_config_file(&args.flag_config)?;
+    let settings = settings::Settings::with_env_and_config_file(&args.flag_config, None)?;
     init_logging(!settings.human_logs).expect("Logging failed to init");
     debug!("Starting up... {}:{}", &settings.host, &settings.port);
     // Set SENTRY_DSN env var to enable Sentry.actix_cors
