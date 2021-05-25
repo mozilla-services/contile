@@ -1,0 +1,17 @@
+{"DEFAULT": {
+    "advertiser_hosts": ["example.com"],
+    "impression_hosts": ["example.net"],
+    "click_hosts":["example.com"]
+},
+"Acme": {
+    "advertiser_hosts": ["www.acme.biz", "acme.biz"],
+    "position": 0
+},
+"Dunder Mifflin": {
+    "advertiser_hosts": ["www.dunderm.biz", "dunderm.biz"],
+    "position": 1
+},
+"Los Pollos Hermanos": {
+    "advertiser_hosts": ["www.lph-nm.biz", "lph-mx.co.mx"]
+}
+}
