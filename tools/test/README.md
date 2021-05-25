@@ -8,7 +8,7 @@ This directory contains a simple integration test for the Contile server.
 `python -m venv venv`
 
 This will create a local install of the python. You can then "activate" it by calling
-`sh venv/bin/activate.sh`
+`source venv/bin/activate.sh`
 
 After activation, you no longer need to specify the path: `venv/bin/`
 
@@ -34,7 +34,7 @@ The test will attempt to start the locally compiled Contile server (unless `CONT
 
 ## Crafting tests
 
-Tests are included in the `TestAdm` class. Please note that returned values from a live server may differ significantly from the test data, so examining the return results may need be blocked by checking if `settings.get("noserver")` is not set.
+Tests are included in the `TestAdm` class. Please note that returned values from a live server may differ significantly from the test data, so examining the return results may need to be blocked by checking if `settings.get("noserver")` is not set.
 
 The server is started with the `CONTILE_TEST_MODE` flag set. This will prevent the server from using the remote ADM server and instead pull data from a test directory `./test_data`. This contains JSON formatted files. Names must contain only alphanumeric and `_`. Also note that the test server will use the `../../adm_settings_test.json` configuration file. Be sure that your test data responses meets the criteria specified in the `adm_settings_test.json` file.
 

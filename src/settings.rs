@@ -111,7 +111,7 @@ impl Settings {
     /// Load the settings from the config file if supplied, then the environment.
     pub fn with_env_and_config_file(
         filename: &Option<String>,
-        debug: Option<bool>,
+        debug: bool,
     ) -> Result<Self, ConfigError> {
         let mut s = Config::default();
 
@@ -131,7 +131,7 @@ impl Settings {
         Ok(match s.try_into::<Self>() {
             Ok(mut s) => {
                 dbg!(&s);
-                if debug.unwrap_or(false) || s.test_mode {
+                if debug || s.test_mode {
                     dbg!("!! Running in test mode!");
                     s.adm_endpoint_url = "http://localhost:8675/".to_owned();
                     s.debug = true;
@@ -188,6 +188,6 @@ impl Settings {
 
 #[cfg(test)]
 pub fn test_settings() -> Settings {
-    Settings::with_env_and_config_file(&None, Some(true))
+    Settings::with_env_and_config_file(&None, true)
         .expect("Could not get Settings in get_test_settings")
 }
