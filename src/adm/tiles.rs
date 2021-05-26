@@ -10,13 +10,13 @@ use crate::{
     web::{FormFactor, OsFamily},
 };
 
-/// The response message sent to the User Agent.
+/// The payload provided by ADM
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdmTileResponse {
     pub tiles: Vec<AdmTile>,
 }
 
-/// The tile data provided by ADM
+/// The individual tile data provided by ADM
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AdmTile {
     pub id: u64,
@@ -26,6 +26,41 @@ pub struct AdmTile {
     pub image_url: String,
     pub impression_url: String,
     pub position: Option<u8>,
+}
+
+/// The response payload sent to the User Agent
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TileResponse {
+    pub tiles: Vec<Tile>,
+}
+
+/// The individual tile data sent to the User Agent
+/// Differs from AdmTile in:
+///   - advertiser_url -> url
+///   - includes an optional position
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Tile {
+    pub id: u64,
+    pub name: String,
+    pub url: String,
+    pub click_url: String,
+    pub image_url: String,
+    pub impression_url: String,
+    pub position: Option<u8>,
+}
+
+impl Tile {
+    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>) -> Self {
+        Self {
+            id: tile.id,
+            name: tile.name,
+            url: tile.advertiser_url,
+            click_url: tile.click_url,
+            image_url: tile.image_url,
+            impression_url: tile.impression_url,
+            position,
+        }
+    }
 }
 
 /// Main handler for the User Agent HTTP request
@@ -39,7 +74,7 @@ pub async fn get_tiles(
     form_factor: FormFactor,
     state: &ServerState,
     tags: &mut Tags,
-) -> Result<AdmTileResponse, HandlerError> {
+) -> Result<TileResponse, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
     // validate this on startup)
@@ -65,7 +100,7 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     trace!("get_tiles GET {}", adm_url);
-    let mut response: AdmTileResponse = reqwest_client
+    let response: AdmTileResponse = reqwest_client
         .get(adm_url)
         .send()
         .await
@@ -80,11 +115,11 @@ pub async fn get_tiles(
             // ADM servers are not returning correct information
             HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
         })?;
-    response.tiles = response
+    let tiles = response
         .tiles
         .into_iter()
         .filter_map(|tile| state.filter.filter_and_process(tile, tags))
         .take(settings.adm_max_tiles as usize)
         .collect();
-    Ok(response)
+    Ok(TileResponse { tiles })
 }
