@@ -7,7 +7,7 @@ use std::{
 use lazy_static::lazy_static;
 use url::Url;
 
-use super::{AdmAdvertiserFilterSettings, AdmTile, DEFAULT};
+use super::{tiles::AdmTile, AdmAdvertiserFilterSettings, Tile, DEFAULT};
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     tags::Tags,
@@ -179,7 +179,7 @@ impl AdmFilter {
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
     /// - Modifies tiles for output to the client (adding additional fields, etc.)
-    pub fn filter_and_process(&self, mut tile: AdmTile, tags: &mut Tags) -> Option<AdmTile> {
+    pub fn filter_and_process(&self, mut tile: AdmTile, tags: &mut Tags) -> Option<Tile> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
         match self.filter_set.get(&tile.name.to_lowercase()) {
@@ -222,8 +222,10 @@ impl AdmFilter {
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
                 // `default`.
-                tile.position = filter.position.or(default.position);
-                Some(tile)
+                Some(Tile::from_adm_tile(
+                    tile,
+                    filter.position.or(default.position),
+                ))
             }
             None => {
                 self.report(

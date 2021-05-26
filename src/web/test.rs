@@ -157,7 +157,9 @@ async fn basic() {
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert!(tiles.len() > 1);
     for tile in tiles {
-        let _tile = tile.as_object().expect("!tile.is_object()");
+        let tile = tile.as_object().expect("!tile.is_object()");
+        assert!(tile["url"].is_string());
+        assert!(tile.get("advertiser_url").is_none());
     }
 }
 
