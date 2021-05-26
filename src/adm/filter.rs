@@ -262,14 +262,14 @@ mod tests {
         assert!(check_url(
             "https://example.com".parse().unwrap(),
             species,
-            &vec![vec!["example".to_owned(), "com".to_owned()]]
+            &[vec!["example".to_owned(), "com".to_owned()]]
         )
         .unwrap());
 
         assert!(check_url(
             "https://foo.bridge.example.com/?quux=baz".parse().unwrap(),
             species,
-            &vec![vec!["example".to_owned(), "com".to_owned()]]
+            &[vec!["example".to_owned(), "com".to_owned()]]
         )
         .unwrap());
     }
@@ -280,18 +280,25 @@ mod tests {
         assert!(check_url(
             "https://foo.com".parse().unwrap(),
             species,
-            &vec![vec!["example".to_owned(), "com".to_owned()]]
+            &[vec!["example".to_owned(), "com".to_owned()]]
         )
         .is_err());
 
         assert!(check_url(
             "https://foo.com".parse().unwrap(),
             species,
-            &vec![vec![
+            &[vec![
                 "bar".to_owned(),
                 "example".to_owned(),
                 "com".to_owned()
             ]]
+        )
+        .is_err());
+
+        assert!(check_url(
+            "https://badexample.com".parse().unwrap(),
+            species,
+            &[vec!["example".to_owned(), "com".to_owned()]]
         )
         .is_err());
     }
