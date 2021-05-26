@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, fs::File, path::Path};
 
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -15,18 +15,19 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 /// These are specified as a JSON formatted hash
 /// that contains the components. A special "DEFAULT" setting provides
 /// information that may be used as a DEFAULT, or commonly appearing set
-/// of data.
+/// of data. Any Optional value that is not defined will use the value
+/// defined in DEFAULT.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    /// Set of valid hosts for the `advertiser_url`
+    /// Required set of valid hosts for the `advertiser_url`
     pub(crate) advertiser_hosts: Vec<String>,
-    /// Set of valid hosts for the `impression_url`
+    /// Optional set of valid hosts for the `impression_url`
     #[serde(
         deserialize_with = "deserialize_hosts",
         serialize_with = "serialize_hosts"
     )]
     pub(crate) impression_hosts: Vec<Vec<String>>,
-    /// Set of valid hosts for the `click_url`
+    /// Optional set of valid hosts for the `click_url`
     #[serde(
         deserialize_with = "deserialize_hosts",
         serialize_with = "serialize_hosts"
@@ -34,7 +35,8 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) click_hosts: Vec<Vec<String>>,
     /// valid position for the tile
     pub(crate) position: Option<u8>,
-    /// Set of valid regions for the tile (e.g ["en", "en-US/TX"])
+    /// Optional set of valid regions for the tile (e.g ["en", "en-US/TX"])
+    #[serde(default)]
     pub(crate) include_regions: Vec<String>,
 }
 
@@ -75,12 +77,22 @@ where
 
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 
+/// Attempt to read the AdmSettings as either a path to a JSON file, or as a JSON string.
+///
+/// This allows `CONTILE_ADM_SETTINGS` to either be specified as inline JSON, or if the
+/// Settings are too large to fit into an ENV string, specified in a path to where the
+/// settings more comfortably fit.
 impl From<&Settings> for AdmSettings {
     fn from(settings: &Settings) -> Self {
         if settings.adm_settings.is_empty() {
             return Self::default();
         }
-        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings")
+        if Path::new(&settings.adm_settings).exists() {
+            if let Ok(f) = File::open(&settings.adm_settings) {
+                return serde_json::from_reader(f).expect("Invalid ADM Settings file");
+            }
+        }
+        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings JSON string")
     }
 }
 

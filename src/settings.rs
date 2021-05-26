@@ -60,7 +60,7 @@ pub struct Settings {
     pub adm_query_tile_count: u8,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
-    /// list of allowed vendors (Hash in JSON format)
+    /// ADM tile settings (either as JSON or a path to a JSON file)
     /// This consists of an advertiser name, and the associated filter settings
     /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
     /// Unspecfied [crate::adm::AdmAdvertiserFilterSettings] will use Default values specified
@@ -74,6 +74,10 @@ pub struct Settings {
     pub partner_id: String,
     /// Adm sub1 value (default: "123456789")
     pub sub1: String,
+    /// Run in "integration test mode"
+    pub test_mode: bool,
+    /// path to the test files
+    pub test_file_path: String,
     /// Location test header override
     pub location_test_header: Option<String>,
 }
@@ -83,7 +87,7 @@ impl Default for Settings {
         Settings {
             debug: false,
             port: DEFAULT_PORT,
-            host: "127.0.0.1".to_owned(),
+            host: "localhost".to_owned(),
             human_logs: false,
             statsd_label: PREFIX.to_owned(),
             statsd_host: None,
@@ -99,6 +103,8 @@ impl Default for Settings {
             storage: "".to_owned(),
             partner_id: "demofeed".to_owned(),
             sub1: "123456789".to_owned(),
+            test_mode: false,
+            test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
         }
     }
@@ -106,7 +112,10 @@ impl Default for Settings {
 
 impl Settings {
     /// Load the settings from the config file if supplied, then the environment.
-    pub fn with_env_and_config_file(filename: &Option<String>) -> Result<Self, ConfigError> {
+    pub fn with_env_and_config_file(
+        filename: &Option<String>,
+        debug: bool,
+    ) -> Result<Self, ConfigError> {
         let mut s = Config::default();
 
         // Merge the config file if supplied
@@ -123,7 +132,16 @@ impl Settings {
         s.merge(Environment::with_prefix(&PREFIX.to_uppercase()).separator("__"))?;
 
         Ok(match s.try_into::<Self>() {
-            Ok(s) => {
+            Ok(mut s) => {
+                dbg!(&s);
+                if debug || s.test_mode {
+                    dbg!("!! Running in test mode!");
+                    s.adm_endpoint_url = "http://localhost:8675/".to_owned();
+                    s.debug = true;
+                }
+                if s.adm_endpoint_url.is_empty() {
+                    return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
+                }
                 // preflight check the storage
                 StorageSettings::from(&s);
                 AdmSettings::from(&s);
@@ -173,9 +191,6 @@ impl Settings {
 
 #[cfg(test)]
 pub fn test_settings() -> Settings {
-    Settings {
-        debug: true,
-        ..Settings::with_env_and_config_file(&None)
-            .expect("Could not get Settings in get_test_settings")
-    }
+    Settings::with_env_and_config_file(&None, true)
+        .expect("Could not get Settings in get_test_settings")
 }

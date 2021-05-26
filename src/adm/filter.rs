@@ -222,14 +222,17 @@ impl AdmFilter {
                     filter
                 };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
+                    dbg!("bad adv");
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
+                    dbg!("bad click");
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
+                    dbg!("bad imp");
                     self.report(&e, tags);
                     return None;
                 }

@@ -1,11 +1,14 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, fs::File, io::BufReader, path::Path};
 
+use actix_http::http::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    error::{HandlerError, HandlerErrorKind},
+    adm::DEFAULT,
+    error::{HandlerError, HandlerErrorKind, HandlerResult},
     server::{location::LocationResult, ServerState},
+    settings::Settings,
     tags::Tags,
     web::{FormFactor, OsFamily},
 };
@@ -14,6 +17,43 @@ use crate::{
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdmTileResponse {
     pub tiles: Vec<AdmTile>,
+}
+
+impl AdmTileResponse {
+    /// Return a fake response from the contents of `response_file`
+    ///
+    /// This is only used when the server is in `test_mode` and passed a `fake-response` header.
+    /// The test file is located in `CONTILE_TEST_FILE_PATH`, and will be lowercased. Unless
+    /// specified, the `CONTILE_TEST_PATH` is `tools/test/test_data` and presumes that you are
+    /// running in the Project Root directory. An example resolution for a `Fake-Response:DEFAULT`
+    /// would be to open `./tools/test/test_data/default.json`. If you are not running in the
+    /// Project root, you will need to specify the full path in `CONTILE_TEST_FILE_PATH`.
+    pub fn fake_response(settings: &Settings, mut response_file: String) -> HandlerResult<Self> {
+        dbg!(&response_file);
+        response_file.retain(|x| char::is_alphanumeric(x) || x == '_');
+        if response_file.is_empty() {
+            return Err(HandlerError::internal(
+                "Invalid test response file specified",
+            ));
+        }
+        let path = Path::new(&settings.test_file_path)
+            .join(format!("{}.json", response_file.to_lowercase()));
+        if path.exists() {
+            let file =
+                File::open(path.as_os_str()).map_err(|e| HandlerError::internal(&e.to_string()))?;
+            let reader = BufReader::new(file);
+            let content = serde_json::from_reader(reader)
+                .map_err(|e| HandlerError::internal(&e.to_string()))?;
+            dbg!(&content);
+            return Ok(content);
+        }
+        let err = format!(
+            "Invalid or missing test file {}",
+            path.to_str().unwrap_or(&response_file)
+        );
+        dbg!(&err);
+        Err(HandlerError::internal(&err))
+    }
 }
 
 /// The individual tile data provided by ADM
@@ -74,6 +114,7 @@ pub async fn get_tiles(
     form_factor: FormFactor,
     state: &ServerState,
     tags: &mut Tags,
+    headers: Option<&HeaderMap>,
 ) -> Result<TileResponse, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
     // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
@@ -100,21 +141,34 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     trace!("get_tiles GET {}", adm_url);
-    let response: AdmTileResponse = reqwest_client
-        .get(adm_url)
-        .send()
-        .await
-        .map_err(|e| {
-            // ADM servers are down, or improperly configured
-            HandlerErrorKind::AdmServerError(e.to_string())
-        })?
-        .error_for_status()?
-        .json()
-        .await
-        .map_err(|e| {
-            // ADM servers are not returning correct information
-            HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
-        })?;
+    let response: AdmTileResponse = if state.settings.test_mode {
+        let default = HeaderValue::from_str(DEFAULT).unwrap();
+        let test_response = headers
+            .unwrap_or(&HeaderMap::new())
+            .get("fake-response")
+            .unwrap_or(&default)
+            .to_str()
+            .unwrap()
+            .to_owned();
+        dbg!("Getting fake response:", &test_response);
+        AdmTileResponse::fake_response(&state.settings, test_response)?
+    } else {
+        reqwest_client
+            .get(adm_url)
+            .send()
+            .await
+            .map_err(|e| {
+                // ADM servers are down, or improperly configured
+                HandlerErrorKind::AdmServerError(e.to_string())
+            })?
+            .error_for_status()?
+            .json()
+            .await
+            .map_err(|e| {
+                // ADM servers are not returning correct information
+                HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
+            })?
+    };
     let tiles = response
         .tiles
         .into_iter()

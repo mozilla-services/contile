@@ -91,6 +91,7 @@ async fn tile_cache_updater(state: &ServerState) {
             key.form_factor,
             state,
             &mut tags,
+            None,
         )
         .await;
 

@@ -1,7 +1,7 @@
 # Contribution Guidelines
 
 Anyone is welcome to contribute to this project. Feel free to get in touch with
-other community members on IRC, the mailing list or through issues here on
+other community members on [Matrix](https://chat.mozilla.org), the mailing list or through issues here on
 GitHub.
 
 [See the README](/README.md) for contact information.
@@ -17,7 +17,7 @@ Patches should be submitted as pull requests (PR).
 
 Before submitting a PR:
 - Your code must run and pass all the automated tests before you submit your PR
-  for review. "Work in progress" pull requests are allowed to be submitted, but
+  for review. "Work in progress" or "Draft" pull requests are allowed to be submitted, but
   should be clearly labeled as such and should not be merged until all tests
   pass and the code has been reviewed.
 - Your patch should include new tests that cover your changes. It is your and
@@ -28,8 +28,9 @@ When submitting a PR:
   ([MPL 2.0](/LICENSE)).
 - Base your branch off the current `main`.
 - Add both your code and new tests if relevant.
-- Sign your git commit.
+- [Sign](https://docs.github.com/en/github/authenticating-to-github/managing-commit-signature-verification/signing-commits) your git commit.
 - Run the test suite to make sure your code passes linting and tests.
+(e.g. No warnings are returned for rust: "`cargo fmt -- --check && cargo clippy --all-features --all-targets`", or for python "`flake8 .`")
 - Ensure your changes do not reduce code coverage of the test suite.
 - Please do not include merge commits in pull requests; include only commits
   with the new relevant code.
@@ -96,5 +97,5 @@ passed and the commit message is properly formatted.
 BREAKING CHANGE: This patch requires developer to lower expectations about
     what "delicious" and "cookie" may mean. Some sadness may result.
 
-Closes #3.14, #9.75
+Closes #314, #975
 ```
