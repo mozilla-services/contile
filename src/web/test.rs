@@ -8,7 +8,7 @@ use actix_web::{
 use serde_json::{json, Value};
 
 use crate::{
-    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmSettings, DEFAULT},
+    adm::{AdmFilter, AdmSettings, DEFAULT},
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
@@ -81,49 +81,37 @@ fn init_mock_adm(response: String) -> (dev::Server, SocketAddr) {
 }
 
 fn adm_settings() -> AdmSettings {
-    let mut adm_settings = AdmSettings::default();
-    adm_settings.insert(
-        "Acme".to_owned(),
-        AdmAdvertiserFilterSettings {
-            advertiser_hosts: ["www.acme.biz".to_owned()].to_vec(),
-            position: Some(0),
-            include_regions: vec![],
-            impression_hosts: vec![],
-            click_hosts: vec![],
+    let adm_settings = json!({
+        "Acme": {
+            "advertiser_hosts": ["www.acme.biz"],
+            "impression_hosts": [],
+            "click_hosts": [],
+            "position": 0,
+            "include_regions": []
         },
-    );
-    adm_settings.insert(
-        "Dunder Mifflin".to_owned(),
-        AdmAdvertiserFilterSettings {
-            advertiser_hosts: ["www.dunderm.biz".to_owned()].to_vec(),
-            position: Some(1),
-            include_regions: vec![],
-            impression_hosts: [].to_vec(),
-            click_hosts: vec![],
+        "Dunder Mifflin": {
+            "advertiser_hosts": ["www.dunderm.biz"],
+            "impression_hosts": [],
+            "click_hosts": [],
+            "position": 1,
+            "include_regions": []
         },
-    );
-    adm_settings.insert(
-        "Los Pollos Hermanos".to_owned(),
-        AdmAdvertiserFilterSettings {
-            advertiser_hosts: ["www.lph-nm.biz".to_owned()].to_vec(),
-            position: Some(2),
-            include_regions: vec![],
-            impression_hosts: vec![],
-            click_hosts: vec![],
+        "Los Pollos Hermanos": {
+            "advertiser_hosts": ["www.lph-nm.biz"],
+            "impression_hosts": [],
+            "click_hosts": [],
+            "position": 2,
+            "include_regions": []
         },
-    );
-    // This is the "default" setting definitions.
-    adm_settings.insert(
-        DEFAULT.to_owned(),
-        AdmAdvertiserFilterSettings {
-            advertiser_hosts: vec![],
-            position: None,
-            include_regions: vec![],
-            impression_hosts: ["example.net".to_owned()].to_vec(),
-            click_hosts: ["example.com".to_owned()].to_vec(),
-        },
-    );
-    adm_settings
+        DEFAULT: {
+            "advertiser_hosts": [],
+            "impression_hosts": ["example.net"],
+            "click_hosts": ["example.com"],
+            "position": null,
+            "include_regions": []
+        }
+    });
+    serde_json::from_value(adm_settings).unwrap()
 }
 
 #[actix_rt::test]
@@ -267,13 +255,14 @@ async fn basic_filtered() {
     let mut adm_settings = adm_settings();
     adm_settings.insert(
         "Example".to_owned(),
-        AdmAdvertiserFilterSettings {
-            advertiser_hosts: ["www.example.ninja".to_owned()].to_vec(),
-            position: Some(100),
-            include_regions: Vec::new(),
-            impression_hosts: ["example.net".to_owned()].to_vec(),
-            click_hosts: ["example.com".to_owned()].to_vec(),
-        },
+        serde_json::from_value(json!({
+            "advertiser_hosts": ["www.example.ninja"],
+            "impression_hosts": ["example.net"],
+            "click_hosts": ["example.com"],
+            "position": 100,
+            "include_regions": []
+        }))
+        .unwrap(),
     );
     adm_settings.remove("Dunder Mifflin");
 

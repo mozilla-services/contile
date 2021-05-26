@@ -38,18 +38,28 @@ pub struct AdmFilter {
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
 }
 
-/// Check that a given URL is valid according to it's corresponding filter
-fn check_url(url: Url, species: &'static str, filter: &[String]) -> HandlerResult<bool> {
-    let host = match url.host() {
-        Some(v) => v.to_string(),
-        None => {
-            return Err(HandlerErrorKind::MissingHost(species, url.to_string()).into());
+/// Extract the host from Url
+fn get_host(url: Url, species: &'static str) -> HandlerResult<String> {
+    url.host()
+        .map(|host| host.to_string())
+        .ok_or_else(|| HandlerErrorKind::MissingHost(species, url.to_string()).into())
+}
+
+/// Check that a given URL is valid according to it's corresponding filter.
+///
+/// Allows a partial match: a filter setting for "example.com" (["example",
+/// "com"]) allows "foo.example.com" and "quux.bar.example.com" (["quux",
+/// "bar", "example", "com"])
+fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> HandlerResult<bool> {
+    let host = get_host(url, species)?;
+    let domains: Vec<_> = host.split('.').collect();
+    for allowed in filter {
+        let begin = domains.len() - allowed.len().min(domains.len());
+        if &domains[begin..] == allowed {
+            return Ok(true);
         }
-    };
-    if !filter.contains(&host) {
-        return Err(HandlerErrorKind::UnexpectedHost(species, host).into());
     }
-    Ok(true)
+    Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
 /// Filter a given tile data set provided by ADM and validate the various elements
@@ -80,7 +90,11 @@ impl AdmFilter {
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
         };
-        check_url(parsed, species, &filter.advertiser_hosts)?;
+
+        let host = get_host(parsed, species)?;
+        if !filter.advertiser_hosts.contains(&host) {
+            return Err(HandlerErrorKind::UnexpectedHost(species, host).into());
+        }
         Ok(())
     }
 
@@ -235,5 +249,57 @@ impl AdmFilter {
                 None
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_url;
+
+    #[test]
+    fn check_url_matches() {
+        let species = "Click";
+        assert!(check_url(
+            "https://example.com".parse().unwrap(),
+            species,
+            &[vec!["example".to_owned(), "com".to_owned()]]
+        )
+        .unwrap());
+
+        assert!(check_url(
+            "https://foo.bridge.example.com/?quux=baz".parse().unwrap(),
+            species,
+            &[vec!["example".to_owned(), "com".to_owned()]]
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn check_url_failed() {
+        let species = "Click";
+        assert!(check_url(
+            "https://foo.com".parse().unwrap(),
+            species,
+            &[vec!["example".to_owned(), "com".to_owned()]]
+        )
+        .is_err());
+
+        assert!(check_url(
+            "https://foo.com".parse().unwrap(),
+            species,
+            &[vec![
+                "bar".to_owned(),
+                "example".to_owned(),
+                "com".to_owned()
+            ]]
+        )
+        .is_err());
+
+        assert!(check_url(
+            "https://badexample.com".parse().unwrap(),
+            species,
+            &[vec!["example".to_owned(), "com".to_owned()]]
+        )
+        .is_err());
     }
 }
