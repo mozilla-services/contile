@@ -281,6 +281,7 @@ async fn basic_default() {
     let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let adm_settings = adm_settings();
+    dbg!(&adm_settings);
 
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
