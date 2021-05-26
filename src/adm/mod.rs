@@ -12,4 +12,4 @@ mod tiles;
 
 pub use filter::AdmFilter;
 pub(crate) use settings::{AdmAdvertiserFilterSettings, AdmSettings, DEFAULT};
-pub use tiles::{get_tiles, AdmTile};
+pub use tiles::{get_tiles, Tile};
