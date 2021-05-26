@@ -78,6 +78,8 @@ pub struct Settings {
     pub test_mode: bool,
     /// path to the test files
     pub test_file_path: String,
+    /// Location test header override
+    pub location_test_header: Option<String>,
 }
 
 impl Default for Settings {
@@ -103,6 +105,7 @@ impl Default for Settings {
             sub1: "123456789".to_owned(),
             test_mode: false,
             test_file_path: "./tools/test/test_data/".to_owned(),
+            location_test_header: None,
         }
     }
 }
