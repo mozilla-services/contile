@@ -67,6 +67,10 @@ pub enum HandlerErrorKind {
     /// ADM returned an invalid or unexpected response
     #[error("Bad Adm response: {:?}", _0)]
     BadAdmResponse(String),
+
+    /// ADM Servers returned an error
+    #[error("Adm Server Error: {:?}", _0)]
+    AdmServerError(String),
 }
 
 /// A set of Error Context utilities
@@ -75,6 +79,8 @@ impl HandlerErrorKind {
     pub fn http_status(&self) -> StatusCode {
         match self {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
+            HandlerErrorKind::AdmServerError(_) => StatusCode::SERVICE_UNAVAILABLE,
+            HandlerErrorKind::BadAdmResponse(_) => StatusCode::BAD_GATEWAY,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -86,6 +92,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Internal(_) => 510,
             HandlerErrorKind::Reqwest(_) => 520,
             HandlerErrorKind::BadAdmResponse(_) => 521,
+            HandlerErrorKind::AdmServerError(_) => 522,
             HandlerErrorKind::Validation(_) => 600,
             HandlerErrorKind::InvalidHost(_, _) => 601,
             HandlerErrorKind::UnexpectedHost(_, _) => 602,

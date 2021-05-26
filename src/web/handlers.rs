@@ -1,6 +1,5 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
-use serde_json::json;
 
 use super::user_agent;
 use crate::{
@@ -93,12 +92,15 @@ pub async fn get_tiles(
             Some(request.head().headers())
         } else {
             None
-        },
+        }
     )
     .await
     {
         Ok(response) => {
             // adM sometimes returns an invalid response. We don't want to cache that.
+            if response.tiles.is_empty() {
+                return Ok(HttpResponse::NoContent().finish());
+            };
             let tiles = serde_json::to_string(&response).map_err(|e| {
                 HandlerError::internal(&format!("Response failed to serialize: {}", e))
             })?;
@@ -118,12 +120,12 @@ pub async fn get_tiles(
                 // Report directly to sentry
                 // (This is starting to become a pattern. 🤔)
                 let mut tags = Tags::from(request.head());
-                tags.add_extra("err", es);
+                tags.add_extra("err", &es);
                 tags.add_tag("level", "warning");
                 l_sentry::report(&tags, sentry::event_from_error(&e));
                 //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
                 warn!("ADM Server error: {:?}", e);
-                json!({"tiles":[]}).to_string()
+                return Ok(HttpResponse::NoContent().finish());
             }
             _ => return Err(e),
         },

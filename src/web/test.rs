@@ -157,7 +157,9 @@ async fn basic() {
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert!(tiles.len() > 1);
     for tile in tiles {
-        let _tile = tile.as_object().expect("!tile.is_object()");
+        let tile = tile.as_object().expect("!tile.is_object()");
+        assert!(tile["url"].is_string());
+        assert!(tile.get("advertiser_url").is_none());
     }
 }
 
@@ -219,6 +221,43 @@ async fn basic_bad_reply() {
             .to_string()
             == "\"Dunder Mifflin\""
     );
+}
+
+#[actix_rt::test]
+async fn basic_all_bad_reply() {
+    let missing_ci = r#"{
+        "tiles": [
+            {
+                "id": 601,
+                "name": "Acme",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ctag=1612376952400200000",
+                "image_url": "https://cdn.example.com/601.jpg",
+                "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
+                "impression_url": "https://example.net/static?id=0000"
+            },
+            {
+                "id": 703,
+                "name": "Dunder Mifflin",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9",
+                "image_url": "https://cdn.example.com/703.jpg",
+                "advertiser_url": "https://www.dunderm.biz/?tag=bar&ref=baz",
+                "impression_url": "https://example.net/static?id=DEADB33F"
+            }
+        ]}"#;
+    let (_, addr) = init_mock_adm(missing_ci.to_owned());
+    let settings = Settings {
+        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_settings: json!(adm_settings()).to_string(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles?country=US&placement=newtab")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
 #[actix_rt::test]
