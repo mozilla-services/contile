@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, fs::File, path::Path};
 
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::AdmFilter;
 use crate::{error::HandlerResult, settings::Settings};
@@ -22,16 +22,57 @@ pub struct AdmAdvertiserFilterSettings {
     /// Required set of valid hosts for the `advertiser_url`
     pub(crate) advertiser_hosts: Vec<String>,
     /// Optional set of valid hosts for the `impression_url`
-    #[serde(default)]
-    pub(crate) impression_hosts: Vec<String>,
+    #[serde(
+        deserialize_with = "deserialize_hosts",
+        serialize_with = "serialize_hosts"
+    )]
+    pub(crate) impression_hosts: Vec<Vec<String>>,
     /// Optional set of valid hosts for the `click_url`
-    #[serde(default)]
-    pub(crate) click_hosts: Vec<String>,
-    /// Optional valid position for the tile
+    #[serde(
+        deserialize_with = "deserialize_hosts",
+        serialize_with = "serialize_hosts"
+    )]
+    pub(crate) click_hosts: Vec<Vec<String>>,
+    /// valid position for the tile
     pub(crate) position: Option<u8>,
     /// Optional set of valid regions for the tile (e.g ["en", "en-US/TX"])
     #[serde(default)]
     pub(crate) include_regions: Vec<String>,
+}
+
+/// Parse JSON:
+/// ["example.com", "foo.net"]
+/// into:
+/// [["example", "com"], ["foo", "net"]]
+fn deserialize_hosts<'de, D>(d: D) -> Result<Vec<Vec<String>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Deserialize::deserialize(d).map(|hosts: Vec<String>| {
+        hosts
+            .into_iter()
+            .map(|host| -> Vec<_> { host.split('.').map(ToOwned::to_owned).collect() })
+            .collect()
+    })
+}
+
+/// Serialize:
+/// [["example", "com"], ["foo", "net"]]
+/// into:
+/// ["example.com", "foo.net"]
+fn serialize_hosts<S>(hosts: &[Vec<String>], s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let hosts: Vec<_> = hosts
+        .iter()
+        .map(|split_host| split_host.join("."))
+        .collect();
+    let mut seq = s.serialize_seq(Some(hosts.len()))?;
+    for host in hosts {
+        seq.serialize_element(&host)?;
+    }
+    seq.end()
 }
 
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;

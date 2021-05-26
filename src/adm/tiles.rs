@@ -154,20 +154,20 @@ pub async fn get_tiles(
         AdmTileResponse::fake_response(&state.settings, test_response)?
     } else {
         reqwest_client
-        .get(adm_url)
-        .send()
-        .await
-        .map_err(|e| {
-            // ADM servers are down, or improperly configured
-            HandlerErrorKind::AdmServerError(e.to_string())
-        })?
-        .error_for_status()?
-        .json()
-        .await
-        .map_err(|e| {
-            // ADM servers are not returning correct information
-            HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
-        })?
+            .get(adm_url)
+            .send()
+            .await
+            .map_err(|e| {
+                // ADM servers are down, or improperly configured
+                HandlerErrorKind::AdmServerError(e.to_string())
+            })?
+            .error_for_status()?
+            .json()
+            .await
+            .map_err(|e| {
+                // ADM servers are not returning correct information
+                HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
+            })?
     };
     let tiles = response
         .tiles

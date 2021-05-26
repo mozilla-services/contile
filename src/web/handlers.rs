@@ -92,7 +92,7 @@ pub async fn get_tiles(
             Some(request.head().headers())
         } else {
             None
-        }
+        },
     )
     .await
     {
