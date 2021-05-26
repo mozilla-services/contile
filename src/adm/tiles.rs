@@ -22,10 +22,10 @@ pub struct AdmTileResponse {
 impl AdmTileResponse {
     /// Return a fake response from the contents of `response_file`
     ///
-    /// This is only used when the server is in `test_mode` and passed a `fake_response` header.
+    /// This is only used when the server is in `test_mode` and passed a `fake-response` header.
     /// The test file is located in `CONTILE_TEST_FILE_PATH`, and will be lowercased. Unless
     /// specified, the `CONTILE_TEST_PATH` is `tools/test/test_data` and presumes that you are
-    /// running in the Project Root directory. An example resolution for a `Fake_Response:DEFAULT`
+    /// running in the Project Root directory. An example resolution for a `Fake-Response:DEFAULT`
     /// would be to open `./tools/test/test_data/default.json`. If you are not running in the
     /// Project root, you will need to specify the full path in `CONTILE_TEST_FILE_PATH`.
     pub fn fake_response(settings: &Settings, mut response_file: String) -> HandlerResult<Self> {
@@ -36,7 +36,8 @@ impl AdmTileResponse {
                 "Invalid test response file specified",
             ));
         }
-        let path = Path::new(&settings.test_file_path).join(format!("{}.json", response_file.to_lowercase()));
+        let path = Path::new(&settings.test_file_path)
+            .join(format!("{}.json", response_file.to_lowercase()));
         if path.exists() {
             let file =
                 File::open(path.as_os_str()).map_err(|e| HandlerError::internal(&e.to_string()))?;
@@ -46,9 +47,10 @@ impl AdmTileResponse {
             dbg!(&content);
             return Ok(content);
         }
-        let err= format!(
+        let err = format!(
             "Invalid or missing test file {}",
-            path.to_str().unwrap_or(&response_file));
+            path.to_str().unwrap_or(&response_file)
+        );
         dbg!(&err);
         Err(HandlerError::internal(&err))
     }
