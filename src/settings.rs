@@ -74,6 +74,8 @@ pub struct Settings {
     pub partner_id: String,
     /// Adm sub1 value (default: "123456789")
     pub sub1: String,
+    /// Location test header override
+    pub location_test_header: Option<String>,
 }
 
 impl Default for Settings {
@@ -97,6 +99,7 @@ impl Default for Settings {
             storage: "".to_owned(),
             partner_id: "demofeed".to_owned(),
             sub1: "123456789".to_owned(),
+            location_test_header: None,
         }
     }
 }

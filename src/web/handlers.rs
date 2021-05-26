@@ -49,9 +49,9 @@ pub async fn get_tiles(
             .mmdb
             .mmdb_locate(addr, &["en".to_owned()])
             .await
-            .unwrap_or_else(|_| Some(LocationResult::from(header)))
+            .unwrap_or_else(|_| Some(LocationResult::from_header(header, &state.settings)))
     } else {
-        Some(LocationResult::from(header))
+        Some(LocationResult::from_header(header, &state.settings))
     }
     .unwrap_or_default();
 
