@@ -48,12 +48,11 @@ pub async fn get_tiles(
         state
             .mmdb
             .mmdb_locate(addr, &["en".to_owned()])
-            .await
-            .unwrap_or_else(|_| Some(LocationResult::from_header(header, &state.settings)))
+            .await?
+            .unwrap_or_else(|| LocationResult::from_header(header, &state.settings))
     } else {
-        Some(LocationResult::from_header(header, &state.settings))
-    }
-    .unwrap_or_else(|| LocationResult::from(&state.settings));
+        LocationResult::from_header(header, &state.settings)
+    };
 
     let mut tags = Tags::default();
     {
