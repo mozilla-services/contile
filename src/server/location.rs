@@ -439,7 +439,7 @@ mod test {
         assert!(settings.verify_settings().is_err());
         settings.default_location = "Us, Oklahoma".to_owned();
         settings.verify_settings().expect("Unexpected error");
-        assert!(settings.default_location == "USOK".to_owned());
+        assert!(settings.default_location == *"USOK");
         Ok(())
     }
 }

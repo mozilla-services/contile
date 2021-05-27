@@ -169,6 +169,7 @@ pub async fn get_tiles(
                 HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
             })?
     };
+    // It's very important that the order of recieved tiles is preserved.
     let tiles = response
         .tiles
         .into_iter()
