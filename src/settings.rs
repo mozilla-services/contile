@@ -80,6 +80,8 @@ pub struct Settings {
     pub test_file_path: String,
     /// Location test header override
     pub location_test_header: Option<String>,
+    /// Default location (if no location info is able to be determined for an IP)
+    pub default_location: String,
 }
 
 impl Default for Settings {
@@ -106,11 +108,30 @@ impl Default for Settings {
             test_mode: false,
             test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
+            default_location: "USOK".to_owned(),
         }
     }
 }
 
 impl Settings {
+    pub fn verify_settings(&mut self) -> Result<(), ConfigError> {
+        if self.adm_endpoint_url.is_empty() {
+            return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
+        }
+        self.default_location = self.default_location.to_uppercase();
+        self.default_location.retain(|e| e.is_alphabetic());
+        if self.default_location.len() < 4 {
+            return Err(ConfigError::Message(
+                "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
+            ));
+        };
+        self.default_location = self.default_location[..4].to_owned();
+        // preflight check the storage
+        StorageSettings::from(&*self);
+        AdmSettings::from(&*self);
+        Ok(())
+    }
+
     /// Load the settings from the config file if supplied, then the environment.
     pub fn with_env_and_config_file(
         filename: &Option<String>,
@@ -139,13 +160,8 @@ impl Settings {
                     s.adm_endpoint_url = "http://localhost:8675/".to_owned();
                     s.debug = true;
                 }
-                if s.adm_endpoint_url.is_empty() {
-                    return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
-                }
-                // preflight check the storage
-                StorageSettings::from(&s);
-                AdmSettings::from(&s);
                 // Adjust the max values if required.
+                s.verify_settings()?;
                 s
             }
             Err(e) => match e {

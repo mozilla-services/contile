@@ -28,6 +28,18 @@ pub struct LocationResult {
     pub dma: Option<u16>,
 }
 
+impl From<&Settings> for LocationResult {
+    fn from(settings: &Settings) -> Self {
+        let default_loc = settings.default_location.clone();
+        Self {
+            city: None,
+            subdivision: Some(default_loc[2..4].to_string()),
+            country: Some(default_loc[..2].to_string()),
+            dma: None,
+        }
+    }
+}
+
 /// Read the [RequestHead] from either [HttpRequest] and [ServiceRequest]
 /// and pull the user location
 impl LocationResult {
@@ -91,6 +103,7 @@ impl LocationResult {
 pub struct Location {
     iploc: Option<Arc<maxminddb::Reader<Vec<u8>>>>,
     test_header: Option<String>,
+    default_loc: LocationResult,
 }
 
 /// Process and convert the MaxMindDB errors into native [crate::error::HandlerError]s
@@ -130,6 +143,7 @@ impl From<&Settings> for Location {
         Self {
             iploc: settings.into(),
             test_header: settings.location_test_header.clone(),
+            default_loc: LocationResult::from(settings),
         }
     }
 }
@@ -265,7 +279,7 @@ impl Location {
             traits: None }
         }
         */
-        let mut result = LocationResult::default();
+        let mut result = self.default_loc.clone();
         match self.iploc.clone().unwrap().lookup::<City<'_>>(ip_addr) {
             Ok(location) => {
                 if let Some(names) = location.city.and_then(|c| c.names) {
@@ -412,6 +426,20 @@ mod test {
         let loc = LocationResult::from_header(&test_head, &settings);
         assert!(loc.region() == *"CA");
         assert!(loc.country() == *"US");
+        Ok(())
+    }
+
+    #[actix_rt::test]
+    async fn test_default_loc() -> HandlerResult<()> {
+        let mut settings = Settings {
+            default_location: "Us".to_owned(),
+            adm_endpoint_url: "http://localhost:8080".to_owned(),
+            ..Default::default()
+        };
+        assert!(settings.verify_settings().is_err());
+        settings.default_location = "Us, Oklahoma".to_owned();
+        settings.verify_settings().expect("Unexpected error");
+        assert!(settings.default_location == "USOK".to_owned());
         Ok(())
     }
 }
