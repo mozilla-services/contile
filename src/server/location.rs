@@ -54,7 +54,7 @@ impl LocationResult {
         }
         if let Some(header) = headers.get(GOOG_LOC_HEADER) {
             dbg!("Found Google Header");
-            Self::from_headervalue(header, settings);
+            return Self::from_headervalue(header, settings);
         }
         Self::from(settings)
     }
