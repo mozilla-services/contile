@@ -460,7 +460,7 @@ mod test {
 
         // From an empty Google LB header
         let mut test_head = RequestHead::default();
-        let hv = "";
+        let hv = ", ";
         test_head.headers_mut().append(
             HeaderName::from_static(GOOG_LOC_HEADER),
             HeaderValue::from_static(&hv),
