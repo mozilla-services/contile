@@ -49,22 +49,25 @@ impl LocationResult {
         if let Some(ref loc_header) = settings.location_test_header {
             if let Some(header) = headers.get(loc_header) {
                 dbg!("Using test header");
-                return Self::from_headervalue(header);
+                return Self::from_headervalue(header, settings);
             }
         }
         if let Some(header) = headers.get(GOOG_LOC_HEADER) {
             dbg!("Found Google Header");
-            return Self::from_headervalue(header);
+            Self::from_headervalue(header, settings);
         }
         Self::from(settings)
     }
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
-    fn from_headervalue(header: &HeaderValue) -> Self {
+    fn from_headervalue(header: &HeaderValue, settings: &Settings) -> Self {
         let loc_string = header.to_str().unwrap_or("");
+        let mut loc = Self::from(settings);
         let mut parts = loc_string.split(',');
-        let country = parts.next().map(|country| country.trim().to_owned());
-        let subdivision = parts.next().map(|subdivision| {
+        if let Some(country) = parts.next().map(|country| country.trim().to_owned()) {
+            loc.country = Some(country)
+        }
+        if let Some(subdivision) = parts.next().map(|subdivision| {
             let subdivision = subdivision.trim();
             // client_region_subdivision: a "Unicode CLDR subdivision ID,
             // such as USCA or CAON"
@@ -74,13 +77,10 @@ impl LocationResult {
                 &subdivision[2..]
             }
             .to_owned()
-        });
-        Self {
-            subdivision,
-            country,
-            city: None,
-            dma: None,
+        }) {
+            loc.subdivision = Some(subdivision)
         }
+        loc
     }
 }
 
@@ -445,6 +445,7 @@ mod test {
 
     #[actix_rt::test]
     async fn test_default_loc() -> HandlerResult<()> {
+        // From a bad setting
         let mut settings = Settings {
             fallback_location: "Us".to_owned(),
             adm_endpoint_url: "http://localhost:8080".to_owned(),
@@ -456,6 +457,17 @@ mod test {
         settings.fallback_location = "us, Ok".to_owned();
         assert!(settings.verify_settings().is_ok());
         assert!(settings.fallback_location == *"USOK");
+
+        // From an empty Google LB header
+        let mut test_head = RequestHead::default();
+        let hv = "";
+        test_head.headers_mut().append(
+            HeaderName::from_static(GOOG_LOC_HEADER),
+            HeaderValue::from_static(&hv),
+        );
+        let loc = LocationResult::from_header(&test_head, &settings);
+        assert!(loc.region() == *"OK");
+        assert!(loc.country() == *"US");
         Ok(())
     }
 }
