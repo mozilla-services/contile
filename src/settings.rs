@@ -6,7 +6,7 @@ use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
 use crate::adm::AdmSettings;
-use crate::server::img_storage::StorageSettings;
+use crate::server::{img_storage::StorageSettings, location::Location};
 
 static PREFIX: &str = "contile";
 
@@ -81,7 +81,7 @@ pub struct Settings {
     /// Location test header override
     pub location_test_header: Option<String>,
     /// Default location (if no location info is able to be determined for an IP)
-    pub default_location: String,
+    pub fallback_location: String,
 }
 
 impl Default for Settings {
@@ -108,7 +108,7 @@ impl Default for Settings {
             test_mode: false,
             test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
-            default_location: "USOK".to_owned(),
+            fallback_location: "USOK".to_owned(),
         }
     }
 }
@@ -118,14 +118,7 @@ impl Settings {
         if self.adm_endpoint_url.is_empty() {
             return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
         }
-        self.default_location = self.default_location.to_uppercase();
-        self.default_location.retain(|e| e.is_alphabetic());
-        if self.default_location.len() < 4 {
-            return Err(ConfigError::Message(
-                "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
-            ));
-        };
-        self.default_location = self.default_location[..4].to_owned();
+        self.fallback_location = Location::fix(&self.fallback_location)?;
         // preflight check the storage
         StorageSettings::from(&*self);
         AdmSettings::from(&*self);

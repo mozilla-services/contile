@@ -53,7 +53,7 @@ pub async fn get_tiles(
     } else {
         Some(LocationResult::from_header(header, &state.settings))
     }
-    .unwrap_or_default();
+    .unwrap_or_else(|| LocationResult::from(&state.settings));
 
     let mut tags = Tags::default();
     {

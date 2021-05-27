@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use actix_http::http::HeaderValue;
 use actix_http::RequestHead;
+use config::ConfigError;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
 
@@ -16,7 +17,7 @@ use crate::settings::Settings;
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
 
 /// The returned, stripped location.
-#[derive(Serialize, Debug, Default, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct LocationResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
@@ -30,7 +31,7 @@ pub struct LocationResult {
 
 impl From<&Settings> for LocationResult {
     fn from(settings: &Settings) -> Self {
-        let default_loc = settings.default_location.clone();
+        let default_loc = settings.fallback_location.clone();
         Self {
             city: None,
             subdivision: Some(default_loc[2..4].to_string()),
@@ -55,7 +56,7 @@ impl LocationResult {
             dbg!("Found Google Header");
             return Self::from_headervalue(header);
         }
-        Self::default()
+        Self::from(settings)
     }
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
@@ -77,7 +78,8 @@ impl LocationResult {
         Self {
             subdivision,
             country,
-            ..Default::default()
+            city: None,
+            dma: None,
         }
     }
 }
@@ -99,7 +101,7 @@ impl LocationResult {
 }
 
 /// Wrapper for the MaxMindDB handle
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Location {
     iploc: Option<Arc<maxminddb::Reader<Vec<u8>>>>,
     test_header: Option<String>,
@@ -227,6 +229,18 @@ impl Location {
     /// Is the location look-up service available?
     pub fn is_available(&self) -> bool {
         self.iploc.is_some()
+    }
+
+    pub fn fix(location_str: &str) -> Result<String, ConfigError> {
+        let mut loc = location_str.to_uppercase();
+        loc.retain(|e| e.is_alphabetic());
+        let llen = loc.len();
+        if !(4..=5).contains(&llen) {
+            return Err(ConfigError::Message(
+                "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
+            ));
+        }
+        Ok(loc)
     }
 
     /// Resolve an `ip_addr` to a `LocationResult` using the `preferred_languages` as a hint for the language to use.
@@ -432,14 +446,16 @@ mod test {
     #[actix_rt::test]
     async fn test_default_loc() -> HandlerResult<()> {
         let mut settings = Settings {
-            default_location: "Us".to_owned(),
+            fallback_location: "Us".to_owned(),
             adm_endpoint_url: "http://localhost:8080".to_owned(),
             ..Default::default()
         };
         assert!(settings.verify_settings().is_err());
-        settings.default_location = "Us, Oklahoma".to_owned();
-        settings.verify_settings().expect("Unexpected error");
-        assert!(settings.default_location == *"USOK");
+        settings.fallback_location = "Us, Oklahoma".to_owned();
+        assert!(settings.verify_settings().is_err());
+        settings.fallback_location = "us, Ok".to_owned();
+        assert!(settings.verify_settings().is_ok());
+        assert!(settings.fallback_location == *"USOK");
         Ok(())
     }
 }

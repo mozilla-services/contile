@@ -76,7 +76,7 @@ impl AdmFilter {
         &self,
         filter: &AdmAdvertiserFilterSettings,
         tile: &mut AdmTile,
-        tags: &mut Tags,
+        mut tags: Tags,
     ) -> HandlerResult<()> {
         let url = &tile.advertiser_url;
         let species = "Advertiser";
@@ -106,7 +106,7 @@ impl AdmFilter {
         &self,
         filter: &AdmAdvertiserFilterSettings,
         tile: &mut AdmTile,
-        tags: &mut Tags,
+        mut tags: Tags,
     ) -> HandlerResult<()> {
         let url = &tile.click_url;
         let species = "Click";
@@ -160,7 +160,7 @@ impl AdmFilter {
         &self,
         filter: &AdmAdvertiserFilterSettings,
         tile: &mut AdmTile,
-        tags: &mut Tags,
+        mut tags: Tags,
     ) -> HandlerResult<()> {
         let url = &tile.impression_url;
         let species = "Impression";
@@ -221,17 +221,17 @@ impl AdmFilter {
                 } else {
                     filter
                 };
-                if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
+                if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags.clone()) {
                     dbg!("bad adv");
                     self.report(&e, tags);
                     return None;
                 }
-                if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
+                if let Err(e) = self.check_click(click_filter, &mut tile, tags.clone()) {
                     dbg!("bad click");
                     self.report(&e, tags);
                     return None;
                 }
-                if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
+                if let Err(e) = self.check_impression(impression_filter, &mut tile, tags.clone()) {
                     dbg!("bad imp");
                     self.report(&e, tags);
                     return None;
