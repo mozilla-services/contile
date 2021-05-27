@@ -65,7 +65,9 @@ impl LocationResult {
         let mut loc = Self::from(settings);
         let mut parts = loc_string.split(',');
         if let Some(country) = parts.next().map(|country| country.trim().to_owned()) {
-            loc.country = Some(country)
+            if !country.is_empty() {
+                loc.country = Some(country)
+            }
         }
         if let Some(subdivision) = parts.next().map(|subdivision| {
             let subdivision = subdivision.trim();
@@ -78,7 +80,9 @@ impl LocationResult {
             }
             .to_owned()
         }) {
-            loc.subdivision = Some(subdivision)
+            if !subdivision.is_empty() {
+                loc.subdivision = Some(subdivision)
+            }
         }
         loc
     }
