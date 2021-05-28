@@ -210,7 +210,7 @@ mod tests {
         let result = get_device_info("Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36");
         assert!(result.is_err());
         match result.unwrap_err().kind() {
-            &HandlerErrorKind::InvalidUA(_) => {}
+            HandlerErrorKind::InvalidUA(_) => {}
             _ => panic!("Incorrect error returned for test"),
         }
     }
