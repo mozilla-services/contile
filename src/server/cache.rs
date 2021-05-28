@@ -85,7 +85,8 @@ async fn tile_cache_updater(state: &ServerState) {
             &LocationResult {
                 country: Some(key.country_code.clone()),
                 subdivision: Some(key.region_code.clone()),
-                ..Default::default()
+                city: None,
+                dma: None,
             },
             key.os_family,
             key.form_factor,
