@@ -80,12 +80,12 @@ impl AdmFilter {
     ) -> HandlerResult<()> {
         let url = &tile.advertiser_url;
         let species = "Advertiser";
-        tags.add_tag("type", species);
-        tags.add_extra("tile", &tile.name);
-        tags.add_extra("url", &url);
         let parsed: Url = match url.parse() {
             Ok(v) => v,
             Err(e) => {
+                tags.add_tag("type", species);
+                tags.add_extra("tile", &tile.name);
+                tags.add_extra("url", &url);
                 tags.add_extra("parse_error", &e.to_string());
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
@@ -110,15 +110,15 @@ impl AdmFilter {
     ) -> HandlerResult<()> {
         let url = &tile.click_url;
         let species = "Click";
-        tags.add_tag("type", species);
-        tags.add_extra("tile", &tile.name);
-        tags.add_extra("url", &url);
-
         // Check the required fields are present for the `click_url` pg 15 of
         // 5.7.21 spec
         let parsed: Url = match url.parse() {
             Ok(v) => v,
             Err(e) => {
+                tags.add_tag("type", species);
+                tags.add_extra("tile", &tile.name);
+                tags.add_extra("url", &url);
+
                 tags.add_extra("parse_error", &e.to_string());
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
@@ -131,12 +131,20 @@ impl AdmFilter {
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &filter.click_hosts)? {
             dbg!("bad url", url.to_string());
+            tags.add_tag("type", species);
+            tags.add_extra("tile", &tile.name);
+            tags.add_extra("url", &url);
+
             tags.add_extra("reason", "bad host");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
         }
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
                 dbg!("missing param", &key, url.to_string());
+                tags.add_tag("type", species);
+                tags.add_extra("tile", &tile.name);
+                tags.add_extra("url", &url);
+
                 tags.add_extra("reason", "missing required query param");
                 tags.add_extra("param", &key);
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
@@ -145,6 +153,10 @@ impl AdmFilter {
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
                 dbg!("invalid param", &key, url.to_string());
+                tags.add_tag("type", species);
+                tags.add_extra("tile", &tile.name);
+                tags.add_extra("url", &url);
+
                 tags.add_extra("reason", "invalid query param");
                 tags.add_extra("param", &key);
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
@@ -164,12 +176,12 @@ impl AdmFilter {
     ) -> HandlerResult<()> {
         let url = &tile.impression_url;
         let species = "Impression";
-        tags.add_tag("type", species);
-        tags.add_extra("tile", &tile.name);
-        tags.add_extra("url", &url);
         let parsed: Url = match url.parse() {
             Ok(v) => v,
             Err(e) => {
+                tags.add_tag("type", species);
+                tags.add_extra("tile", &tile.name);
+                tags.add_extra("url", &url);
                 tags.add_extra("parse_error", &e.to_string());
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
@@ -181,6 +193,9 @@ impl AdmFilter {
         query_keys.sort();
         if query_keys != vec!["id"] {
             dbg!("missing param", "id", url.to_string());
+            tags.add_tag("type", species);
+            tags.add_extra("tile", &tile.name);
+            tags.add_extra("url", &url);
             tags.add_extra("reason", "invalid query param");
             tags.add_extra("param", "id");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());

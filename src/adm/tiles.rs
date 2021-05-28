@@ -170,7 +170,6 @@ pub async fn get_tiles(
                 HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
             })?
     };
-
     if response.tiles.is_empty() {
         error!("get_tiles empty response {}", adm_url);
     }
