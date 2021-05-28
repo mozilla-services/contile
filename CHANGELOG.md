@@ -1,3 +1,14 @@
+<a name="0.1.3"></a>
+## 0.1.3 (2021-05-28)
+
+
+#### Features
+
+*   use default location for unlocatable IPs (#115) ([eba159ba](https://github.com/mozilla-services/contile/commit/eba159ba39f97f65e96c21c7f4f0303ba00832e5), closes [#95](https://github.com/mozilla-services/contile/issues/95))
+*   don't fail to decode on adM's empty response (#117) ([c5f99231](https://github.com/mozilla-services/contile/commit/c5f992311492e5eefb6beac1cae374dc9bd9d578), closes [#116](https://github.com/mozilla-services/contile/issues/116))
+
+
+
 <a name="0.1.2"></a>
 ## 0.1.2 (2021-05-27)
 
