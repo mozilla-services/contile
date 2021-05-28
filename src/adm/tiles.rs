@@ -16,6 +16,7 @@ use crate::{
 /// The payload provided by ADM
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AdmTileResponse {
+    #[serde(default)]
     pub tiles: Vec<AdmTile>,
 }
 
@@ -140,7 +141,7 @@ pub async fn get_tiles(
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
     let adm_url = adm_url.as_str();
 
-    trace!("get_tiles GET {}", adm_url);
+    info!("get_tiles GET {}", adm_url);
     let response: AdmTileResponse = if state.settings.test_mode {
         let default = HeaderValue::from_str(DEFAULT).unwrap();
         let test_response = headers
@@ -169,6 +170,10 @@ pub async fn get_tiles(
                 HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
             })?
     };
+    if response.tiles.is_empty() {
+        error!("get_tiles empty response {}", adm_url);
+    }
+
     let tiles = response
         .tiles
         .into_iter()
