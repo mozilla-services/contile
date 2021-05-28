@@ -2,10 +2,9 @@
 
 use std::fmt;
 
-use woothee::{
-    parser::{Parser, WootheeResult},
-    woothee::VALUE_UNKNOWN,
-};
+use woothee::parser::Parser;
+
+use crate::error::{HandlerErrorKind, HandlerResult};
 
 /// ADM required browser format form
 #[allow(dead_code)]
@@ -47,6 +46,7 @@ impl fmt::Display for OsFamily {
     }
 }
 
+/* Currently unused
 /// Strip a Firefox User-Agent string, returning a version only varying in Base
 /// OS (e.g. Mac, Windows, Linux) and Firefox major version number
 pub fn strip_ua(ua: &str) -> String {
@@ -72,10 +72,17 @@ pub fn strip_ua(ua: &str) -> String {
         major = major
     )
 }
+*/
 
 /// Convert a UserAgent header into a simplified ([OsFamily], [FormFactor])
-pub fn get_device_info(ua: &str) -> (OsFamily, FormFactor) {
+pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
+
+    // If it's not firefox, it doesn't belong here...
+    // are there other names that could be returned? (e.g. for the iOS version)
+    if !["firefox"].contains(&wresult.name.to_lowercase().as_str()) {
+        return Err(HandlerErrorKind::InvalidUA(ua.to_owned()).into());
+    }
 
     let os = wresult.os.to_lowercase();
     let os_family = match os.as_str() {
@@ -94,21 +101,27 @@ pub fn get_device_info(ua: &str) -> (OsFamily, FormFactor) {
         "smartphone" => FormFactor::Phone,
         _ => FormFactor::Other,
     };
-    (os_family, form_factor)
+    Ok((os_family, form_factor))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{get_device_info, strip_ua, FormFactor, OsFamily};
+    use crate::error::HandlerErrorKind;
+
+    use super::{get_device_info, FormFactor, OsFamily};
 
     macro_rules! assert_strip_eq {
         ($value:expr, $stripped:expr) => {
-            assert_eq!(strip_ua($value), $stripped);
+            /* assert_eq!(strip_ua($value), $stripped); */
         };
     }
+
     macro_rules! assert_get_device_info {
         ($value:expr, $os_family:expr, $form_factor:expr) => {
-            assert_eq!(get_device_info($value), ($os_family, $form_factor));
+            assert_eq!(
+                get_device_info($value).expect("Error"),
+                ($os_family, $form_factor)
+            );
         };
     }
 
@@ -194,11 +207,12 @@ mod tests {
 
     #[test]
     fn chromeos() {
-        assert_get_device_info!(
-            "Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36",
-            OsFamily::ChromeOs,
-            FormFactor::Desktop
-        );
+        let result = get_device_info("Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36");
+        assert!(result.is_err());
+        match result.unwrap_err().kind() {
+            &HandlerErrorKind::InvalidUA(_) => {}
+            _ => panic!("Incorrect error returned for test"),
+        }
     }
 
     #[test]
@@ -207,10 +221,9 @@ mod tests {
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:?.0) Gecko/20100101 Firefox/?.0"
         );
-        assert_get_device_info!(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
-            OsFamily::MacOs,
-            FormFactor::Desktop
+        assert!(get_device_info(
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36")
+                .is_err()
         );
     }
 }
