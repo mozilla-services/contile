@@ -1,3 +1,31 @@
+<a name="0.1.3"></a>
+## 0.1.3 (2021-05-28)
+
+
+#### Features
+
+*   use default location for unlocatable IPs (#115) ([eba159ba](https://github.com/mozilla-services/contile/commit/eba159ba39f97f65e96c21c7f4f0303ba00832e5), closes [#95](https://github.com/mozilla-services/contile/issues/95))
+*   don't fail to decode on adM's empty response (#117) ([c5f99231](https://github.com/mozilla-services/contile/commit/c5f992311492e5eefb6beac1cae374dc9bd9d578), closes [#116](https://github.com/mozilla-services/contile/issues/116))
+
+
+
+<a name="0.1.2"></a>
+## 0.1.2 (2021-05-27)
+
+
+#### Bug Fixes
+
+*   pin sentry to 0.19 (#114) ([91ebf484](https://github.com/mozilla-services/contile/commit/91ebf48402d227f8e762af7eb0235deecaa52353), closes [#111](https://github.com/mozilla-services/contile/issues/111))
+*   advertiser_url -> url in the response (#112) ([66dd479a](https://github.com/mozilla-services/contile/commit/66dd479a86a8ae6548b97bea6ff0e8348b9d9cfa), closes [#110](https://github.com/mozilla-services/contile/issues/110))
+
+#### Features
+
+*   relax click/impression host checking (#113) ([fded42cc](https://github.com/mozilla-services/contile/commit/fded42cc70dd014d065b9d268e26390bbe7a639e), closes [#109](https://github.com/mozilla-services/contile/issues/109))
+*   Add improved response codes (#104) ([04b6fa09](https://github.com/mozilla-services/contile/commit/04b6fa09e796b52f5231260a133868134a816f25))
+*   Add a setting which defines a custom location header (#102) ([09a75f35](https://github.com/mozilla-services/contile/commit/09a75f35bcc5f66fb7dbb05d8f9accc3b1db7371), closes [#101](https://github.com/mozilla-services/contile/issues/101))
+
+
+
 <a name="0.1.1"></a>
 ## 0.1.1 (2021-05-24)
 
