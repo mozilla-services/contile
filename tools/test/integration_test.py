@@ -75,13 +75,15 @@ def setup_server():
     # Always set test mode
     os.environ.setdefault("CONTILE_TEST_MODE", "True")
     os.environ.setdefault("RUST_LOG", "trace")
-    os.environ.setdefault("CONTILE_ADM_SETTINGS",
+    os.environ.setdefault(
+        "CONTILE_ADM_SETTINGS",
         "{}/adm_settings_test.json".format(ROOT_DIR))
-    os.environ.setdefault("CONTILE_TEST_FILE_PATH",
+    os.environ.setdefault(
+        "CONTILE_TEST_FILE_PATH",
         "{}/tools/test/test_data/".format(ROOT_DIR))
 
     cmd = [get_rust_binary_path("contile")]
-    print ("Starting server: {cmd}".format(cmd=cmd))
+    print("Starting server: {cmd}".format(cmd=cmd))
     SERVER = subprocess.Popen(
         cmd,
         shell=True,
