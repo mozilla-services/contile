@@ -1,0 +1,4 @@
+configargparse
+pytest
+psutil
+requests

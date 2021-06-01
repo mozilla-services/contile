@@ -24,13 +24,15 @@ pub struct AdmAdvertiserFilterSettings {
     /// Optional set of valid hosts for the `impression_url`
     #[serde(
         deserialize_with = "deserialize_hosts",
-        serialize_with = "serialize_hosts"
+        serialize_with = "serialize_hosts",
+        default
     )]
     pub(crate) impression_hosts: Vec<Vec<String>>,
     /// Optional set of valid hosts for the `click_url`
     #[serde(
         deserialize_with = "deserialize_hosts",
-        serialize_with = "serialize_hosts"
+        serialize_with = "serialize_hosts",
+        default
     )]
     pub(crate) click_hosts: Vec<Vec<String>>,
     /// valid position for the tile
