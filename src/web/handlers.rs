@@ -35,7 +35,7 @@ pub async fn get_tiles(
             default
         }
     });
-    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua);
+    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua)?;
 
     let header = request.head();
     let location = if state.mmdb.is_available() {
