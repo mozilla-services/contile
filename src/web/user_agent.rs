@@ -79,7 +79,6 @@ pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
 
     // If it's not firefox, it doesn't belong here...
-    // are there other names that could be returned? (e.g. for the iOS version)
     if !["firefox"].contains(&wresult.name.to_lowercase().as_str()) {
         return Err(HandlerErrorKind::InvalidUA(ua.to_owned()).into());
     }
