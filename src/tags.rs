@@ -2,9 +2,7 @@
 //! Sentry and Metrics.
 //!
 use core::cell::RefMut;
-use std::{
-    collections::{BTreeMap, HashMap},
-};
+use std::collections::{BTreeMap, HashMap};
 
 use actix_http::Extensions;
 use actix_web::{
@@ -140,7 +138,6 @@ impl From<HttpRequest> for Tags {
         }
     }
 }
-
 
 /// Convenience function to bulk load `extra`
 impl Tags {
