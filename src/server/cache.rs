@@ -1,11 +1,11 @@
 //! Tile cache manager
 use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
 
-use cadence::Counted;
 use tokio::sync::RwLock;
 
 use crate::{
     adm,
+    metrics::Metrics,
     server::location::LocationResult,
     server::ServerState,
     tags::Tags,
@@ -71,7 +71,6 @@ async fn tile_cache_updater(state: &ServerState) {
         tiles_cache,
         reqwest_client,
         adm_endpoint_url,
-        metrics,
         ..
     } = state;
 
@@ -79,6 +78,7 @@ async fn tile_cache_updater(state: &ServerState) {
     let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
     for key in keys {
         let mut tags = Tags::default();
+        let metrics = Metrics::from(state);
         let result = adm::get_tiles(
             reqwest_client,
             adm_endpoint_url,
@@ -92,6 +92,7 @@ async fn tile_cache_updater(state: &ServerState) {
             key.form_factor,
             state,
             &mut tags,
+            &metrics,
             None,
         )
         .await;
@@ -103,7 +104,7 @@ async fn tile_cache_updater(state: &ServerState) {
                     Ok(tiles) => tiles,
                     Err(e) => {
                         error!("tile_cache_updater: response error {}", e);
-                        metrics.incr_with_tags("tile_cache_updater.error").send();
+                        metrics.incr_with_tags("tile_cache_updater.error", Some(&tags));
                         continue;
                     }
                 };
@@ -118,12 +119,12 @@ async fn tile_cache_updater(state: &ServerState) {
                 if new_tiles {
                     trace!("tile_cache_updater updating: {:?}", &key);
                     tiles_cache.write().await.insert(key, Tiles { json: tiles });
-                    metrics.incr_with_tags("tile_cache_updater.update").send();
+                    metrics.incr_with_tags("tile_cache_updater.update", Some(&tags));
                 }
             }
             Err(e) => {
                 error!("tile_cache_updater error: {}", e);
-                metrics.incr_with_tags("tile_cache_updater.error").send();
+                metrics.incr_with_tags("tile_cache_updater.error", Some(&tags));
             }
         }
     }

@@ -47,7 +47,7 @@ pub async fn get_tiles(
         };
         state
             .mmdb
-            .mmdb_locate(addr, &["en".to_owned()])
+            .mmdb_locate(addr, &["en".to_owned()], &metrics)
             .await?
             .unwrap_or_else(|| LocationResult::from_header(header, &state.settings))
     } else {
@@ -86,6 +86,7 @@ pub async fn get_tiles(
         form_factor,
         &state,
         &mut tags,
+        &metrics,
         // be aggressive about not passing headers unless we absolutely need to
         if state.settings.test_mode {
             Some(request.head().headers())
@@ -98,6 +99,7 @@ pub async fn get_tiles(
         Ok(response) => {
             // adM sometimes returns an invalid response. We don't want to cache that.
             if response.tiles.is_empty() {
+                metrics.incr_with_tags("tiles.empty", Some(&tags));
                 return Ok(HttpResponse::NoContent().finish());
             };
             let tiles = serde_json::to_string(&response).map_err(|e| {
@@ -116,6 +118,7 @@ pub async fn get_tiles(
         Err(e) => match e.kind() {
             HandlerErrorKind::BadAdmResponse(es) => {
                 warn!("Bad response from ADM: {:?}", e);
+                metrics.incr_with_tags("tiles.invalid", Some(&tags));
                 // Report directly to sentry
                 // (This is starting to become a pattern. 🤔)
                 let mut tags = Tags::from(request.head());

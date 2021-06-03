@@ -7,6 +7,7 @@ use url::Url;
 use crate::{
     adm::DEFAULT,
     error::{HandlerError, HandlerErrorKind, HandlerResult},
+    metrics::Metrics,
     server::{location::LocationResult, ServerState},
     settings::Settings,
     tags::Tags,
@@ -115,6 +116,7 @@ pub async fn get_tiles(
     form_factor: FormFactor,
     state: &ServerState,
     tags: &mut Tags,
+    metrics: &Metrics,
     headers: Option<&HeaderMap>,
 ) -> Result<TileResponse, HandlerError> {
     // XXX: Assumes adm_endpoint_url includes
@@ -177,7 +179,7 @@ pub async fn get_tiles(
     let tiles = response
         .tiles
         .into_iter()
-        .filter_map(|tile| state.filter.filter_and_process(tile, tags))
+        .filter_map(|tile| state.filter.filter_and_process(tile, tags, metrics))
         .take(settings.adm_max_tiles as usize)
         .collect();
     Ok(TileResponse { tiles })

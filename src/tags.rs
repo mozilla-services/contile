@@ -2,7 +2,9 @@
 //! Sentry and Metrics.
 //!
 use core::cell::RefMut;
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+};
 
 use actix_http::Extensions;
 use actix_web::{
@@ -139,7 +141,22 @@ impl From<HttpRequest> for Tags {
     }
 }
 
-/// Tags are extra data to be recorded in metric and logging calls.
+
+/// Convenience function to bulk load `extra`
+impl Tags {
+    pub fn from_extra(map: Vec<(&'static str, String)>) -> Self {
+        let mut extra = HashMap::new();
+        for (key, val) in map {
+            extra.insert(key.to_owned(), val);
+        }
+        Self {
+            tags: HashMap::new(),
+            extra,
+        }
+    }
+}
+
+// Tags are extra data to be recorded in metric and logging calls.
 /// If additional tags are required or desired, you will need to add them to the
 /// mutable extensions, e.g.
 /// ```compile_fail
