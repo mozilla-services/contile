@@ -66,7 +66,7 @@ async fn test_error() -> Result<HttpResponse, HandlerError> {
 
 async fn document_boot(state: web::Data<ServerState>) -> Result<HttpResponse, HandlerError> {
     let settings = &state.settings;
-    return Ok(HttpResponse::SeeOther()
+    return Ok(HttpResponse::Found()
         .header("Location", settings.documentation_url.clone())
         .finish());
 }
