@@ -1,14 +1,13 @@
 import os
-import psutil
-import pytest
-import requests
 import signal
 import subprocess
 import time
-
 from queue import Queue
 from threading import Thread
 
+import psutil
+import pytest
+import requests
 
 PREFIX = "CONTILE_TEST_"
 # GLOBALS
