@@ -1,5 +1,11 @@
 //! Tile cache manager
-use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    ops::Deref,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 use tokio::sync::RwLock;
 
@@ -32,6 +38,7 @@ pub struct AudienceKey {
 #[derive(Debug)]
 pub struct Tiles {
     pub json: String,
+    pub ttl: SystemTime,
 }
 
 /// The simple tile Cache
@@ -71,12 +78,23 @@ async fn tile_cache_updater(state: &ServerState) {
         tiles_cache,
         reqwest_client,
         adm_endpoint_url,
+        settings,
         ..
     } = state;
 
     trace!("tile_cache_updater..");
-    let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
+    let tiles = tiles_cache.read().await;
+    let keys: Vec<_> = tiles.keys().cloned().collect();
+    let mut cache_size = 0;
+    let mut cache_count: i64 = 0;
     for key in keys {
+        // proactively remove expired tiles from the cache, since we only
+        // write new ones (or ones which return a value)
+        if let Some(tile) = tiles.get(&key) {
+            if tile.ttl <= SystemTime::now() {
+                tiles_cache.write().await.remove(&key);
+            }
+        }
         let mut tags = Tags::default();
         let metrics = Metrics::from(state);
         let result = adm::get_tiles(
@@ -108,6 +126,8 @@ async fn tile_cache_updater(state: &ServerState) {
                         continue;
                     }
                 };
+                cache_size += tiles.len();
+                cache_count += 1;
                 // XXX: not a great comparison (comparing json Strings)..
                 let new_tiles = {
                     tiles_cache
@@ -118,7 +138,13 @@ async fn tile_cache_updater(state: &ServerState) {
                 };
                 if new_tiles {
                     trace!("tile_cache_updater updating: {:?}", &key);
-                    tiles_cache.write().await.insert(key, Tiles { json: tiles });
+                    tiles_cache.write().await.insert(
+                        key,
+                        Tiles {
+                            json: tiles,
+                            ttl: SystemTime::now() + Duration::from_secs(settings.tiles_ttl as u64),
+                        },
+                    );
                     metrics.incr_with_tags("tile_cache_updater.update", Some(&tags));
                 }
             }
@@ -128,4 +154,7 @@ async fn tile_cache_updater(state: &ServerState) {
             }
         }
     }
+    let metrics = Metrics::from(state);
+    metrics.count("tile_cache_updater.size", cache_size as i64);
+    metrics.count("tile_cache_updater.count", cache_count);
 }
