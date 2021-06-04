@@ -14,7 +14,6 @@ use serde::{self, Serialize};
 use crate::error::{HandlerErrorKind, HandlerResult};
 use crate::metrics::Metrics;
 use crate::settings::Settings;
-use crate::tags::Tags;
 
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
 
@@ -306,18 +305,12 @@ impl Location {
                 if let Some(names) = location.city.and_then(|c| c.names) {
                     result.city = get_preferred_language_element(&preferred_languages, &names)
                 } else {
-                    metrics.incr_with_tags(
-                        "location.unknown.city",
-                        Some(&Tags::from_extra(vec![("ip", ip_addr.to_string())])),
-                    );
+                    metrics.incr("location.unknown.city");
                 };
                 if let Some(names) = location.country.and_then(|c| c.names) {
                     result.country = get_preferred_language_element(&preferred_languages, &names)
                 } else {
-                    metrics.incr_with_tags(
-                        "location.unknown.country",
-                        Some(&Tags::from_extra(vec![("ip", ip_addr.to_string())])),
-                    );
+                    metrics.incr("location.unknown.country");
                 };
                 if let Some(divs) = location.subdivisions {
                     if let Some(subdivision) = divs.get(0) {
@@ -327,10 +320,7 @@ impl Location {
                         }
                     }
                 } else {
-                    metrics.incr_with_tags(
-                        "location.unknown.subdivision",
-                        Some(&Tags::from_extra(vec![("ip", ip_addr.to_string())])),
-                    )
+                    metrics.incr("location.unknown.subdivision")
                 }
                 if let Some(location) = location.location {
                     result.dma = location.metro_code;
