@@ -1,2 +1,4 @@
 fastapi
+gunicorn
+pyyaml
 uvicorn[standard]
