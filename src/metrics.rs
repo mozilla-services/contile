@@ -135,12 +135,12 @@ impl Metrics {
     }
 
     /// Increment a given metric with optional [crate::tags::Tags]
-    pub fn incr_with_tags(&self, label: &str, tags: Option<Tags>) {
+    pub fn incr_with_tags(&self, label: &str, tags: Option<&Tags>) {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.incr_with_tags(label);
             let mut mtags = self.tags.clone().unwrap_or_default();
             if let Some(tags) = tags {
-                mtags.extend(tags);
+                mtags.extend(tags.clone());
             }
             for key in mtags.tags.keys().clone() {
                 if let Some(val) = mtags.tags.get(key) {

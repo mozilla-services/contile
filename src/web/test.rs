@@ -114,6 +114,10 @@ fn adm_settings() -> AdmSettings {
     serde_json::from_value(adm_settings).unwrap()
 }
 
+/// Basic integration test
+///
+/// This is a baseline test ensuring that we can read data returned from the ADM server.
+/// Since we may not want to hit the ADM server directly, we use a mock response.
 #[actix_rt::test]
 async fn basic() {
     let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
@@ -309,7 +313,7 @@ async fn basic_default() {
     let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let adm_settings = adm_settings();
-    dbg!(&adm_settings);
+    trace!("Settings: {:?}", &adm_settings);
 
     let settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),

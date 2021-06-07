@@ -10,6 +10,7 @@ use url::Url;
 use super::{tiles::AdmTile, AdmAdvertiserFilterSettings, Tile, DEFAULT};
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
+    metrics::Metrics,
     tags::Tags,
     web::middleware::sentry as l_sentry,
 };
@@ -66,7 +67,7 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
 impl AdmFilter {
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
-        // dbg!(&error, &tags);
+        // trace!(&error, &tags);
         // TODO: if not error.is_reportable, just add to metrics.
         l_sentry::report(tags, sentry::event_from_error(error));
     }
@@ -130,7 +131,7 @@ impl AdmFilter {
 
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &filter.click_hosts)? {
-            dbg!("bad url", url.to_string());
+            trace!("bad url: url={:?}", url.to_string());
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", &url);
@@ -140,7 +141,7 @@ impl AdmFilter {
         }
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
-                dbg!("missing param", &key, url.to_string());
+                trace!("missing param: key={:?} url={:?}", &key, url.to_string());
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", &url);
@@ -152,7 +153,7 @@ impl AdmFilter {
         }
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
-                dbg!("invalid param", &key, url.to_string());
+                trace!("invalid param key={:?} url={:?}", &key, url.to_string());
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", &url);
@@ -192,7 +193,7 @@ impl AdmFilter {
             .collect::<Vec<String>>();
         query_keys.sort();
         if query_keys != vec!["id"] {
-            dbg!("missing param", "id", url.to_string());
+            trace!("missing param key=id url={:?}", url.to_string());
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", &url);
@@ -208,7 +209,12 @@ impl AdmFilter {
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
     /// - Modifies tiles for output to the client (adding additional fields, etc.)
-    pub fn filter_and_process(&self, mut tile: AdmTile, tags: &mut Tags) -> Option<Tile> {
+    pub fn filter_and_process(
+        &self,
+        mut tile: AdmTile,
+        tags: &mut Tags,
+        metrics: &Metrics,
+    ) -> Option<Tile> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
         match self.filter_set.get(&tile.name.to_lowercase()) {
@@ -237,17 +243,20 @@ impl AdmFilter {
                     filter
                 };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
-                    dbg!("bad adv");
+                    trace!("Rejecting tile: bad adv");
+                    metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
-                    dbg!("bad click");
+                    trace!("Rejecting tile: bad click");
+                    metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
-                    dbg!("bad imp");
+                    trace!("Rejecting tile: bad imp");
+                    metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
@@ -260,6 +269,7 @@ impl AdmFilter {
                 ))
             }
             None => {
+                metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
                 self.report(
                     &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
                     tags,

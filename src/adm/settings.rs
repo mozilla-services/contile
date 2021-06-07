@@ -127,7 +127,7 @@ impl From<&Settings> for HandlerResult<AdmFilter> {
     fn from(settings: &Settings) -> Self {
         let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
         for (adv, setting) in AdmSettings::from(settings) {
-            dbg!("Processing records for {:?}", &adv);
+            trace!("Processing records for {:?}", &adv);
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }

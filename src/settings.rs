@@ -153,9 +153,9 @@ impl Settings {
 
         Ok(match s.try_into::<Self>() {
             Ok(mut s) => {
-                dbg!(&s);
+                trace!("raw Settings: {:?}", &s);
                 if debug || s.test_mode {
-                    dbg!("!! Running in test mode!");
+                    trace!("!! Running in test mode!");
                     s.adm_endpoint_url = "http://localhost:8675/".to_owned();
                     s.debug = true;
                 }
