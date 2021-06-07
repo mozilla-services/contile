@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs::File, io::BufReader, path::Path};
+use std::{fmt::Debug, fs::File, io::BufReader, path::Path, time::Duration};
 
 use actix_http::http::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -156,6 +156,7 @@ pub async fn get_tiles(
     } else {
         reqwest_client
             .get(adm_url)
+            .timeout(Duration::from_secs(settings.adm_timeout))
             .send()
             .await
             .map_err(|e| {

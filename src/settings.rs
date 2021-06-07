@@ -58,6 +58,8 @@ pub struct Settings {
     pub adm_max_tiles: u8,
     /// number of tiles to query from ADM (default: 10)
     pub adm_query_tile_count: u8,
+    /// Timeout requests to the ADM server after this many seconds (default: 3)
+    pub adm_timeout: u64,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
     /// ADM tile settings (either as JSON or a path to a JSON file)
@@ -101,6 +103,7 @@ impl Default for Settings {
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             adm_max_tiles: 2,
             adm_query_tile_count: 10,
+            adm_timeout: 5,
             tiles_ttl: 15 * 60,
             adm_settings: "".to_owned(),
             maxminddb_loc: None,
