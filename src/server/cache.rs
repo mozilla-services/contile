@@ -82,7 +82,7 @@ async fn tile_cache_updater(state: &ServerState) {
         ..
     } = state;
 
-    trace!("tile_cache_updater..");
+    trace!("tile_cache_updater running...");
     let tiles = tiles_cache.read().await;
     let keys: Vec<_> = tiles.keys().cloned().collect();
     let mut cache_size = 0;

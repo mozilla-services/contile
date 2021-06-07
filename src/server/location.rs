@@ -49,12 +49,12 @@ impl LocationResult {
         let headers = head.headers();
         if let Some(ref loc_header) = settings.location_test_header {
             if let Some(header) = headers.get(loc_header) {
-                dbg!("Using test header");
+                trace!("Using test header");
                 return Self::from_headervalue(header, settings);
             }
         }
         if let Some(header) = headers.get(GOOG_LOC_HEADER) {
-            dbg!("Found Google Header");
+            trace!("Found Google Header");
             return Self::from_headervalue(header, settings);
         }
         Self::from(settings)

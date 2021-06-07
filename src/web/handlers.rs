@@ -24,6 +24,7 @@ pub async fn get_tiles(
     request: HttpRequest,
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
+    metrics.incr("tiles.update");
 
     let cinfo = request.connection_info();
     let settings = &state.settings;
