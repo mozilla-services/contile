@@ -64,7 +64,7 @@ impl StoreImage {
         let sset = StorageSettings::from(settings);
         // TODO: Validate bucket name?
         // https://cloud.google.com/storage/docs/naming-buckets
-        dbg!("Try creating bucket...");
+        trace!("Try creating bucket...");
         let bucket = match Bucket::create(&cloud_storage::NewBucket {
             name: sset.bucket_name.clone(),
             ..Default::default()
@@ -74,7 +74,7 @@ impl StoreImage {
             Ok(v) => v,
             Err(cloud_storage::Error::Google(ger)) => {
                 if ger.errors_has_reason(&cloud_storage::Reason::Conflict) {
-                    dbg!("Already exists", &sset.bucket_name);
+                    trace!("Already exists {:?}", &sset.bucket_name);
                     // try fetching the existing bucket.
                     let _content = Bucket::read(&sset.bucket_name).await.map_err(|e| {
                         HandlerError::internal(&format!("Could not read bucket {:?}", e))
@@ -97,7 +97,7 @@ impl StoreImage {
             }
         };
         // Set the permissions for the newly created bucket.
-        dbg!("Trying to grant viewing to all");
+        trace!("Trying to grant viewing to all");
         // grant allUsers view access
         let all_binding = Binding {
             role: IamRole::Standard(StandardIamRole::ObjectViewer),
@@ -112,7 +112,7 @@ impl StoreImage {
             Ok(_) => {}
             Err(cloud_storage::Error::Google(ger)) => {
                 if ger.errors_has_reason(&cloud_storage::Reason::Forbidden) {
-                    dbg!("Can't set permission...");
+                    trace!("Can't set permission...");
                 } else {
                     return Err(HandlerErrorKind::Internal(format!(
                         "Could not add read policy {:?}",
@@ -129,7 +129,7 @@ impl StoreImage {
                 .into())
             }
         };
-        dbg!("Bucket OK");
+        trace!("Bucket OK");
 
         Ok(Self {
             // bucket: Some(bucket),
@@ -161,7 +161,7 @@ impl StoreImage {
     /// (e.g. set the path to be the SHA1 of the bytes or whatever.)
 
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoreResult> {
-        dbg!("fetching...", &uri);
+        trace!("fetching... {:?}", &uri);
         /*
         // Should we preserve the name of the image?
         let mut hasher = Sha256::new();

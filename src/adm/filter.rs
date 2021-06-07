@@ -66,7 +66,7 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
 impl AdmFilter {
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
-        // dbg!(&error, &tags);
+        // trace!(&error, &tags);
         // TODO: if not error.is_reportable, just add to metrics.
         l_sentry::report(tags, sentry::event_from_error(error));
     }
@@ -130,7 +130,7 @@ impl AdmFilter {
 
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &filter.click_hosts)? {
-            dbg!("bad url", url.to_string());
+            trace!("bad url: url={:?}", url.to_string());
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", &url);
@@ -140,7 +140,7 @@ impl AdmFilter {
         }
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
-                dbg!("missing param", &key, url.to_string());
+                trace!("missing param: key={:?} url={:?}", &key, url.to_string());
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", &url);
@@ -152,7 +152,7 @@ impl AdmFilter {
         }
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
-                dbg!("invalid param", &key, url.to_string());
+                trace!("invalid param key={:?} url={:?}", &key, url.to_string());
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", &url);
@@ -192,7 +192,7 @@ impl AdmFilter {
             .collect::<Vec<String>>();
         query_keys.sort();
         if query_keys != vec!["id"] {
-            dbg!("missing param", "id", url.to_string());
+            trace!("missing param key=id url={:?}", url.to_string());
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", &url);
@@ -237,17 +237,17 @@ impl AdmFilter {
                     filter
                 };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
-                    dbg!("bad adv");
+                    trace!("Rejecting tile: bad adv");
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
-                    dbg!("bad click");
+                    trace!("Rejecting tile: bad click");
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
-                    dbg!("bad imp");
+                    trace!("Rejecting tile: bad imp");
                     self.report(&e, tags);
                     return None;
                 }
