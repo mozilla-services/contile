@@ -45,29 +45,31 @@ impl From<&Settings> for LocationResult {
 /// Read the [RequestHead] from either [HttpRequest] and [ServiceRequest]
 /// and pull the user location
 impl LocationResult {
-    pub fn from_header(head: &RequestHead, settings: &Settings) -> Self {
+    pub fn from_header(head: &RequestHead, settings: &Settings, metrics: &Metrics) -> Self {
         let headers = head.headers();
         if let Some(ref loc_header) = settings.location_test_header {
             if let Some(header) = headers.get(loc_header) {
                 trace!("Using test header");
-                return Self::from_headervalue(header, settings);
+                return Self::from_headervalue(header, settings, metrics);
             }
         }
         if let Some(header) = headers.get(GOOG_LOC_HEADER) {
             trace!("Found Google Header");
-            return Self::from_headervalue(header, settings);
+            return Self::from_headervalue(header, settings, metrics);
         }
         Self::from(settings)
     }
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
-    fn from_headervalue(header: &HeaderValue, settings: &Settings) -> Self {
+    fn from_headervalue(header: &HeaderValue, settings: &Settings, metrics: &Metrics) -> Self {
         let loc_string = header.to_str().unwrap_or("");
         let mut loc = Self::from(settings);
         let mut parts = loc_string.split(',');
         if let Some(country) = parts.next().map(|country| country.trim().to_owned()) {
             if !country.is_empty() {
                 loc.country = Some(country)
+            } else {
+                metrics.incr("location.unknown.country");
             }
         }
         if let Some(subdivision) = parts.next().map(|subdivision| {
@@ -83,6 +85,8 @@ impl LocationResult {
         }) {
             if !subdivision.is_empty() {
                 loc.subdivision = Some(subdivision)
+            } else {
+                metrics.incr("location.unknown.subdivision");
             }
         }
         loc
@@ -446,6 +450,7 @@ mod test {
             location_test_header: Some(test_header.to_string()),
             ..Default::default()
         };
+        let metrics = Metrics::noop();
 
         let mut test_head = RequestHead::default();
         let hv = "US, USCA";
@@ -454,7 +459,7 @@ mod test {
             HeaderValue::from_static(&hv),
         );
 
-        let loc = LocationResult::from_header(&test_head, &settings);
+        let loc = LocationResult::from_header(&test_head, &settings, &metrics);
         assert!(loc.region() == *"CA");
         assert!(loc.country() == *"US");
         Ok(())
@@ -468,6 +473,7 @@ mod test {
             adm_endpoint_url: "http://localhost:8080".to_owned(),
             ..Default::default()
         };
+        let metrics = Metrics::noop();
         assert!(settings.verify_settings().is_err());
         settings.fallback_location = "Us, Oklahoma".to_owned();
         assert!(settings.verify_settings().is_err());
@@ -482,7 +488,7 @@ mod test {
             HeaderName::from_static(GOOG_LOC_HEADER),
             HeaderValue::from_static(&hv),
         );
-        let loc = LocationResult::from_header(&test_head, &settings);
+        let loc = LocationResult::from_header(&test_head, &settings, &metrics);
         assert!(loc.region() == *"OK");
         assert!(loc.country() == *"US");
         Ok(())

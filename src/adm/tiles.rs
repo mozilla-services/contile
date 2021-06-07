@@ -156,6 +156,7 @@ pub async fn get_tiles(
         trace!("Getting fake response: {:?}", &test_response);
         AdmTileResponse::fake_response(&state.settings, test_response)?
     } else {
+        // TODO: Add timeout
         reqwest_client
             .get(adm_url)
             .send()

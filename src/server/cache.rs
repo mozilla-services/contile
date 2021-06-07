@@ -83,16 +83,19 @@ async fn tile_cache_updater(state: &ServerState) {
     } = state;
 
     trace!("tile_cache_updater running...");
-    let tiles = tiles_cache.read().await;
-    let keys: Vec<_> = tiles.keys().cloned().collect();
+    let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
     let mut cache_size = 0;
     let mut cache_count: i64 = 0;
     for key in keys {
         // proactively remove expired tiles from the cache, since we only
         // write new ones (or ones which return a value)
-        if let Some(tile) = tiles.get(&key) {
-            if tile.ttl <= SystemTime::now() {
-                tiles_cache.write().await.remove(&key);
+        // TODO: This could possibly be rewritten as a one liner by someone more clever.
+        {
+            let mut tiles = tiles_cache.write().await;
+            if let Some(tile) = tiles.get(&key) {
+                if tile.ttl <= SystemTime::now() {
+                    tiles.remove(&key);
+                }
             }
         }
         let mut tags = Tags::default();
