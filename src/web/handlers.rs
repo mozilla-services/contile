@@ -1,4 +1,6 @@
 //! API Handlers
+use std::time::{Duration, SystemTime};
+
 use actix_web::{web, HttpRequest, HttpResponse};
 
 use super::user_agent;
@@ -22,8 +24,10 @@ pub async fn get_tiles(
     request: HttpRequest,
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
+    metrics.incr("tiles.update");
 
     let cinfo = request.connection_info();
+    let settings = &state.settings;
     let ip_addr_str = cinfo.remote_addr().unwrap_or({
         let default = state
             .adm_country_ip_map
@@ -47,11 +51,11 @@ pub async fn get_tiles(
         };
         state
             .mmdb
-            .mmdb_locate(addr, &["en".to_owned()])
+            .mmdb_locate(addr, &["en".to_owned()], &metrics)
             .await?
-            .unwrap_or_else(|| LocationResult::from_header(header, &state.settings))
+            .unwrap_or_else(|| LocationResult::from_header(header, settings, &metrics))
     } else {
-        LocationResult::from_header(header, &state.settings)
+        LocationResult::from_header(header, settings, &metrics)
     };
 
     let mut tags = Tags::default();
@@ -69,7 +73,7 @@ pub async fn get_tiles(
         form_factor,
         os_family,
     };
-    if !state.settings.test_mode {
+    if !settings.test_mode {
         if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
             trace!("get_tiles: cache hit: {:?}", audience_key);
             metrics.incr("tiles_cache.hit");
@@ -86,8 +90,9 @@ pub async fn get_tiles(
         form_factor,
         &state,
         &mut tags,
+        &metrics,
         // be aggressive about not passing headers unless we absolutely need to
-        if state.settings.test_mode {
+        if settings.test_mode {
             Some(request.head().headers())
         } else {
             None
@@ -98,6 +103,7 @@ pub async fn get_tiles(
         Ok(response) => {
             // adM sometimes returns an invalid response. We don't want to cache that.
             if response.tiles.is_empty() {
+                metrics.incr_with_tags("tiles.empty", Some(&tags));
                 return Ok(HttpResponse::NoContent().finish());
             };
             let tiles = serde_json::to_string(&response).map_err(|e| {
@@ -109,6 +115,7 @@ pub async fn get_tiles(
                 audience_key,
                 cache::Tiles {
                     json: tiles.clone(),
+                    ttl: SystemTime::now() + Duration::from_secs(settings.tiles_ttl as u64),
                 },
             );
             tiles
@@ -116,6 +123,7 @@ pub async fn get_tiles(
         Err(e) => match e.kind() {
             HandlerErrorKind::BadAdmResponse(es) => {
                 warn!("Bad response from ADM: {:?}", e);
+                metrics.incr_with_tags("tiles.invalid", Some(&tags));
                 // Report directly to sentry
                 // (This is starting to become a pattern. 🤔)
                 let mut tags = Tags::from(request.head());

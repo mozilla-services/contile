@@ -10,6 +10,7 @@ use url::Url;
 use super::{tiles::AdmTile, AdmAdvertiserFilterSettings, Tile, DEFAULT};
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
+    metrics::Metrics,
     tags::Tags,
     web::middleware::sentry as l_sentry,
 };
@@ -208,7 +209,12 @@ impl AdmFilter {
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
     /// - Modifies tiles for output to the client (adding additional fields, etc.)
-    pub fn filter_and_process(&self, mut tile: AdmTile, tags: &mut Tags) -> Option<Tile> {
+    pub fn filter_and_process(
+        &self,
+        mut tile: AdmTile,
+        tags: &mut Tags,
+        metrics: &Metrics,
+    ) -> Option<Tile> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
         match self.filter_set.get(&tile.name.to_lowercase()) {
@@ -238,16 +244,19 @@ impl AdmFilter {
                 };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
+                    metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad click");
+                    metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad imp");
+                    metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
@@ -260,6 +269,7 @@ impl AdmFilter {
                 ))
             }
             None => {
+                metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
                 self.report(
                     &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
                     tags,

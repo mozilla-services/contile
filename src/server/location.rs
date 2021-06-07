@@ -12,6 +12,7 @@ use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
 
 use crate::error::{HandlerErrorKind, HandlerResult};
+use crate::metrics::Metrics;
 use crate::settings::Settings;
 
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
@@ -44,29 +45,31 @@ impl From<&Settings> for LocationResult {
 /// Read the [RequestHead] from either [HttpRequest] and [ServiceRequest]
 /// and pull the user location
 impl LocationResult {
-    pub fn from_header(head: &RequestHead, settings: &Settings) -> Self {
+    pub fn from_header(head: &RequestHead, settings: &Settings, metrics: &Metrics) -> Self {
         let headers = head.headers();
         if let Some(ref loc_header) = settings.location_test_header {
             if let Some(header) = headers.get(loc_header) {
                 trace!("Using test header");
-                return Self::from_headervalue(header, settings);
+                return Self::from_headervalue(header, settings, metrics);
             }
         }
         if let Some(header) = headers.get(GOOG_LOC_HEADER) {
             trace!("Found Google Header");
-            return Self::from_headervalue(header, settings);
+            return Self::from_headervalue(header, settings, metrics);
         }
         Self::from(settings)
     }
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
-    fn from_headervalue(header: &HeaderValue, settings: &Settings) -> Self {
+    fn from_headervalue(header: &HeaderValue, settings: &Settings, metrics: &Metrics) -> Self {
         let loc_string = header.to_str().unwrap_or("");
         let mut loc = Self::from(settings);
         let mut parts = loc_string.split(',');
         if let Some(country) = parts.next().map(|country| country.trim().to_owned()) {
             if !country.is_empty() {
                 loc.country = Some(country)
+            } else {
+                metrics.incr("location.unknown.country");
             }
         }
         if let Some(subdivision) = parts.next().map(|subdivision| {
@@ -82,6 +85,8 @@ impl LocationResult {
         }) {
             if !subdivision.is_empty() {
                 loc.subdivision = Some(subdivision)
+            } else {
+                metrics.incr("location.unknown.subdivision");
             }
         }
         loc
@@ -255,6 +260,7 @@ impl Location {
         &self,
         ip_addr: IpAddr,
         preferred_languages: &[String],
+        metrics: &Metrics,
     ) -> HandlerResult<Option<LocationResult>> {
         if self.iploc.is_none() {
             return Ok(None);
@@ -302,9 +308,13 @@ impl Location {
             Ok(location) => {
                 if let Some(names) = location.city.and_then(|c| c.names) {
                     result.city = get_preferred_language_element(&preferred_languages, &names)
+                } else {
+                    metrics.incr("location.unknown.city");
                 };
                 if let Some(names) = location.country.and_then(|c| c.names) {
                     result.country = get_preferred_language_element(&preferred_languages, &names)
+                } else {
+                    metrics.incr("location.unknown.country");
                 };
                 if let Some(divs) = location.subdivisions {
                     if let Some(subdivision) = divs.get(0) {
@@ -313,6 +323,8 @@ impl Location {
                                 get_preferred_language_element(&preferred_languages, names);
                         }
                     }
+                } else {
+                    metrics.incr("location.unknown.subdivision")
                 }
                 if let Some(location) = location.location {
                     result.dma = location.metro_code;
@@ -396,9 +408,13 @@ mod test {
             ..Default::default()
         };
         let location = Location::from(&settings);
+        let metrics = Metrics::noop();
         if location.is_available() {
             // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
-            let result = location.mmdb_locate(test_ip, &langs).await?.unwrap();
+            let result = location
+                .mmdb_locate(test_ip, &langs, &metrics)
+                .await?
+                .unwrap();
             assert_eq!(result.city, Some("Milton".to_owned()));
             assert_eq!(result.subdivision, Some("Washington".to_owned()));
             assert_eq!(result.country, Some("United States".to_owned()));
@@ -417,8 +433,9 @@ mod test {
             ..Default::default()
         };
         let location = Location::from(&settings);
+        let metrics = Metrics::noop();
         if location.is_available() {
-            let result = location.mmdb_locate(test_ip, &langs).await?;
+            let result = location.mmdb_locate(test_ip, &langs, &metrics).await?;
             assert!(result.is_none());
         } else {
             println!("⚠Location Database not found, cannot test location, skipping");
@@ -433,6 +450,7 @@ mod test {
             location_test_header: Some(test_header.to_string()),
             ..Default::default()
         };
+        let metrics = Metrics::noop();
 
         let mut test_head = RequestHead::default();
         let hv = "US, USCA";
@@ -441,7 +459,7 @@ mod test {
             HeaderValue::from_static(&hv),
         );
 
-        let loc = LocationResult::from_header(&test_head, &settings);
+        let loc = LocationResult::from_header(&test_head, &settings, &metrics);
         assert!(loc.region() == *"CA");
         assert!(loc.country() == *"US");
         Ok(())
@@ -455,6 +473,7 @@ mod test {
             adm_endpoint_url: "http://localhost:8080".to_owned(),
             ..Default::default()
         };
+        let metrics = Metrics::noop();
         assert!(settings.verify_settings().is_err());
         settings.fallback_location = "Us, Oklahoma".to_owned();
         assert!(settings.verify_settings().is_err());
@@ -469,7 +488,7 @@ mod test {
             HeaderName::from_static(GOOG_LOC_HEADER),
             HeaderValue::from_static(&hv),
         );
-        let loc = LocationResult::from_header(&test_head, &settings);
+        let loc = LocationResult::from_header(&test_head, &settings, &metrics);
         assert!(loc.region() == *"OK");
         assert!(loc.country() == *"US");
         Ok(())
