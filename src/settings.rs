@@ -58,7 +58,7 @@ pub struct Settings {
     pub adm_max_tiles: u8,
     /// number of tiles to query from ADM (default: 10)
     pub adm_query_tile_count: u8,
-    /// Timeout requests to the ADM server after this many seconds (default: 3)
+    /// Timeout requests to the ADM server after this many seconds (default: 5)
     pub adm_timeout: u64,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
