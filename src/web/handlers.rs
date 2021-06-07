@@ -1,6 +1,4 @@
 //! API Handlers
-use std::time::{Duration, SystemTime};
-
 use actix_web::{web, HttpRequest, HttpResponse};
 
 use super::user_agent;
@@ -71,18 +69,22 @@ pub async fn get_tiles(
         country_code: location.country(),
         region_code: location.region(),
         form_factor,
-        os_family,
     };
+    let mut expired = false;
     if !settings.test_mode {
-        if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
-            trace!("get_tiles: cache hit: {:?}", audience_key);
-            metrics.incr("tiles_cache.hit");
-            return Ok(HttpResponse::Ok()
-                .content_type("application/json")
-                .body(&tiles.json));
+        if let Some(tiles) = state.tiles_cache.get(&audience_key) {
+            expired = tiles.expired();
+            if !expired {
+                trace!("get_tiles: cache hit: {:?}", audience_key);
+                metrics.incr("tiles_cache.hit");
+                return Ok(HttpResponse::Ok()
+                    .content_type("application/json")
+                    .body(&tiles.json));
+            }
         }
     }
-    let tiles = match adm::get_tiles(
+
+    let result = adm::get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
         &location,
@@ -98,47 +100,53 @@ pub async fn get_tiles(
             None
         },
     )
-    .await
-    {
+    .await;
+
+    let json = match result {
         Ok(response) => {
-            // adM sometimes returns an invalid response. We don't want to cache that.
+            let json = serde_json::to_string(&response).map_err(|e| {
+                HandlerError::internal(&format!("Response failed to serialize: {}", e))
+            })?;
+
+            trace!(
+                "get_tiles: cache miss{}: {:?}",
+                if expired { " (expired)" } else { "" },
+                &audience_key
+            );
+            metrics.incr("tiles_cache.miss");
+            state.tiles_cache.insert(
+                audience_key,
+                cache::Tiles::new(json.clone(), state.settings.tiles_ttl),
+            );
+
             if response.tiles.is_empty() {
                 metrics.incr_with_tags("tiles.empty", Some(&tags));
                 return Ok(HttpResponse::NoContent().finish());
             };
-            let tiles = serde_json::to_string(&response).map_err(|e| {
-                HandlerError::internal(&format!("Response failed to serialize: {}", e))
-            })?;
-            trace!("get_tiles: cache miss: {:?}", audience_key);
-            metrics.incr("tiles_cache.miss");
-            state.tiles_cache.write().await.insert(
-                audience_key,
-                cache::Tiles {
-                    json: tiles.clone(),
-                    ttl: SystemTime::now() + Duration::from_secs(settings.tiles_ttl as u64),
-                },
-            );
-            tiles
+
+            json
         }
-        Err(e) => match e.kind() {
-            HandlerErrorKind::BadAdmResponse(es) => {
-                warn!("Bad response from ADM: {:?}", e);
-                metrics.incr_with_tags("tiles.invalid", Some(&tags));
-                // Report directly to sentry
-                // (This is starting to become a pattern. 🤔)
-                let mut tags = Tags::from(request.head());
-                tags.add_extra("err", &es);
-                tags.add_tag("level", "warning");
-                l_sentry::report(&tags, sentry::event_from_error(&e));
-                //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
-                warn!("ADM Server error: {:?}", e);
-                return Ok(HttpResponse::NoContent().finish());
-            }
-            _ => return Err(e),
-        },
+        Err(e) => {
+            match e.kind() {
+                HandlerErrorKind::BadAdmResponse(es) => {
+                    warn!("Bad response from ADM: {:?}", e);
+                    metrics.incr_with_tags("tiles.invalid", Some(&tags));
+                    // Report directly to sentry
+                    // (This is starting to become a pattern. 🤔)
+                    let mut tags = Tags::from(request.head());
+                    tags.add_extra("err", &es);
+                    tags.add_tag("level", "warning");
+                    l_sentry::report(&tags, sentry::event_from_error(&e));
+                    //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
+                    warn!("ADM Server error: {:?}", e);
+                    return Ok(HttpResponse::NoContent().finish());
+                }
+                _ => return Err(e),
+            };
+        }
     };
 
     Ok(HttpResponse::Ok()
         .content_type("application/json")
-        .body(tiles))
+        .body(json))
 }

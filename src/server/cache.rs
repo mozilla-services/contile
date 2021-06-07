@@ -1,22 +1,15 @@
 //! Tile cache manager
 use std::{
-    collections::HashMap,
     fmt::Debug,
     ops::Deref,
     sync::Arc,
     time::{Duration, SystemTime},
 };
 
-use tokio::sync::RwLock;
+use cadence::StatsdClient;
+use dashmap::DashMap;
 
-use crate::{
-    adm,
-    metrics::Metrics,
-    server::location::LocationResult,
-    server::ServerState,
-    tags::Tags,
-    web::{FormFactor, OsFamily},
-};
+use crate::{metrics::Metrics, web::FormFactor};
 
 /// AudienceKey is the primary key used to store and fetch tiles from the
 /// local cache.
@@ -28,136 +21,64 @@ pub struct AudienceKey {
     pub region_code: String,
     /// The form-factor (e.g. desktop, phone) of the device
     pub form_factor: FormFactor,
-    // XXX: *not* currently a targetting parameter (shouldn't be here),
-    // temporarily needed for tile_cache_updater
-    /// The family of Operating System (e.g. windows, macos) of the device
-    pub os_family: OsFamily,
 }
 
-/// The stored Tile cache data
-#[derive(Debug)]
-pub struct Tiles {
-    pub json: String,
-    pub ttl: SystemTime,
-}
-
-/// The simple tile Cache
 #[derive(Debug, Clone)]
 pub struct TilesCache {
-    inner: Arc<RwLock<HashMap<AudienceKey, Tiles>>>,
+    inner: Arc<DashMap<AudienceKey, Tiles>>,
 }
 
 impl TilesCache {
     pub fn new(capacity: usize) -> Self {
         Self {
-            inner: Arc::new(RwLock::new(HashMap::with_capacity(capacity))),
+            inner: Arc::new(DashMap::with_capacity(capacity)),
         }
+    }
+
+    pub fn spawn_periodic_reporter(&self, interval: Duration, metrics: StatsdClient) {
+        let cache = self.clone();
+        let metrics = Metrics::from(&metrics);
+        actix_rt::spawn(async move {
+            loop {
+                tile_cache_periodic_reporter(&cache, &metrics).await;
+                actix_rt::time::delay_for(interval).await;
+            }
+        });
     }
 }
 
 impl Deref for TilesCache {
-    type Target = Arc<RwLock<HashMap<AudienceKey, Tiles>>>;
+    type Target = Arc<DashMap<AudienceKey, Tiles>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-/// Background tile refresh process
-pub fn spawn_tile_cache_updater(interval: Duration, state: ServerState) {
-    actix_rt::spawn(async move {
-        loop {
-            tile_cache_updater(&state).await;
-            actix_rt::time::delay_for(interval).await;
-        }
-    });
+#[derive(Debug)]
+pub struct Tiles {
+    pub json: String,
+    expiry: SystemTime,
 }
 
-async fn tile_cache_updater(state: &ServerState) {
-    let ServerState {
-        tiles_cache,
-        reqwest_client,
-        adm_endpoint_url,
-        settings,
-        ..
-    } = state;
-
-    trace!("tile_cache_updater running...");
-    let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
-    let mut cache_size = 0;
-    let mut cache_count: i64 = 0;
-    for key in keys {
-        // proactively remove expired tiles from the cache, since we only
-        // write new ones (or ones which return a value)
-        // TODO: This could possibly be rewritten as a one liner by someone more clever.
-        {
-            let mut tiles = tiles_cache.write().await;
-            if let Some(tile) = tiles.get(&key) {
-                if tile.ttl <= SystemTime::now() {
-                    tiles.remove(&key);
-                }
-            }
-        }
-        let mut tags = Tags::default();
-        let metrics = Metrics::from(state);
-        let result = adm::get_tiles(
-            reqwest_client,
-            adm_endpoint_url,
-            &LocationResult {
-                country: Some(key.country_code.clone()),
-                subdivision: Some(key.region_code.clone()),
-                city: None,
-                dma: None,
-            },
-            key.os_family,
-            key.form_factor,
-            state,
-            &mut tags,
-            &metrics,
-            None,
-        )
-        .await;
-
-        match result {
-            Ok(response) => {
-                //trace!("tile_cache_updater: {:#?}", response);
-                let tiles = match serde_json::to_string(&response) {
-                    Ok(tiles) => tiles,
-                    Err(e) => {
-                        error!("tile_cache_updater: response error {}", e);
-                        metrics.incr_with_tags("tile_cache_updater.error", Some(&tags));
-                        continue;
-                    }
-                };
-                cache_size += tiles.len();
-                cache_count += 1;
-                // XXX: not a great comparison (comparing json Strings)..
-                let new_tiles = {
-                    tiles_cache
-                        .read()
-                        .await
-                        .get(&key)
-                        .map_or(true, |cached_tiles| tiles != cached_tiles.json)
-                };
-                if new_tiles {
-                    trace!("tile_cache_updater updating: {:?}", &key);
-                    tiles_cache.write().await.insert(
-                        key,
-                        Tiles {
-                            json: tiles,
-                            ttl: SystemTime::now() + Duration::from_secs(settings.tiles_ttl as u64),
-                        },
-                    );
-                    metrics.incr_with_tags("tile_cache_updater.update", Some(&tags));
-                }
-            }
-            Err(e) => {
-                error!("tile_cache_updater error: {}", e);
-                metrics.incr_with_tags("tile_cache_updater.error", Some(&tags));
-            }
+impl Tiles {
+    pub fn new(json: String, ttl: u32) -> Self {
+        Self {
+            json,
+            expiry: SystemTime::now() + Duration::from_secs(ttl as u64),
         }
     }
-    let metrics = Metrics::from(state);
-    metrics.count("tile_cache_updater.size", cache_size as i64);
-    metrics.count("tile_cache_updater.count", cache_count);
+
+    pub fn expired(&self) -> bool {
+        self.expiry <= SystemTime::now()
+    }
+}
+
+async fn tile_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
+    trace!("tile_cache_periodic_reporter");
+    let cache_size: usize = cache.iter().map(|tiles| tiles.json.len()).sum();
+    let cache_count = cache.len();
+
+    metrics.count("tile_cache.size", cache_size as i64);
+    metrics.count("tile_cache.count", cache_count as i64);
 }
