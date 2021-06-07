@@ -1,35 +1,30 @@
 import os
-import psutil
-import pytest
-import requests
 import signal
 import subprocess
 import time
-
 from queue import Queue
 from threading import Thread
 
+import psutil
+import pytest
+import requests
 
 PREFIX = "CONTILE_TEST_"
 # GLOBALS
 SERVER = None
 STRICT_LOG_COUNTS = True
-HERE_DIR = os.path.abspath(os.path.dirname(__file__)+"/..")
+HERE_DIR = os.path.abspath(os.path.dirname(__file__) + "/..")
 ROOT_DIR = os.path.dirname(HERE_DIR)
 OUT_QUEUES = []
 
 
 def get_settings():
     return dict(
-        test_url=os.environ.get(
-            "CONTILE_TEST_URL",
-            "http://localhost:8000"),
+        test_url=os.environ.get("CONTILE_TEST_URL", "http://localhost:8000"),
         server=os.environ.get(
-            "CONTILE_TEST_SERVER",
-            "../../target/debug/contile"),
-        noserver=os.environ.get(
-            "CONTILE_TEST_NOSERVER",
-            None)
+            "CONTILE_TEST_SERVER", "../../target/debug/contile"
+        ),
+        noserver=os.environ.get("CONTILE_TEST_NOSERVER", None),
     )
 
 
@@ -37,30 +32,29 @@ def get_rust_binary_path(binary):
     global STRICT_LOG_COUNTS
 
     rust_bin = ROOT_DIR + "/target/debug/{}".format(binary)
-    possible_paths = ["/target/debug/{}".format(binary),
-                      "/{0}/target/release/{0}".format(binary),
-                      "/{0}/target/debug/{0}".format(binary)]
+    possible_paths = [
+        "/target/debug/{}".format(binary),
+        "/{0}/target/release/{0}".format(binary),
+        "/{0}/target/debug/{0}".format(binary),
+    ]
     while possible_paths and not os.path.exists(rust_bin):  # pragma: nocover
         rust_bin = ROOT_DIR + possible_paths.pop(0)
 
-    if 'release' not in rust_bin:
+    if "release" not in rust_bin:
         # disable checks for chatty debug mode binaries
         STRICT_LOG_COUNTS = False
     return rust_bin
 
 
 def enqueue_output(out, queue):
-    for line in iter(out.readline, b''):
+    for line in iter(out.readline, b""):
         queue.put(line)
     out.close()
 
 
 def capture_output_to_queue(output_stream):
     log_queue = Queue()
-    t = Thread(
-        target=enqueue_output,
-        args=(output_stream, log_queue)
-    )
+    t = Thread(target=enqueue_output, args=(output_stream, log_queue))
     t.daemon = True
     t.start()
     return log_queue
@@ -76,11 +70,11 @@ def setup_server():
     os.environ.setdefault("CONTILE_TEST_MODE", "True")
     os.environ.setdefault("RUST_LOG", "trace")
     os.environ.setdefault(
-        "CONTILE_ADM_SETTINGS",
-        "{}/adm_settings_test.json".format(ROOT_DIR))
+        "CONTILE_ADM_SETTINGS", "{}/adm_settings_test.json".format(ROOT_DIR)
+    )
     os.environ.setdefault(
-        "CONTILE_TEST_FILE_PATH",
-        "{}/tools/test/test_data/".format(ROOT_DIR))
+        "CONTILE_TEST_FILE_PATH", "{}/tools/test/test_data/".format(ROOT_DIR)
+    )
 
     cmd = [get_rust_binary_path("contile")]
     print("Starting server: {cmd}".format(cmd=cmd))
@@ -90,15 +84,17 @@ def setup_server():
         env=os.environ,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        universal_newlines=True
+        universal_newlines=True,
     )
     if SERVER.poll():
         print("Could not start server")
         exit(-1)
-    OUT_QUEUES.extend([
-        capture_output_to_queue(SERVER.stdout),
-        capture_output_to_queue(SERVER.stderr)
-    ])
+    OUT_QUEUES.extend(
+        [
+            capture_output_to_queue(SERVER.stdout),
+            capture_output_to_queue(SERVER.stderr),
+        ]
+    )
 
 
 def kill_process(process):
@@ -119,7 +115,8 @@ def default_headers(test: str = "default"):
     return {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) "
-            "Gecko/20100101 Firefox/90.0"),
+            "Gecko/20100101 Firefox/90.0"
+        ),
         "X-Client-Geo-Location": "US,AK",
         "Remote-Addr": "44.236.48.31",
         "Fake-Response": test,
@@ -133,8 +130,8 @@ def setup_module():
     while True:
         try:
             ping = requests.get(
-                "{root}/__heartbeat__".format(
-                    root=settings.get("test_url")))
+                "{root}/__heartbeat__".format(root=settings.get("test_url"))
+            )
             if ping.status_code == 200:
                 print("Found server... {root}", settings.get("test_url"))
                 break
@@ -156,11 +153,8 @@ def teardown_module():
 
 class TestAdm:
     def test_success(self, settings):
-        url = "{root}/v1/tiles".format(
-                root=settings.get("test_url"))
-        resp = requests.get(
-            url,
-            headers=default_headers())
+        url = "{root}/v1/tiles".format(root=settings.get("test_url"))
+        resp = requests.get(url, headers=default_headers())
         assert resp.status_code == 200, "Failed to return"
         reply = resp.json()
         # the default tab list
@@ -175,14 +169,9 @@ class TestAdm:
         if settings.get("noserver"):
             pytest.skip()
             return
-        url = "{root}/v1/tiles".format(
-            root=settings.get("test_url")
-        )
+        url = "{root}/v1/tiles".format(root=settings.get("test_url"))
         headers = default_headers("bad_adv")
-        resp = requests.get(
-            url,
-            headers=headers
-        )
+        resp = requests.get(url, headers=headers)
         assert resp.status_code == 200, "Failed to return"
         reply = resp.json()
         tiles = reply.get("tiles")
@@ -194,14 +183,9 @@ class TestAdm:
         if settings.get("noserver"):
             pytest.skip()
             return
-        url = "{root}/v1/tiles".format(
-            root=settings.get("test_url")
-        )
+        url = "{root}/v1/tiles".format(root=settings.get("test_url"))
         headers = default_headers("bad_click")
-        resp = requests.get(
-            url,
-            headers=headers
-        )
+        resp = requests.get(url, headers=headers)
         assert resp.status_code == 200, "Failed to return"
         reply = resp.json()
         tiles = reply.get("tiles")

@@ -6,6 +6,8 @@ This directory contains a simple integration test for the Contile server.
 
 1) First, create a virtualenv installation of python
 `python -m venv venv`
+   or use python3 for Python 3 or higher version
+`python3 -m venv venv`
 
 This will create a local install of the python. You can then "activate" it by calling
 `source venv/bin/activate` (note, refer to the [python virtualenv](https://docs.python.org/3/library/venv.html)
@@ -13,8 +15,8 @@ documentation for system specific details.)
 
 After activation, you no longer need to specify the path: `venv/bin/`
 
-2) Install requirements.txt
-`pip -r requirements.txt`
+2) Install requirements.txt in the Test dir
+`pip install -r requirements.txt`
 
 ## Running the test
 
