@@ -21,7 +21,9 @@ OUT_QUEUES = []
 def get_settings():
     return dict(
         test_url=os.environ.get("CONTILE_TEST_URL", "http://localhost:8000"),
-        server=os.environ.get("CONTILE_TEST_SERVER", "../../target/debug/contile"),
+        server=os.environ.get(
+            "CONTILE_TEST_SERVER", "../../target/debug/contile"
+        ),
         noserver=os.environ.get("CONTILE_TEST_NOSERVER", None),
     )
 
@@ -88,7 +90,10 @@ def setup_server():
         print("Could not start server")
         exit(-1)
     OUT_QUEUES.extend(
-        [capture_output_to_queue(SERVER.stdout), capture_output_to_queue(SERVER.stderr)]
+        [
+            capture_output_to_queue(SERVER.stdout),
+            capture_output_to_queue(SERVER.stderr),
+        ]
     )
 
 
