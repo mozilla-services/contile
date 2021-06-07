@@ -75,7 +75,7 @@ async fn tile_cache_updater(state: &ServerState) {
         ..
     } = state;
 
-    trace!("tile_cache_updater..");
+    trace!("tile_cache_updater running...");
     let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
     for key in keys {
         let mut tags = Tags::default();

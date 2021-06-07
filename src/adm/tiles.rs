@@ -30,7 +30,7 @@ impl AdmTileResponse {
     /// would be to open `./tools/test/test_data/default.json`. If you are not running in the
     /// Project root, you will need to specify the full path in `CONTILE_TEST_FILE_PATH`.
     pub fn fake_response(settings: &Settings, mut response_file: String) -> HandlerResult<Self> {
-        dbg!(&response_file);
+        trace!("Response file: {:?}", &response_file);
         response_file.retain(|x| char::is_alphanumeric(x) || x == '_');
         if response_file.is_empty() {
             return Err(HandlerError::internal(
@@ -45,14 +45,14 @@ impl AdmTileResponse {
             let reader = BufReader::new(file);
             let content = serde_json::from_reader(reader)
                 .map_err(|e| HandlerError::internal(&e.to_string()))?;
-            dbg!(&content);
+            trace!("Content: {:?}", &content);
             return Ok(content);
         }
         let err = format!(
             "Invalid or missing test file {}",
             path.to_str().unwrap_or(&response_file)
         );
-        dbg!(&err);
+        trace!("Err: {:?}", &err);
         Err(HandlerError::internal(&err))
     }
 }
@@ -151,7 +151,7 @@ pub async fn get_tiles(
             .to_str()
             .unwrap()
             .to_owned();
-        dbg!("Getting fake response:", &test_response);
+        trace!("Getting fake response: {:?}", &test_response);
         AdmTileResponse::fake_response(&state.settings, test_response)?
     } else {
         reqwest_client
