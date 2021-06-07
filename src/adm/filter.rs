@@ -244,19 +244,19 @@ impl AdmFilter {
                 };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     dbg!("bad adv");
-                    metrics.incr_with_tags("tag.err.invalid_advertiser", Some(tags));
+                    metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
                     dbg!("bad click");
-                    metrics.incr_with_tags("tag.err.invalid_click", Some(tags));
+                    metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
                     dbg!("bad imp");
-                    metrics.incr_with_tags("tag.err.invalid_impression", Some(tags));
+                    metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
@@ -269,7 +269,7 @@ impl AdmFilter {
                 ))
             }
             None => {
-                metrics.incr_with_tags("tag.err.unexpected_advertiser", Some(tags));
+                metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
                 self.report(
                     &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
                     tags,
