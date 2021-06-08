@@ -1,3 +1,19 @@
+<a name="0.2.0"></a>
+## 0.2.0 (2021-06-08)
+
+
+#### Features
+
+*   Remove useless metric tags (#142) ([6ea90cde](https://github.com/mozilla-services/contile/commit/6ea90cde13049a3f32f871f3f9028d546e6b7945), closes [#136](https://github.com/mozilla-services/contile/issues/136))
+*   add timeout for calls to ADM service (#140) ([4837bb51](https://github.com/mozilla-services/contile/commit/4837bb514d98acf8b294cffb28a93452228a89c3), closes [#139](https://github.com/mozilla-services/contile/issues/139))
+*   add more metrics (#130) ([786fe729](https://github.com/mozilla-services/contile/commit/786fe729fecf2d1e1d9d72b1d719270831dc3134), closes [#120](https://github.com/mozilla-services/contile/issues/120))
+
+#### Chore
+
+*   tag 0.1.4 (#141) ([bc897fe4](https://github.com/mozilla-services/contile/commit/bc897fe4b5270565bc6d6580c058c287373ce40f))
+
+
+
 <a name="0.1.4"></a>
 ## 0.1.4 (2021-06-07)
 
