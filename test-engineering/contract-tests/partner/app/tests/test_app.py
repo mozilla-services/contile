@@ -28,24 +28,26 @@ def test_read_tilesp(client):
         "&results=2"
     )
 
-    response_body = [
-        {
-            "id": 12345,
-            "name": "tile 12345",
-            "click_url": "example click_url",
-            "image_url": "example image_url",
-            "impression_url": "example impression_url",
-            "advertiser_url": "example advertiser_url",
-        },
-        {
-            "id": 56789,
-            "name": "tile 56789",
-            "click_url": "example click_url",
-            "image_url": "example image_url",
-            "impression_url": "example impression_url",
-            "advertiser_url": "example advertiser_url",
-        },
-    ]
+    response_body = {
+        "tiles": [
+            {
+                "id": 12345,
+                "name": "Example",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
+                "image_url": "https://example.com/image_url.jpg",
+                "impression_url": "https://example.com/impression_url?id=0001",
+                "advertiser_url": "https://www.example.com/advertiser_url",
+            },
+            {
+                "id": 56789,
+                "name": "Example",
+                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
+                "image_url": "https://example.com/image_url.jpg",
+                "impression_url": "https://example.com/impression_url?id=0002",
+                "advertiser_url": "https://www.example.com/advertiser_url",
+            },
+        ]
+    }
 
     assert response.status_code == 200
     assert response.json() == response_body
