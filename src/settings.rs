@@ -2,16 +2,12 @@
 
 use std::collections::HashMap;
 
-use actix_web::{web::Data, HttpRequest, dev::ServiceRequest};
+use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
 use crate::adm::AdmSettings;
-use crate::server::{
-    img_storage::StorageSettings,
-    location::Location,
-    ServerState,
-};
+use crate::server::{img_storage::StorageSettings, location::Location, ServerState};
 
 static PREFIX: &str = "contile";
 
@@ -228,7 +224,6 @@ impl From<&ServiceRequest> for Settings {
         state.settings.clone()
     }
 }
-
 
 #[cfg(test)]
 pub fn test_settings() -> Settings {
