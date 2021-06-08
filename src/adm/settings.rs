@@ -1,9 +1,17 @@
-use std::{collections::HashMap, fmt::Debug, fs::File, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    fs::File,
+    path::Path,
+};
 
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::AdmFilter;
-use crate::{error::HandlerResult, settings::Settings};
+use crate::{
+    error::{HandlerError, HandlerResult},
+    settings::Settings,
+};
 
 /// The name of the "Default" node, which is used as a fall back if no data
 /// is defined for a given partner.
@@ -40,6 +48,7 @@ pub struct AdmAdvertiserFilterSettings {
     /// Optional set of valid regions for the tile (e.g ["en", "en-US/TX"])
     #[serde(default)]
     pub(crate) include_regions: Vec<String>,
+    pub(crate) ignore_advertisers: Option<Vec<String>>,
 }
 
 /// Parse JSON:
@@ -131,8 +140,18 @@ impl From<&Settings> for HandlerResult<AdmFilter> {
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
+        let ignore_list: HashSet<String> = serde_json::from_str(
+            &settings
+                .adm_ignore_advertisers
+                .clone()
+                .unwrap_or_else(|| "[]".to_owned()),
+        )
+        .map_err(|e| {
+            HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
+        })?;
         Ok(AdmFilter {
             filter_set: filter_map,
+            ignore_list,
         })
     }
 }
