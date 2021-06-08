@@ -2,11 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import json
+import logging
 import sys
 from typing import List
 
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
+from pydantic.json import pydantic_encoder
+
+logger = logging.getLogger("partner")
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
@@ -22,30 +27,34 @@ class Tile(BaseModel):
     advertiser_url: str
 
 
+class TilesResponse(BaseModel):
+    tiles: List[Tile]
+
+
 TILES = [
     Tile(
         id=12345,
-        name="tile 12345",
-        click_url="example click_url",
-        image_url="example image_url",
-        impression_url="example impression_url",
-        advertiser_url="example advertiser_url",
+        name="Example",
+        click_url="https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
+        image_url="https://example.com/image_url.jpg",
+        impression_url="https://example.com/impression_url?id=0001",
+        advertiser_url="https://www.example.com/advertiser_url",
     ),
     Tile(
         id=56789,
-        name="tile 56789",
-        click_url="example click_url",
-        image_url="example image_url",
-        impression_url="example impression_url",
-        advertiser_url="example advertiser_url",
+        name="Example",
+        click_url="https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
+        image_url="https://example.com/image_url.jpg",
+        impression_url="https://example.com/impression_url?id=0002",
+        advertiser_url="https://www.example.com/advertiser_url",
     ),
     Tile(
         id=11111,
-        name="tile 11111",
-        click_url="example click_url",
-        image_url="example image_url",
-        impression_url="example impression_url",
-        advertiser_url="example advertiser_url",
+        name="Example",
+        click_url="https://example.com/ctp?version=16.0.0&key=3.3&ci=4.4&ctag=1612376952400200000",
+        image_url="https://example.com/image_url.jpg",
+        impression_url="https://example.com/impression_url?id=0003",
+        advertiser_url="https://www.example.com/advertiser_url",
     ),
 ]
 
@@ -59,7 +68,7 @@ async def read_root():
     return {"message": message}
 
 
-@app.get("/tilesp", response_model=List[Tile])
+@app.get("/tilesp", response_model=TilesResponse)
 async def read_tilesp(
     partner: str = Query(..., example="demofeed"),
     sub1: str = Query(..., example="123456789"),
@@ -73,4 +82,6 @@ async def read_tilesp(
     results: int = Query(1, example=2),
 ):
     """Endpoint for requests from Contile."""
-    return TILES[:results]
+    tiles = TilesResponse(tiles=TILES[:results])
+    logger.debug(json.dumps(tiles, default=pydantic_encoder))
+    return tiles
