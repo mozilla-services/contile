@@ -251,8 +251,6 @@ mod tests {
         result.insert("ua.os.ver".to_owned(), "NT 10.0".to_owned());
         result.insert("ua.os.family".to_owned(), "Windows".to_owned());
         result.insert("ua.browser.ver".to_owned(), "72.0".to_owned());
-        result.insert("ua.name".to_owned(), "Firefox".to_owned());
-        result.insert("ua.browser.family".to_owned(), "Firefox".to_owned());
         result.insert("uri.method".to_owned(), "GET".to_owned());
 
         assert_eq!(tags.tags, result)
