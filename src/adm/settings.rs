@@ -93,8 +93,31 @@ pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 /// This allows `CONTILE_ADM_SETTINGS` to either be specified as inline JSON, or if the
 /// Settings are too large to fit into an ENV string, specified in a path to where the
 /// settings more comfortably fit.
-impl From<&Settings> for AdmSettings {
-    fn from(settings: &Settings) -> Self {
+impl From<&mut Settings> for AdmSettings {
+    fn from(settings: &mut Settings) -> Self {
+        // TODO: Convert these to macros.
+        if settings.adm_sub1.is_none() {
+            if settings.sub1.is_some() {
+                settings.adm_sub1 = settings.sub1.clone();
+                warn!(
+                    "`{}` is obsolete and will be removed. Please use `{}`",
+                    "sub1", "adm_sub1"
+                );
+            } else {
+                panic!("Missing argument {}", "adm_sub1");
+            }
+        }
+        if settings.adm_partner_id.is_none() {
+            if settings.partner_id.is_some() {
+                settings.adm_partner_id = settings.partner_id.clone();
+                warn!(
+                    "`{}` is obsolete and will be removed. Please use `{}`",
+                    "partner_id", "adm_partner_id"
+                );
+            } else {
+                panic!("Missing argument {}", "$new");
+            }
+        }
         if settings.adm_settings.is_empty() {
             return Self::default();
         }
@@ -132,26 +155,45 @@ impl From<&Settings> for AdmSettings {
 /// }
 /// ```
 ///
-impl From<&Settings> for HandlerResult<AdmFilter> {
-    fn from(settings: &Settings) -> Self {
+impl From<&mut Settings> for HandlerResult<AdmFilter> {
+    fn from(settings: &mut Settings) -> Self {
         let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
+        let ignore_list = settings
+            .adm_ignore_advertisers
+            .clone()
+            .unwrap_or_else(|| "[]".to_owned());
         for (adv, setting) in AdmSettings::from(settings) {
             trace!("Processing records for {:?}", &adv);
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
-        let ignore_list: HashSet<String> = serde_json::from_str(
-            &settings
-                .adm_ignore_advertisers
-                .clone()
-                .unwrap_or_else(|| "[]".to_owned()),
-        )
-        .map_err(|e| {
+        let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
         })?;
         Ok(AdmFilter {
             filter_set: filter_map,
             ignore_list,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    pub fn test_obsolete_settings() {
+        let mut settings = Settings::default();
+        let sub1 = "12345".to_owned();
+        let partner_id = "falafal".to_owned();
+        settings.sub1 = Some(sub1.clone());
+        settings.partner_id = Some(partner_id.clone());
+        settings.adm_sub1 = None;
+        settings.adm_partner_id = None;
+
+        AdmSettings::from(&mut settings);
+        assert!(settings.adm_sub1 == Some(sub1));
+        assert!(settings.partner_id == Some(partner_id));
     }
 }

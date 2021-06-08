@@ -69,9 +69,9 @@ pub struct Settings {
 
     // TODO: break these out into a PartnerSettings?
     /// Adm partner ID (default: "demofeed")
-    pub adm_partner_id: String,
+    pub adm_partner_id: Option<String>,
     /// Adm sub1 value (default: "123456789")
-    pub adm_sub1: String,
+    pub adm_sub1: Option<String>,
     /// adm Endpoint URL
     pub adm_endpoint_url: String,
     /// adm country to default IP map (Hash in JSON format)
@@ -90,6 +90,10 @@ pub struct Settings {
     pub adm_settings: String,
     /// A JSON list of advertisers to ignore, specified by the Advertiser name.
     pub adm_ignore_advertisers: Option<String>,
+
+    // OBSOLETE:
+    pub sub1: Option<String>,
+    pub partner_id: Option<String>,
 }
 
 impl Default for Settings {
@@ -114,14 +118,16 @@ impl Default for Settings {
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
-            adm_partner_id: "demofeed".to_owned(),
-            adm_sub1: "123456789".to_owned(),
+            adm_partner_id: Some("demofeed".to_owned()),
+            adm_sub1: Some("123456789".to_owned()),
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             adm_max_tiles: 2,
             adm_query_tile_count: 10,
             adm_timeout: 5,
             adm_settings: "".to_owned(),
             adm_ignore_advertisers: None,
+            sub1: None,
+            partner_id: None,
         }
     }
 }
@@ -134,7 +140,7 @@ impl Settings {
         self.fallback_location = Location::fix(&self.fallback_location)?;
         // preflight check the storage
         StorageSettings::from(&*self);
-        AdmSettings::from(&*self);
+        AdmSettings::from(&mut *self);
         Ok(())
     }
 

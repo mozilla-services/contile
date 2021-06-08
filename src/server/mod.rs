@@ -86,8 +86,8 @@ macro_rules! build_app {
 
 impl Server {
     /// initialize a new instance of the server from [Settings]
-    pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
-        let filter = HandlerResult::<AdmFilter>::from(&settings)?;
+    pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
+        let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         let state = ServerState {
             metrics: Box::new(metrics_from_opts(&settings)?),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
