@@ -1,3 +1,18 @@
+<a name="0.1.4"></a>
+## 0.1.4 (2021-06-07)
+
+
+#### Bug Fixes
+
+*   only permit Firefox UA from querying contile (#127) ([307b507c](https://github.com/mozilla-services/contile/commit/307b507c964fcabfb78f5268c6f1e152ca5fa3ad))
+
+#### Features
+
+*   redirect root requests to official documentation (#133) ([3b6fa93a](https://github.com/mozilla-services/contile/commit/3b6fa93a525c7938c7ea1ca8cc94c338fe232d8e))
+*   Add integration tests (#128) ([fc71c3bd](https://github.com/mozilla-services/contile/commit/fc71c3bd252f63ee97ae84dfac7c037c127d7725))
+
+
+
 <a name="0.1.3"></a>
 ## 0.1.3 (2021-05-28)
 
