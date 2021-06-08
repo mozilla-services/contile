@@ -20,11 +20,15 @@ use serde_json::value::Value;
 use slog::{Key, Record, KV};
 use woothee::parser::{Parser, WootheeResult};
 
+/*
 /// List of valid user-agent attributes to keep, anything not in this
 /// list is considered 'Other'. We log the user-agent on connect always
 /// to retain the full string, but for DD more tags are expensive so we
 /// limit to these.
-const VALID_UA_BROWSER: &[&str] = &["Chrome", "Firefox", "Safari", "Opera"];
+/// Note: We currently limit to only Firefox UA.
+//
+// const VALID_UA_BROWSER: &[&str] = &["Chrome", "Firefox", "Safari", "Opera"];
+*/
 
 /// See dataset.rs in https://github.com/woothee/woothee-rust for the
 /// full list (WootheeResult's 'os' field may fall back to its 'name'
@@ -35,7 +39,7 @@ const VALID_UA_OS: &[&str] = &["Firefox OS", "Linux", "Mac OSX"];
 ///
 /// We only care about a subset of the results for this (to avoid cardinality with
 /// metrics and logging).
-pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
+pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str) {
     let parser = Parser::new();
     let wresult = parser.parse(&agent).unwrap_or_else(|| WootheeResult {
         name: "",
@@ -55,12 +59,15 @@ pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
     } else {
         "Other"
     };
+    // We currently limit to only Firefox UA.
+    /*
     let metrics_browser = if VALID_UA_BROWSER.contains(&wresult.name) {
         wresult.name
     } else {
         "Other"
     };
-    (wresult, metrics_os, metrics_browser)
+    */
+    (wresult, metrics_os)
 }
 
 /// Tags are a set of meta information passed along with sentry errors and metrics.
@@ -113,10 +120,8 @@ impl From<&RequestHead> for Tags {
         if let Some(ua) = req_head.headers().get(USER_AGENT) {
             if let Ok(uas) = ua.to_str() {
                 // if you wanted to parse out the user agent using some out-of-scope user agent parser like woothee
-                let (ua_result, metrics_os, metrics_browser) = parse_user_agent(uas);
+                let (ua_result, metrics_os) = parse_user_agent(uas);
                 insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
-                insert_if_not_empty("ua.browser.family", metrics_browser, &mut tags);
-                insert_if_not_empty("ua.name", ua_result.name, &mut tags);
                 insert_if_not_empty("ua.os.ver", &ua_result.os_version.to_owned(), &mut tags);
                 insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
                 extra.insert("ua".to_owned(), uas.to_string());
