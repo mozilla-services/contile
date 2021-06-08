@@ -99,8 +99,8 @@ impl From<&mut Settings> for AdmSettings {
         if settings.adm_sub1.is_none() {
             if settings.sub1.is_some() {
                 settings.adm_sub1 = settings.sub1.clone();
-                warn!(
-                    "`{}` is obsolete and will be removed. Please use `{}`",
+                eprintln!(
+                    "{:?} is obsolete and will be removed. Please use {:?}",
                     "sub1", "adm_sub1"
                 );
             } else {
@@ -110,8 +110,8 @@ impl From<&mut Settings> for AdmSettings {
         if settings.adm_partner_id.is_none() {
             if settings.partner_id.is_some() {
                 settings.adm_partner_id = settings.partner_id.clone();
-                warn!(
-                    "`{}` is obsolete and will be removed. Please use `{}`",
+                eprintln!(
+                    "{:?} is obsolete and will be removed. Please use {:?}",
                     "partner_id", "adm_partner_id"
                 );
             } else {
