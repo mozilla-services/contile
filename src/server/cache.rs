@@ -1,11 +1,17 @@
 //! Tile cache manager
-use std::{collections::HashMap, fmt::Debug, ops::Deref, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    ops::Deref,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
-use cadence::Counted;
 use tokio::sync::RwLock;
 
 use crate::{
     adm,
+    metrics::Metrics,
     server::location::LocationResult,
     server::ServerState,
     tags::Tags,
@@ -32,6 +38,7 @@ pub struct AudienceKey {
 #[derive(Debug)]
 pub struct Tiles {
     pub json: String,
+    pub ttl: SystemTime,
 }
 
 /// The simple tile Cache
@@ -71,14 +78,28 @@ async fn tile_cache_updater(state: &ServerState) {
         tiles_cache,
         reqwest_client,
         adm_endpoint_url,
-        metrics,
+        settings,
         ..
     } = state;
 
-    trace!("tile_cache_updater..");
+    trace!("tile_cache_updater running...");
     let keys: Vec<_> = tiles_cache.read().await.keys().cloned().collect();
+    let mut cache_size = 0;
+    let mut cache_count: i64 = 0;
     for key in keys {
+        // proactively remove expired tiles from the cache, since we only
+        // write new ones (or ones which return a value)
+        // TODO: This could possibly be rewritten as a one liner by someone more clever.
+        {
+            let mut tiles = tiles_cache.write().await;
+            if let Some(tile) = tiles.get(&key) {
+                if tile.ttl <= SystemTime::now() {
+                    tiles.remove(&key);
+                }
+            }
+        }
         let mut tags = Tags::default();
+        let metrics = Metrics::from(state);
         let result = adm::get_tiles(
             reqwest_client,
             adm_endpoint_url,
@@ -92,6 +113,7 @@ async fn tile_cache_updater(state: &ServerState) {
             key.form_factor,
             state,
             &mut tags,
+            &metrics,
             None,
         )
         .await;
@@ -103,10 +125,12 @@ async fn tile_cache_updater(state: &ServerState) {
                     Ok(tiles) => tiles,
                     Err(e) => {
                         error!("tile_cache_updater: response error {}", e);
-                        metrics.incr_with_tags("tile_cache_updater.error").send();
+                        metrics.incr_with_tags("tile_cache_updater.error", Some(&tags));
                         continue;
                     }
                 };
+                cache_size += tiles.len();
+                cache_count += 1;
                 // XXX: not a great comparison (comparing json Strings)..
                 let new_tiles = {
                     tiles_cache
@@ -117,14 +141,23 @@ async fn tile_cache_updater(state: &ServerState) {
                 };
                 if new_tiles {
                     trace!("tile_cache_updater updating: {:?}", &key);
-                    tiles_cache.write().await.insert(key, Tiles { json: tiles });
-                    metrics.incr_with_tags("tile_cache_updater.update").send();
+                    tiles_cache.write().await.insert(
+                        key,
+                        Tiles {
+                            json: tiles,
+                            ttl: SystemTime::now() + Duration::from_secs(settings.tiles_ttl as u64),
+                        },
+                    );
+                    metrics.incr_with_tags("tile_cache_updater.update", Some(&tags));
                 }
             }
             Err(e) => {
                 error!("tile_cache_updater error: {}", e);
-                metrics.incr_with_tags("tile_cache_updater.error").send();
+                metrics.incr_with_tags("tile_cache_updater.error", Some(&tags));
             }
         }
     }
+    let metrics = Metrics::from(state);
+    metrics.count("tile_cache_updater.size", cache_size as i64);
+    metrics.count("tile_cache_updater.count", cache_count);
 }
