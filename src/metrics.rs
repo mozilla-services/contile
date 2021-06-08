@@ -61,8 +61,9 @@ impl Drop for Metrics {
 
 impl From<&HttpRequest> for Metrics {
     fn from(req: &HttpRequest) -> Self {
+        let state = req.app_data::<Data<ServerState>>().expect("No State!");
         let exts = req.extensions();
-        let def_tags = Tags::from(req.head());
+        let def_tags = Tags::from_head(req.head(), &state.settings);
         let tags = exts.get::<Tags>().unwrap_or(&def_tags);
         Metrics {
             client: match req.app_data::<Data<ServerState>>() {
@@ -236,6 +237,7 @@ mod tests {
         use std::collections::HashMap;
 
         let mut rh = RequestHead::default();
+        let settings = Settings::default();
         let path = "/1.5/42/storage/meta/global";
         rh.uri = Uri::from_static(path);
         rh.headers.insert(
@@ -245,7 +247,7 @@ mod tests {
             ),
         );
 
-        let tags = Tags::from(&rh);
+        let tags = Tags::from_head(&rh, &settings);
 
         let mut result = HashMap::<String, String>::new();
         result.insert("ua.os.ver".to_owned(), "NT 10.0".to_owned());
@@ -264,6 +266,7 @@ mod tests {
         use actix_web::http::{header, uri::Uri};
 
         let mut rh = RequestHead::default();
+        let settings = Settings::default();
         let path = "/1.5/42/storage/meta/global";
         rh.uri = Uri::from_static(path);
         rh.headers.insert(
@@ -271,7 +274,7 @@ mod tests {
             header::HeaderValue::from_static("Mozilla/5.0 (curl) Gecko/20100101 curl"),
         );
 
-        let tags = Tags::from(&rh);
+        let tags = Tags::from_head(&rh, &settings);
         assert!(!tags.tags.contains_key("ua.os.ver"));
         println!("{:?}", tags);
     }

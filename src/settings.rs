@@ -2,11 +2,16 @@
 
 use std::collections::HashMap;
 
+use actix_web::{web::Data, HttpRequest, dev::ServiceRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
 use crate::adm::AdmSettings;
-use crate::server::{img_storage::StorageSettings, location::Location};
+use crate::server::{
+    img_storage::StorageSettings,
+    location::Location,
+    ServerState,
+};
 
 static PREFIX: &str = "contile";
 
@@ -86,6 +91,8 @@ pub struct Settings {
     pub fallback_location: String,
     /// URL to the official documentation
     pub documentation_url: String,
+    /// Operational trace header
+    pub trace_header: Option<String>,
 }
 
 impl Default for Settings {
@@ -115,6 +122,7 @@ impl Default for Settings {
             location_test_header: None,
             fallback_location: "USOK".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
+            trace_header: Some("X-Cloud-Trace-Context".to_owned()),
         }
     }
 }
@@ -203,6 +211,24 @@ impl Settings {
         map
     }
 }
+
+// TODO: someone better at lifetimes could fix these.
+// The returned settings need only last as long as the request.
+// we clone to break out of the Arc
+impl From<&HttpRequest> for Settings {
+    fn from(req: &HttpRequest) -> Self {
+        let state = req.app_data::<Data<ServerState>>().expect("No State!");
+        state.settings.clone()
+    }
+}
+
+impl From<&ServiceRequest> for Settings {
+    fn from(req: &ServiceRequest) -> Self {
+        let state = req.app_data::<Data<ServerState>>().expect("No State!");
+        state.settings.clone()
+    }
+}
+
 
 #[cfg(test)]
 pub fn test_settings() -> Settings {

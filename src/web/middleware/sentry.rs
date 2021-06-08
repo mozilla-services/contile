@@ -18,6 +18,7 @@ use sentry::protocol::Event;
 use std::task::Poll;
 
 use crate::error::HandlerError;
+use crate::settings::Settings;
 use crate::tags::Tags;
 
 pub struct SentryWrapper;
@@ -106,7 +107,8 @@ where
     }
 
     fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
-        let mut tags = Tags::from(sreq.head());
+        let settings = Settings::from(&sreq);
+        let mut tags = Tags::from_head(sreq.head(), &settings);
         sreq.extensions_mut().insert(tags.clone());
 
         Box::pin(self.service.call(sreq).and_then(move |mut sresp| {
