@@ -167,7 +167,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
-        let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
+        let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list.to_lowercase()).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
         })?;
         Ok(AdmFilter {
@@ -179,12 +179,12 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
 
     use super::*;
 
     #[test]
     pub fn test_obsolete_settings() {
-        use std::env;
 
         let mut settings = Settings::default();
         let sub1 = "12345".to_owned();
@@ -206,5 +206,23 @@ mod tests {
         AdmSettings::from(&mut settings);
         assert!(settings.adm_sub1 == Some(sub1));
         assert!(settings.adm_partner_id == Some(partner_id));
+    }
+
+    #[test]
+    pub fn test_lower_ignore() {
+        // ideally, this should verify that a given advertiser with an ignored name is
+        // ignored, but no error is sent to sentry. Unfortunately, sentry 0.19 doesn't
+        // support the introspection that later versions offer, so we have no way to
+        // easily verify that no error is sent. For now, just make sure that the
+        // data is lower cased.
+        let mut result_list = HashSet::<String>::new();
+        result_list.insert("example".to_owned());
+        result_list.insert("invalid".to_owned());
+
+        env::set_var("CONTILE_ADM_IGNORE_ADVERTISERS", r#"["Example", "INVALID"]"#);
+        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
+        let result = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
+        assert!(result.ignore_list == result_list);
+
     }
 }
