@@ -133,10 +133,7 @@ impl Tags {
             if let Some(header) = req_head.headers().get(tracer) {
                 if let Ok(val) = header.to_str() {
                     if !val.is_empty() {
-                        extra.insert(
-                            "header.trace".to_owned(),
-                            val.to_owned()
-                        );
+                        extra.insert("header.trace".to_owned(), val.to_owned());
                     }
                 }
             }

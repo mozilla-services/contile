@@ -107,7 +107,7 @@ where
     }
 
     fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
-        let settings:&Settings = (&sreq).into();
+        let settings: &Settings = (&sreq).into();
         let mut tags = Tags::from_head(sreq.head(), settings);
         sreq.extensions_mut().insert(tags.clone());
 
