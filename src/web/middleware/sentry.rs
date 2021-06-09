@@ -107,8 +107,8 @@ where
     }
 
     fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
-        let settings = Settings::from(&sreq);
-        let mut tags = Tags::from_head(sreq.head(), &settings);
+        let settings:&Settings = (&sreq).into();
+        let mut tags = Tags::from_head(sreq.head(), settings);
         sreq.extensions_mut().insert(tags.clone());
 
         Box::pin(self.service.call(sreq).and_then(move |mut sresp| {

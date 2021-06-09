@@ -131,11 +131,14 @@ impl Tags {
         }
         if let Some(tracer) = settings.trace_header.clone() {
             if let Some(header) = req_head.headers().get(tracer) {
-                insert_if_not_empty(
-                    "header.trace",
-                    header.to_str().unwrap_or_default(),
-                    &mut tags,
-                );
+                if let Ok(val) = header.to_str() {
+                    if !val.is_empty() {
+                        extra.insert(
+                            "header.trace".to_owned(),
+                            val.to_owned()
+                        );
+                    }
+                }
             }
         }
         tags.insert("uri.method".to_owned(), req_head.method.to_string());
@@ -148,10 +151,10 @@ impl Tags {
 
 impl From<HttpRequest> for Tags {
     fn from(request: HttpRequest) -> Self {
-        let settings = Settings::from(&request);
+        let settings = (&request).into();
         match request.extensions().get::<Self>() {
             Some(v) => v.clone(),
-            None => Tags::from_head(request.head(), &settings),
+            None => Tags::from_head(request.head(), settings),
         }
     }
 }
@@ -266,12 +269,12 @@ impl FromRequest for Tags {
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        let settings = Settings::from(req);
+        let settings = req.into();
         let tags = {
             let exts = req.extensions();
             match exts.get::<Tags>() {
                 Some(t) => t.clone(),
-                None => Tags::from_head(req.head(), &settings),
+                None => Tags::from_head(req.head(), settings),
             }
         };
 
