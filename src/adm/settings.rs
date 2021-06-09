@@ -189,21 +189,20 @@ mod tests {
         let mut settings = Settings::default();
         let sub1 = "12345".to_owned();
         let partner_id = "falafal".to_owned();
-        settings.sub1 = Some(sub1.clone());
-        settings.partner_id = Some(partner_id.clone());
-        settings.adm_sub1 = None;
-        settings.adm_partner_id = None;
 
-        AdmSettings::from(&mut settings);
-        assert!(settings.adm_sub1 == Some(sub1.clone()));
-        assert!(settings.partner_id == Some(partner_id.clone()));
-
-        env::set_var("CONTILE_ADM_SUB1", &sub1);
-        env::set_var("CONTILE_ADM_PARTNER_ID", &partner_id);
-        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
+        // New overrides old
+        settings.adm_sub1 = Some(sub1.clone());
+        settings.adm_partner_id = Some(partner_id.clone());
         settings.sub1 = Some("000000".to_owned());
         settings.partner_id = Some("banana".to_owned());
+        AdmSettings::from(&mut settings);
+        assert!(settings.adm_sub1 == Some(sub1.clone()));
+        assert!(settings.adm_partner_id == Some(partner_id.clone()));
 
+        // Old defaults accepted as unspecified new
+        env::set_var("CONTILE_SUB1", &sub1);
+        env::set_var("CONTILE_PARTNER_ID", &partner_id);
+        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
         AdmSettings::from(&mut settings);
         assert!(settings.adm_sub1 == Some(sub1));
         assert!(settings.adm_partner_id == Some(partner_id));

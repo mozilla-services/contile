@@ -118,16 +118,16 @@ impl Default for Settings {
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
-            adm_partner_id: Some("demofeed".to_owned()),
-            adm_sub1: Some("123456789".to_owned()),
+            adm_partner_id: None,
+            adm_sub1: None,
             adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             adm_max_tiles: 2,
             adm_query_tile_count: 10,
             adm_timeout: 5,
             adm_settings: "".to_owned(),
             adm_ignore_advertisers: None,
-            sub1: None,
-            partner_id: None,
+            sub1: Some("demofeed".to_owned()),
+            partner_id: Some("123456789".to_owned()),
         }
     }
 }
