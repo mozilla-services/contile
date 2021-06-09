@@ -113,7 +113,7 @@ impl Default for Settings {
             test_mode: false,
             test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
-            fallback_location: "USOK".to_owned(),
+            fallback_location: "US".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
         }
     }

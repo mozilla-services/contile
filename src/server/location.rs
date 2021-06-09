@@ -35,7 +35,11 @@ impl From<&Settings> for LocationResult {
         let default_loc = settings.fallback_location.clone();
         Self {
             city: None,
-            subdivision: Some(default_loc[2..4].to_string()),
+            subdivision: if default_loc.len() == 2 {
+                Some("NaN".to_owned())
+            } else {
+                Some(default_loc[2..4].to_string())
+            },
             country: Some(default_loc[..2].to_string()),
             dma: None,
         }
@@ -244,12 +248,12 @@ impl Location {
         let mut loc = location_str.to_uppercase();
         loc.retain(|e| e.is_alphabetic());
         let llen = loc.len();
-        if !(4..=5).contains(&llen) {
-            return Err(ConfigError::Message(
-                "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
-            ));
+        if llen == 2 || (4..=5).contains(&llen) {
+            return Ok(loc);
         }
-        Ok(loc)
+        Err(ConfigError::Message(
+            "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
+        ))
     }
 
     /// Resolve an `ip_addr` to a `LocationResult` using the `preferred_languages` as a hint for the language to use.
@@ -474,12 +478,14 @@ mod test {
             ..Default::default()
         };
         let metrics = Metrics::noop();
-        assert!(settings.verify_settings().is_err());
+        assert!(settings.verify_settings().is_ok());
         settings.fallback_location = "Us, Oklahoma".to_owned();
         assert!(settings.verify_settings().is_err());
         settings.fallback_location = "us, Ok".to_owned();
         assert!(settings.verify_settings().is_ok());
         assert!(settings.fallback_location == *"USOK");
+
+        settings.fallback_location = "US".to_owned();
 
         // From an empty Google LB header
         let mut test_head = RequestHead::default();
@@ -489,7 +495,7 @@ mod test {
             HeaderValue::from_static(&hv),
         );
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
-        assert!(loc.region() == *"OK");
+        assert!(loc.region() == *"NaN");
         assert!(loc.country() == *"US");
         Ok(())
     }
