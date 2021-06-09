@@ -148,10 +148,11 @@ impl Tags {
 
 impl From<HttpRequest> for Tags {
     fn from(request: HttpRequest) -> Self {
-        let settings = Settings::from(&request);
+        //let settings = &Settings::from(&request);
+        let settings = (&request).into();
         match request.extensions().get::<Self>() {
             Some(v) => v.clone(),
-            None => Tags::from_head(request.head(), &settings),
+            None => Tags::from_head(request.head(), settings),
         }
     }
 }
@@ -266,12 +267,13 @@ impl FromRequest for Tags {
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
-        let settings = Settings::from(req);
+        //let settings = Settings::from(req);
+        let settings = req.into();
         let tags = {
             let exts = req.extensions();
             match exts.get::<Tags>() {
                 Some(t) => t.clone(),
-                None => Tags::from_head(req.head(), &settings),
+                None => Tags::from_head(req.head(), settings),
             }
         };
 

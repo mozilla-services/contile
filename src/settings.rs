@@ -208,16 +208,16 @@ impl Settings {
     }
 }
 
-// TODO: someone better at lifetimes could fix these.
-// The returned settings need only last as long as the request.
-// we clone to break out of the Arc
-impl From<&HttpRequest> for Settings {
-    fn from(req: &HttpRequest) -> Self {
+impl<'a> From<&'a HttpRequest> for &'a Settings {
+    fn from(req: &'a HttpRequest) -> Self {
         let state = req.app_data::<Data<ServerState>>().expect("No State!");
-        state.settings.clone()
+        &state.settings
     }
 }
 
+// TODO: someone better at lifetimes could fix these.
+// The returned settings need only last as long as the request.
+// we clone to break out of the Arc
 impl From<&ServiceRequest> for Settings {
     fn from(req: &ServiceRequest) -> Self {
         let state = req.app_data::<Data<ServerState>>().expect("No State!");
