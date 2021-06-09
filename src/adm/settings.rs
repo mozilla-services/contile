@@ -184,6 +184,8 @@ mod tests {
 
     #[test]
     pub fn test_obsolete_settings() {
+        use std::env;
+
         let mut settings = Settings::default();
         let sub1 = "12345".to_owned();
         let partner_id = "falafal".to_owned();
@@ -193,7 +195,17 @@ mod tests {
         settings.adm_partner_id = None;
 
         AdmSettings::from(&mut settings);
+        assert!(settings.adm_sub1 == Some(sub1.clone()));
+        assert!(settings.partner_id == Some(partner_id.clone()));
+
+        env::set_var("CONTILE_ADM_SUB1", &sub1);
+        env::set_var("CONTILE_ADM_PARTNER_ID", &partner_id);
+        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
+        settings.sub1 = Some("000000".to_owned());
+        settings.partner_id = Some("banana".to_owned());
+
+        AdmSettings::from(&mut settings);
         assert!(settings.adm_sub1 == Some(sub1));
-        assert!(settings.partner_id == Some(partner_id));
+        assert!(settings.adm_partner_id == Some(partner_id));
     }
 }
