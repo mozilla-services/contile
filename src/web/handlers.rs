@@ -133,7 +133,7 @@ pub async fn get_tiles(
                     metrics.incr_with_tags("tiles.invalid", Some(&tags));
                     // Report directly to sentry
                     // (This is starting to become a pattern. 🤔)
-                    let mut tags = Tags::from(request.head());
+                    let mut tags = Tags::from_head(request.head(), &settings);
                     tags.add_extra("err", &es);
                     tags.add_tag("level", "warning");
                     l_sentry::report(&tags, sentry::event_from_error(&e));

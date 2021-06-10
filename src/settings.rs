@@ -2,11 +2,12 @@
 
 use std::collections::HashMap;
 
+use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
 use crate::adm::AdmSettings;
-use crate::server::{img_storage::StorageSettings, location::Location};
+use crate::server::{img_storage::StorageSettings, location::Location, ServerState};
 
 static PREFIX: &str = "contile";
 
@@ -66,6 +67,8 @@ pub struct Settings {
     pub fallback_location: String,
     /// URL to the official documentation
     pub documentation_url: String,
+    /// Operational trace header
+    pub trace_header: Option<String>,
 
     // TODO: break these out into a PartnerSettings?
     /// Adm partner ID (default: "demofeed")
@@ -116,6 +119,7 @@ impl Default for Settings {
             location_test_header: None,
             fallback_location: "USOK".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
+            trace_header: Some("X-Cloud-Trace-Context".to_owned()),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
@@ -214,6 +218,20 @@ impl Settings {
             panic!("Invalid ADM_COUNTRY_IP_MAP");
         }
         map
+    }
+}
+
+impl<'a> From<&'a HttpRequest> for &'a Settings {
+    fn from(req: &'a HttpRequest) -> Self {
+        let state = req.app_data::<Data<ServerState>>().expect("No State!");
+        &state.settings
+    }
+}
+
+impl<'a> From<&'a ServiceRequest> for &'a Settings {
+    fn from(req: &'a ServiceRequest) -> Self {
+        let state = req.app_data::<Data<ServerState>>().expect("No State!");
+        &state.settings
     }
 }
 
