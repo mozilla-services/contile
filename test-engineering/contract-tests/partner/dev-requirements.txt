@@ -10,19 +10,18 @@ attrs==21.2.0
     # via pytest
 black==21.5b2
     # via -r dev-requirements.in
+certifi==2021.5.30
+    # via requests
+chardet==4.0.0
+    # via requests
 click==8.0.1
     # via
     #   -c requirements.txt
     #   black
 flake8==3.9.2
     # via -r dev-requirements.in
-importlib-metadata==4.5.0
-    # via
-    #   -c requirements.txt
-    #   click
-    #   flake8
-    #   pluggy
-    #   pytest
+idna==2.10
+    # via requests
 iniconfig==1.1.1
     # via pytest
 isort==5.8.0
@@ -53,21 +52,17 @@ pytest==6.2.4
     # via -r dev-requirements.in
 regex==2021.4.4
     # via black
+requests==2.25.1
+    # via -r dev-requirements.in
 toml==0.10.2
     # via
     #   black
     #   pytest
 typed-ast==1.4.3
-    # via
-    #   black
-    #   mypy
+    # via mypy
 typing-extensions==3.10.0.0
     # via
     #   -c requirements.txt
-    #   black
-    #   importlib-metadata
     #   mypy
-zipp==3.4.1
-    # via
-    #   -c requirements.txt
-    #   importlib-metadata
+urllib3==1.26.5
+    # via requests
