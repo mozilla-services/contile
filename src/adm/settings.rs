@@ -1,9 +1,17 @@
-use std::{collections::HashMap, fmt::Debug, fs::File, path::Path};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    fs::File,
+    path::Path,
+};
 
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::AdmFilter;
-use crate::{error::HandlerResult, settings::Settings};
+use crate::{
+    error::{HandlerError, HandlerResult},
+    settings::Settings,
+};
 
 /// The name of the "Default" node, which is used as a fall back if no data
 /// is defined for a given partner.
@@ -40,6 +48,7 @@ pub struct AdmAdvertiserFilterSettings {
     /// Optional set of valid regions for the tile (e.g ["en", "en-US/TX"])
     #[serde(default)]
     pub(crate) include_regions: Vec<String>,
+    pub(crate) ignore_advertisers: Option<Vec<String>>,
 }
 
 /// Parse JSON:
@@ -84,8 +93,31 @@ pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 /// This allows `CONTILE_ADM_SETTINGS` to either be specified as inline JSON, or if the
 /// Settings are too large to fit into an ENV string, specified in a path to where the
 /// settings more comfortably fit.
-impl From<&Settings> for AdmSettings {
-    fn from(settings: &Settings) -> Self {
+impl From<&mut Settings> for AdmSettings {
+    fn from(settings: &mut Settings) -> Self {
+        // TODO: Convert these to macros.
+        if settings.adm_sub1.is_none() {
+            if settings.sub1.is_some() {
+                settings.adm_sub1 = settings.sub1.clone();
+                eprintln!(
+                    "{:?} is obsolete and will be removed. Please use {:?}",
+                    "sub1", "adm_sub1"
+                );
+            } else {
+                panic!("Missing argument {}", "adm_sub1");
+            }
+        }
+        if settings.adm_partner_id.is_none() {
+            if settings.partner_id.is_some() {
+                settings.adm_partner_id = settings.partner_id.clone();
+                eprintln!(
+                    "{:?} is obsolete and will be removed. Please use {:?}",
+                    "partner_id", "adm_partner_id"
+                );
+            } else {
+                panic!("Missing argument {}", "$new");
+            }
+        }
         if settings.adm_settings.is_empty() {
             return Self::default();
         }
@@ -123,16 +155,76 @@ impl From<&Settings> for AdmSettings {
 /// }
 /// ```
 ///
-impl From<&Settings> for HandlerResult<AdmFilter> {
-    fn from(settings: &Settings) -> Self {
+impl From<&mut Settings> for HandlerResult<AdmFilter> {
+    fn from(settings: &mut Settings) -> Self {
         let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
+        let ignore_list = settings
+            .adm_ignore_advertisers
+            .clone()
+            .unwrap_or_else(|| "[]".to_owned());
         for (adv, setting) in AdmSettings::from(settings) {
             trace!("Processing records for {:?}", &adv);
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
+        let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list.to_lowercase())
+            .map_err(|e| {
+                HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
+            })?;
         Ok(AdmFilter {
             filter_set: filter_map,
+            ignore_list,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::env;
+
+    use super::*;
+
+    #[test]
+    pub fn test_obsolete_settings() {
+        let mut settings = Settings::default();
+        let sub1 = "12345".to_owned();
+        let partner_id = "falafal".to_owned();
+
+        // New overrides old
+        settings.adm_sub1 = Some(sub1.clone());
+        settings.adm_partner_id = Some(partner_id.clone());
+        settings.sub1 = Some("000000".to_owned());
+        settings.partner_id = Some("banana".to_owned());
+        AdmSettings::from(&mut settings);
+        assert!(settings.adm_sub1 == Some(sub1.clone()));
+        assert!(settings.adm_partner_id == Some(partner_id.clone()));
+
+        // Old defaults accepted as unspecified new
+        env::set_var("CONTILE_SUB1", &sub1);
+        env::set_var("CONTILE_PARTNER_ID", &partner_id);
+        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
+        AdmSettings::from(&mut settings);
+        assert!(settings.adm_sub1 == Some(sub1));
+        assert!(settings.adm_partner_id == Some(partner_id));
+    }
+
+    #[test]
+    pub fn test_lower_ignore() {
+        // ideally, this should verify that a given advertiser with an ignored name is
+        // ignored, but no error is sent to sentry. Unfortunately, sentry 0.19 doesn't
+        // support the introspection that later versions offer, so we have no way to
+        // easily verify that no error is sent. For now, just make sure that the
+        // data is lower cased.
+        let mut result_list = HashSet::<String>::new();
+        result_list.insert("example".to_owned());
+        result_list.insert("invalid".to_owned());
+
+        env::set_var(
+            "CONTILE_ADM_IGNORE_ADVERTISERS",
+            r#"["Example", "INVALID"]"#,
+        );
+        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
+        let result = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
+        assert!(result.ignore_list == result_list);
     }
 }
