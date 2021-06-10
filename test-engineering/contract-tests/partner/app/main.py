@@ -4,36 +4,36 @@
 
 import json
 import logging
+import os
 import pathlib
 import sys
-from typing import List
+import time
 
 import yaml
-from fastapi import FastAPI, Query
-from pydantic import BaseModel
-from pydantic.json import pydantic_encoder
+from fastapi import FastAPI, Query, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+
+from models import ResponseFromFile, Tiles
 
 logger = logging.getLogger("partner")
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
-with pathlib.Path("app/tiles.yml").open() as f:
-    available_tiles = yaml.safe_load(f)
+RESPONSES_FILE = os.environ["RESPONSES_FILE"]
+
+with pathlib.Path(RESPONSES_FILE).open() as f:
+    responses_yml = yaml.safe_load(f)
+
+responses_from_file = {
+    form_factor: {
+        os_family: ResponseFromFile(**response)
+        for os_family, response in os_families.items()
+    }
+    for form_factor, os_families in responses_yml.items()
+}
 
 app = FastAPI()
-
-
-class Tile(BaseModel):
-    id: int
-    name: str
-    click_url: str
-    image_url: str
-    impression_url: str
-    advertiser_url: str
-
-
-class TilesResponse(BaseModel):
-    tiles: List[Tile]
 
 
 @app.get("/")
@@ -45,20 +45,49 @@ async def read_root():
     return {"message": message}
 
 
-@app.get("/tilesp", response_model=TilesResponse)
+@app.get("/tilesp", response_model=Tiles, status_code=200)
 async def read_tilesp(
+    response: Response,
     partner: str = Query(..., example="demofeed"),
     sub1: str = Query(..., example="123456789"),
     sub2: str = Query(..., example="placement1"),
     country_code: str = Query(..., alias="country-code", example="US"),
     region_code: str = Query(..., alias="region-code", example="NY"),
     form_factor: str = Query(..., alias="form-factor", example="desktop"),
-    os_family: str = Query(..., alias="os-family", example="macOS"),
+    os_family: str = Query(..., alias="os-family", example="macos"),
     v: str = Query(..., example="1.0"),
     out: str = Query("json", example="json"),
     results: int = Query(1, example=2),
 ):
     """Endpoint for requests from Contile."""
-    tiles = TilesResponse(tiles=available_tiles[:results])
-    logger.debug(json.dumps(tiles, default=pydantic_encoder))
-    return tiles
+    # Read response information from the response.yml file
+    response_from_file = responses_from_file[form_factor][os_family]
+
+    # Read response information from the file
+    status_code = response_from_file.status_code
+    content = response_from_file.content
+    delay = response_from_file.delay
+    headers = {header.name: header.value for header in response_from_file.headers}
+
+    if delay:
+        # Add an artificual delay to the handler
+        logger.debug("response is delayed by %s seconds", delay)
+        time.sleep(delay)
+
+    logger.debug("response status_code: %s", status_code)
+    logger.debug("response headers %s", json.dumps(headers))
+    logger.debug(
+        "response content: %s",
+        json.dumps(content, default=jsonable_encoder),
+    )
+
+    if status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+        raise RuntimeError("Something went wrong")
+
+    # Use this to trigger BadAdmResponse errors in Contile
+    if not isinstance(content, Tiles):
+        return JSONResponse(content=content, headers=headers)
+
+    response.headers.update(headers)
+    response.status_code = status_code
+    return content

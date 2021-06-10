@@ -4,3 +4,44 @@ services:
     image: partner
     build: partner
     container_name: partner
+    environment:
+      PORT: 5000
+      RESPONSES_FILE: /tmp/partner/responses.yml
+    volumes:
+      - ./volumes/partner:/tmp/partner
+  contile:
+    image: contile
+    container_name: contile
+    depends_on:
+      - partner
+    links:
+      - partner
+    environment:
+      CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp
+      CONTILE_ADM_QUERY_TILE_COUNT: 2
+      CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings.json
+      # Timeout requests to the ADM server after this many seconds (default: 5)
+      CONTILE_ADM_TIMEOUT: 2
+      CONTILE_DEBUG: 1
+      CONTILE_HOST: 0.0.0.0
+      CONTILE_HUMAN_LOGS: 1
+      CONTILE_PORT: 8000
+      RUST_LOG: main,contile=INFO
+    volumes:
+      - ./volumes/contile:/tmp/contile
+  client:
+    image: client
+    build: client
+    container_name: client
+    depends_on:
+      - partner
+      - contile
+    links:
+      - contile
+    environment:
+      CONTILE_URL: http://contile:8000
+      SCENARIOS_FILE: /tmp/client/scenarios.yml
+    volumes:
+      - ./volumes/client:/tmp/client
+    command: >
+      "-vv"
