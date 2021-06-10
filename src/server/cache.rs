@@ -76,9 +76,18 @@ impl Tiles {
 
 async fn tile_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
     trace!("tile_cache_periodic_reporter");
-    let cache_size: usize = cache.iter().map(|tiles| tiles.json.len()).sum();
-    let cache_count = cache.len();
+    // calculate the size and GC (for seldomly used Tiles) while we're at it
+    let mut cache_count = 0;
+    let mut cache_size = 0;
+    cache.retain(|_, tiles| {
+        if !tiles.expired() {
+            cache_count += 1;
+            cache_size += tiles.json.len();
+            return true;
+        }
+        false
+    });
 
+    metrics.count("tile_cache.count", cache_count);
     metrics.count("tile_cache.size", cache_size as i64);
-    metrics.count("tile_cache.count", cache_count as i64);
 }
