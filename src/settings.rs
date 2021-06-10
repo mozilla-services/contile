@@ -50,32 +50,12 @@ pub struct Settings {
     pub statsd_port: u16,
     /// Enable actix "keep alive" period in seconds (default: None)
     pub actix_keep_alive: Option<u64>,
-    /// adm Endpoint URL
-    pub adm_endpoint_url: String,
-    /// adm country to default IP map (Hash in JSON format)
-    pub adm_country_ip_map: String,
-    /// max tiles to accept from ADM (default: 2)
-    pub adm_max_tiles: u8,
-    /// number of tiles to query from ADM (default: 10)
-    pub adm_query_tile_count: u8,
-    /// Timeout requests to the ADM server after this many seconds (default: 5)
-    pub adm_timeout: u64,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
-    /// ADM tile settings (either as JSON or a path to a JSON file)
-    /// This consists of an advertiser name, and the associated filter settings
-    /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
-    /// Unspecfied [crate::adm::AdmAdvertiserFilterSettings] will use Default values specified
-    /// in `Default` (or the application default if not specified)
-    pub adm_settings: String,
     /// path to MaxMind location database
     pub maxminddb_loc: Option<String>,
     /// [StorageSettings] related to the google cloud storage
     pub storage: String,
-    /// Adm partner ID (default: "demofeed")
-    pub partner_id: String,
-    /// Adm sub1 value (default: "123456789")
-    pub sub1: String,
     /// Run in "integration test mode"
     pub test_mode: bool,
     /// path to the test files
@@ -86,11 +66,40 @@ pub struct Settings {
     pub fallback_location: String,
     /// URL to the official documentation
     pub documentation_url: String,
+
+    // TODO: break these out into a PartnerSettings?
+    /// Adm partner ID (default: "demofeed")
+    pub adm_partner_id: Option<String>,
+    /// Adm sub1 value (default: "123456789")
+    pub adm_sub1: Option<String>,
+    /// adm Endpoint URL
+    pub adm_endpoint_url: String,
+    /// adm country to default IP map (Hash in JSON format)
+    pub adm_country_ip_map: String,
+    /// max tiles to accept from ADM (default: 2)
+    pub adm_max_tiles: u8,
+    /// number of tiles to query from ADM (default: 10)
+    pub adm_query_tile_count: u8,
+    /// Timeout requests to the ADM server after this many seconds (default: 5)
+    pub adm_timeout: u64,
+    /// ADM tile settings (either as JSON or a path to a JSON file)
+    /// This consists of an advertiser name, and the associated filter settings
+    /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
+    /// Unspecfied [crate::adm::AdmAdvertiserFilterSettings] will use Default values specified
+    /// in `Default` (or the application default if not specified)
+    pub adm_settings: String,
+    /// A JSON list of advertisers to ignore, specified by the Advertiser name.
+    pub adm_ignore_advertisers: Option<String>,
+
+    // OBSOLETE:
+    pub sub1: Option<String>,
+    pub partner_id: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
+            // General settings
             debug: false,
             port: DEFAULT_PORT,
             host: "localhost".to_owned(),
@@ -99,22 +108,26 @@ impl Default for Settings {
             statsd_host: None,
             statsd_port: 8125,
             actix_keep_alive: None,
-            adm_endpoint_url: "".to_owned(),
-            adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
-            adm_max_tiles: 2,
-            adm_query_tile_count: 10,
-            adm_timeout: 5,
             tiles_ttl: 15 * 60,
-            adm_settings: "".to_owned(),
             maxminddb_loc: None,
             storage: "".to_owned(),
-            partner_id: "demofeed".to_owned(),
-            sub1: "123456789".to_owned(),
             test_mode: false,
             test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
             fallback_location: "USOK".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
+            // ADM specific settings
+            adm_endpoint_url: "".to_owned(),
+            adm_partner_id: None,
+            adm_sub1: None,
+            adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
+            adm_max_tiles: 2,
+            adm_query_tile_count: 10,
+            adm_timeout: 5,
+            adm_settings: "".to_owned(),
+            adm_ignore_advertisers: None,
+            sub1: Some("demofeed".to_owned()),
+            partner_id: Some("123456789".to_owned()),
         }
     }
 }
@@ -127,7 +140,7 @@ impl Settings {
         self.fallback_location = Location::fix(&self.fallback_location)?;
         // preflight check the storage
         StorageSettings::from(&*self);
-        AdmSettings::from(&*self);
+        AdmSettings::from(&mut *self);
         Ok(())
     }
 

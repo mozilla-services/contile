@@ -90,8 +90,8 @@ macro_rules! build_app {
 
 impl Server {
     /// initialize a new instance of the server from [Settings]
-    pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
-        let filter = HandlerResult::<AdmFilter>::from(&settings)?;
+    pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
+        let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         let metrics = metrics_from_opts(&settings)?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let state = ServerState {
