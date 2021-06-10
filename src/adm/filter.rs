@@ -37,6 +37,7 @@ lazy_static! {
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
+    pub ignore_list: HashSet<String>,
 }
 
 /// Extract the host from Url
@@ -271,11 +272,13 @@ impl AdmFilter {
                 ))
             }
             None => {
-                metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
-                self.report(
-                    &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
-                    tags,
-                );
+                if !self.ignore_list.contains(&tile.name.to_lowercase()) {
+                    metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
+                    self.report(
+                        &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
+                        tags,
+                    );
+                }
                 None
             }
         }

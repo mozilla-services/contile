@@ -126,8 +126,8 @@ pub async fn get_tiles(
     let adm_url = Url::parse_with_params(
         adm_endpoint_url,
         &[
-            ("partner", settings.partner_id.as_str()),
-            ("sub1", settings.sub1.as_str()),
+            ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
+            ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
             ("country-code", &location.country()),
             ("region-code", &location.region()),
             // ("dma-code", location.dma),

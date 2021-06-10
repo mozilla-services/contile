@@ -48,7 +48,7 @@ macro_rules! init_app {
                 tiles_cache: cache::TilesCache::new(10),
                 mmdb: Location::from(&$settings),
                 settings: $settings.clone(),
-                filter: HandlerResult::<AdmFilter>::from(&$settings).unwrap(),
+                filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
             };
             test::init_service(build_app!(state)).await
         }
@@ -121,7 +121,7 @@ fn adm_settings() -> AdmSettings {
 #[actix_rt::test]
 async fn basic() {
     let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
-    let settings = Settings {
+    let mut settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
@@ -177,7 +177,7 @@ async fn basic_bad_reply() {
             }
         ]}"#;
     let (_, addr) = init_mock_adm(missing_ci.to_owned());
-    let settings = Settings {
+    let mut settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
@@ -237,7 +237,7 @@ async fn basic_all_bad_reply() {
             }
         ]}"#;
     let (_, addr) = init_mock_adm(missing_ci.to_owned());
-    let settings = Settings {
+    let mut settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
@@ -270,7 +270,7 @@ async fn basic_filtered() {
     );
     adm_settings.remove("Dunder Mifflin");
 
-    let settings = Settings {
+    let mut settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
@@ -315,7 +315,7 @@ async fn basic_default() {
     let adm_settings = adm_settings();
     trace!("Settings: {:?}", &adm_settings);
 
-    let settings = Settings {
+    let mut settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
@@ -358,7 +358,7 @@ async fn basic_default() {
 #[actix_rt::test]
 async fn invalid_placement() {
     let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
-    let settings = Settings {
+    let mut settings = Settings {
         adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         ..get_test_settings()
     };
