@@ -5,6 +5,7 @@ use std::fmt;
 use woothee::parser::Parser;
 
 use crate::error::{HandlerErrorKind, HandlerResult};
+use crate::tags::Tags;
 
 /// ADM required browser format form
 #[allow(dead_code)]
@@ -75,12 +76,13 @@ pub fn strip_ua(ua: &str) -> String {
 */
 
 /// Convert a UserAgent header into a simplified ([OsFamily], [FormFactor])
-pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
+pub fn get_device_info(ua: &str, tags: &mut Tags) -> HandlerResult<(OsFamily, FormFactor)> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
 
     // If it's not firefox, it doesn't belong here...
     if !["firefox"].contains(&wresult.name.to_lowercase().as_str()) {
-        return Err(HandlerErrorKind::InvalidUA(ua.to_owned()).into());
+        tags.add_extra("name", ua);
+        return Err(HandlerErrorKind::InvalidUA().into());
     }
 
     let os = wresult.os.to_lowercase();
@@ -106,6 +108,7 @@ pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
 #[cfg(test)]
 mod tests {
     use crate::error::HandlerErrorKind;
+    use crate::tags::Tags;
 
     use super::{get_device_info, FormFactor, OsFamily};
 
@@ -117,8 +120,9 @@ mod tests {
 
     macro_rules! assert_get_device_info {
         ($value:expr, $os_family:expr, $form_factor:expr) => {
+            let mut tags = Tags::default();
             assert_eq!(
-                get_device_info($value).expect("Error"),
+                get_device_info($value, &mut tags).expect("Error"),
                 ($os_family, $form_factor)
             );
         };
@@ -206,22 +210,25 @@ mod tests {
 
     #[test]
     fn chromeos() {
-        let result = get_device_info("Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36");
+        let mut tags = Tags::default();
+        let result = get_device_info("Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36", &mut tags);
         assert!(result.is_err());
         match result.unwrap_err().kind() {
-            HandlerErrorKind::InvalidUA(_) => {}
+            HandlerErrorKind::InvalidUA() => {}
             _ => panic!("Incorrect error returned for test"),
         }
     }
 
     #[test]
     fn other_ua() {
+        let mut tags = Tags::default();
         assert_strip_eq!(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:?.0) Gecko/20100101 Firefox/?.0"
         );
         assert!(get_device_info(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36")
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
+            &mut tags)
                 .is_err()
         );
     }

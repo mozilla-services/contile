@@ -73,8 +73,8 @@ pub enum HandlerErrorKind {
     AdmServerError(String),
 
     /// Invalid UserAgent request
-    #[error("Invalid user agent: {:?}", _0)]
-    InvalidUA(String),
+    #[error("Invalid user agent")]
+    InvalidUA(),
 }
 
 /// A set of Error Context utilities
@@ -85,7 +85,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
             HandlerErrorKind::AdmServerError(_) => StatusCode::SERVICE_UNAVAILABLE,
             HandlerErrorKind::BadAdmResponse(_) => StatusCode::BAD_GATEWAY,
-            &HandlerErrorKind::InvalidUA(_) => StatusCode::FORBIDDEN,
+            &HandlerErrorKind::InvalidUA() => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -104,7 +104,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::UnexpectedHost(_, _) => 602,
             HandlerErrorKind::MissingHost(_, _) => 603,
             HandlerErrorKind::UnexpectedAdvertiser(_) => 604,
-            HandlerErrorKind::InvalidUA(_) => 700,
+            HandlerErrorKind::InvalidUA() => 700,
         }
     }
 
