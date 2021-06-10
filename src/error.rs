@@ -15,6 +15,8 @@ use actix_web::{
 };
 use thiserror::Error;
 
+use crate::tags::Tags;
+
 /// The standard Result type for Contile (returns Error = [`HandlerError`])
 pub type HandlerResult<T> = result::Result<T, HandlerError>;
 
@@ -23,6 +25,7 @@ pub type HandlerResult<T> = result::Result<T, HandlerError>;
 pub struct HandlerError {
     kind: HandlerErrorKind,
     backtrace: Backtrace,
+    pub tags: Tags,
 }
 
 /// The specific context types of HandlerError.
@@ -69,8 +72,8 @@ pub enum HandlerErrorKind {
     BadAdmResponse(String),
 
     /// ADM Servers returned an error
-    #[error("Adm Server Error: {:?}", _0)]
-    AdmServerError(String),
+    #[error("Adm Server Error")]
+    AdmServerError(),
 
     /// Invalid UserAgent request
     #[error("Invalid user agent")]
@@ -83,7 +86,7 @@ impl HandlerErrorKind {
     pub fn http_status(&self) -> StatusCode {
         match self {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
-            HandlerErrorKind::AdmServerError(_) => StatusCode::SERVICE_UNAVAILABLE,
+            HandlerErrorKind::AdmServerError() => StatusCode::SERVICE_UNAVAILABLE,
             HandlerErrorKind::BadAdmResponse(_) => StatusCode::BAD_GATEWAY,
             &HandlerErrorKind::InvalidUA() => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
@@ -97,7 +100,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Internal(_) => 510,
             HandlerErrorKind::Reqwest(_) => 520,
             HandlerErrorKind::BadAdmResponse(_) => 521,
-            HandlerErrorKind::AdmServerError(_) => 522,
+            HandlerErrorKind::AdmServerError() => 522,
             HandlerErrorKind::Location(_) => 530,
             HandlerErrorKind::Validation(_) => 600,
             HandlerErrorKind::InvalidHost(_, _) => 601,
@@ -166,6 +169,7 @@ where
         HandlerError {
             kind: HandlerErrorKind::from(item),
             backtrace: Backtrace::new(),
+            tags: Tags::default(),
         }
     }
 }
@@ -178,7 +182,11 @@ impl From<HandlerError> for HttpResponse {
 
 impl fmt::Display for HandlerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error: {}\nBacktrace:\n{:?}", self.kind, self.backtrace)?;
+        write!(
+            f,
+            "Error: {}\nTags:{:?}\nBacktrace:\n{:?}",
+            self.kind, self.tags, self.backtrace
+        )?;
 
         // Go down the chain of errors
         let mut error: &dyn Error = &self.kind;

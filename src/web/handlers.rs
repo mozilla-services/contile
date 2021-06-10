@@ -39,8 +39,7 @@ pub async fn get_tiles(
             default
         }
     });
-    let mut tags = Tags::default();
-    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua, &mut tags)?;
+    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua)?;
 
     let header = request.head();
     let location = if state.mmdb.is_available() {
@@ -59,6 +58,7 @@ pub async fn get_tiles(
         LocationResult::from_header(header, settings, &metrics)
     };
 
+    let mut tags = Tags::default();
     {
         tags.add_extra("country", &location.country());
         tags.add_extra("region", &location.region());

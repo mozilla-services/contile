@@ -69,7 +69,9 @@ impl AdmFilter {
     fn report(&self, error: &HandlerError, tags: &Tags) {
         // trace!(&error, &tags);
         // TODO: if not error.is_reportable, just add to metrics.
-        l_sentry::report(tags, sentry::event_from_error(error));
+        let mut merged_tags = error.tags.clone();
+        merged_tags.extend(tags.clone());
+        l_sentry::report(&merged_tags, sentry::event_from_error(error));
     }
 
     /// Check the advertiser URL

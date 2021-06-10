@@ -164,7 +164,9 @@ pub async fn get_tiles(
             .await
             .map_err(|e| {
                 // ADM servers are down, or improperly configured
-                HandlerErrorKind::AdmServerError(e.to_string())
+                let mut err: HandlerError = HandlerErrorKind::AdmServerError().into();
+                err.tags.add_extra("error", &e.to_string());
+                err
             })?
             .error_for_status()?
             .json()
