@@ -19,8 +19,12 @@ pub mod cache;
 pub mod img_storage;
 pub mod location;
 
+/// Arbitrary initial cache size based on the expected mean, feel free to
+/// adjust
+const TILES_CACHE_INITIAL_CAPACITY: usize = 768;
+
 /// User-Agent sent to adM
-static REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+const REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
@@ -89,7 +93,7 @@ impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
         let filter = HandlerResult::<AdmFilter>::from(&settings)?;
         let metrics = metrics_from_opts(&settings)?;
-        let tiles_cache = cache::TilesCache::new(384);
+        let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
