@@ -4,9 +4,11 @@
 
 import json
 import logging
+import pathlib
 import sys
 from typing import List
 
+import yaml
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from pydantic.json import pydantic_encoder
@@ -14,6 +16,9 @@ from pydantic.json import pydantic_encoder
 logger = logging.getLogger("partner")
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
+
+with pathlib.Path("app/tiles.yml").open() as f:
+    available_tiles = yaml.safe_load(f)
 
 app = FastAPI()
 
@@ -29,34 +34,6 @@ class Tile(BaseModel):
 
 class TilesResponse(BaseModel):
     tiles: List[Tile]
-
-
-TILES = [
-    Tile(
-        id=12345,
-        name="Example",
-        click_url="https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
-        image_url="https://example.com/image_url.jpg",
-        impression_url="https://example.com/impression_url?id=0001",
-        advertiser_url="https://www.example.com/advertiser_url",
-    ),
-    Tile(
-        id=56789,
-        name="Example",
-        click_url="https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
-        image_url="https://example.com/image_url.jpg",
-        impression_url="https://example.com/impression_url?id=0002",
-        advertiser_url="https://www.example.com/advertiser_url",
-    ),
-    Tile(
-        id=11111,
-        name="Example",
-        click_url="https://example.com/ctp?version=16.0.0&key=3.3&ci=4.4&ctag=1612376952400200000",
-        image_url="https://example.com/image_url.jpg",
-        impression_url="https://example.com/impression_url?id=0003",
-        advertiser_url="https://www.example.com/advertiser_url",
-    ),
-]
 
 
 @app.get("/")
@@ -82,6 +59,6 @@ async def read_tilesp(
     results: int = Query(1, example=2),
 ):
     """Endpoint for requests from Contile."""
-    tiles = TilesResponse(tiles=TILES[:results])
+    tiles = TilesResponse(tiles=available_tiles[:results])
     logger.debug(json.dumps(tiles, default=pydantic_encoder))
     return tiles
