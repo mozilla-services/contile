@@ -1,0 +1,11 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "partner/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "Dependabot"
+      - "dependencies"
+      - "partner"
+    open-pull-requests-limit: 10
