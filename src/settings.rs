@@ -1,7 +1,5 @@
 //! Application settings objects and initialization
 
-use std::collections::HashMap;
-
 use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
@@ -12,20 +10,6 @@ use crate::server::{img_storage::StorageSettings, location::Location, ServerStat
 static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
-
-// issue11: AdM doesn't return any tiles for any of the example non-finalized
-// fake IPs, so replaced "US": "174.245.240.112" with "130.245.32.23" (from
-// their provided stage URL params) that does result in tiles
-static DEFAULT_ADM_COUNTRY_IP_MAP: &str = r#"
-{
-    "US": "130.245.32.23",
-    "UK": "86.164.248.137",
-    "DE": "87.182.235.159",
-    "FR": "31.39.255.255",
-    "IT": "5.62.79.255",
-    "JP": "27.98.191.255"
-}
-"#;
 
 // TODO: Call this `EnvSettings` that serializes into
 // real `Settings`?
@@ -79,8 +63,6 @@ pub struct Settings {
     pub adm_sub1: Option<String>,
     /// adm Endpoint URL
     pub adm_endpoint_url: String,
-    /// adm country to default IP map (Hash in JSON format)
-    pub adm_country_ip_map: String,
     /// max tiles to accept from ADM (default: 2)
     pub adm_max_tiles: u8,
     /// number of tiles to query from ADM (default: 10)
@@ -126,7 +108,6 @@ impl Default for Settings {
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
             adm_sub1: None,
-            adm_country_ip_map: DEFAULT_ADM_COUNTRY_IP_MAP.to_owned(),
             adm_max_tiles: 2,
             adm_query_tile_count: 10,
             adm_timeout: 5,
@@ -206,20 +187,6 @@ impl Settings {
     /// A simple banner for display of certain settings at startup
     pub fn banner(&self) -> String {
         format!("http://{}:{}", self.host, self.port)
-    }
-
-    /// convert the `adm_country_ip_map` setting from a string to a hashmap
-    pub(crate) fn build_adm_country_ip_map(&self) -> HashMap<String, String> {
-        let mut map: HashMap<String, String> =
-            serde_json::from_str(&self.adm_country_ip_map).expect("Invalid ADM_COUNTRY_IP_MAP");
-        map = map
-            .into_iter()
-            .map(|(key, val)| (key.to_uppercase(), val))
-            .collect();
-        if !map.contains_key("US") {
-            panic!("Invalid ADM_COUNTRY_IP_MAP");
-        }
-        map
     }
 }
 

@@ -7,7 +7,6 @@ use woothee::parser::Parser;
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 
 /// ADM required browser format form
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum FormFactor {
     Desktop,
@@ -24,7 +23,6 @@ impl fmt::Display for FormFactor {
 }
 
 /// Simplified Operating System Family
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum OsFamily {
     Windows,
@@ -46,8 +44,14 @@ impl fmt::Display for OsFamily {
     }
 }
 
-/// Convert a UserAgent header into a simplified ([OsFamily], [FormFactor])
-pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
+#[derive(Debug, Eq, PartialEq)]
+pub struct DeviceInfo {
+    pub form_factor: FormFactor,
+    pub os_family: OsFamily,
+}
+
+/// Parse a User-Agent header into a simplified `DeviceInfo`
+pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
 
     // If it's not firefox, it doesn't belong here...
@@ -77,20 +81,26 @@ pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
         "smartphone" => FormFactor::Phone,
         _ => FormFactor::Other,
     };
-    Ok((os_family, form_factor))
+    Ok(DeviceInfo {
+        form_factor,
+        os_family,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use crate::error::HandlerErrorKind;
 
-    use super::{get_device_info, FormFactor, OsFamily};
+    use super::{get_device_info, DeviceInfo, FormFactor, OsFamily};
 
     macro_rules! assert_get_device_info {
         ($value:expr, $os_family:expr, $form_factor:expr) => {
             assert_eq!(
                 get_device_info($value).expect("Error"),
-                ($os_family, $form_factor)
+                DeviceInfo {
+                    os_family: $os_family,
+                    form_factor: $form_factor
+                }
             );
         };
     }

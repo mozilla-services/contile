@@ -2,35 +2,29 @@
 //!
 //! Handles ensuring the header's, body, and query parameters are correct, extraction to
 //! relevant types, and failing correctly with the appropriate errors if issues arise.
+use std::net::{IpAddr, SocketAddr};
+
 use actix_web::{
-    dev::Payload, http::header, http::header::HeaderValue, web, Error, FromRequest, HttpRequest,
+    dev::Payload,
+    http::header,
+    http::{HeaderName, HeaderValue},
+    web, Error, FromRequest, HttpRequest,
 };
 use futures::future::{self, FutureExt, LocalBoxFuture};
 use lazy_static::lazy_static;
-use serde::Deserialize;
 
-use crate::{error::HandlerErrorKind, metrics::Metrics};
+use crate::{
+    metrics::Metrics,
+    server::{location::LocationResult, ServerState},
+    web::user_agent::{get_device_info, DeviceInfo},
+};
 
 lazy_static! {
     static ref EMPTY_HEADER: HeaderValue = HeaderValue::from_static("");
+    static ref X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
 }
 
-const VALID_PLACEMENTS: &[&str] = &["urlbar", "newtab", "search"];
-
-#[derive(Debug, Deserialize)]
-pub struct TilesParams {
-    country: Option<String>,
-    placement: Option<String>,
-}
-
-#[derive(Debug)]
-pub struct TilesRequest {
-    pub country: Option<String>,
-    pub placement: Option<String>,
-    pub ua: String,
-}
-
-impl FromRequest for TilesRequest {
+impl FromRequest for DeviceInfo {
     type Config = ();
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
@@ -44,25 +38,57 @@ impl FromRequest for TilesRequest {
                 .unwrap_or(&EMPTY_HEADER)
                 .to_str()
                 .unwrap_or_default();
+            Ok(get_device_info(&ua)?)
+        }
+        .boxed_local()
+    }
+}
 
-            let params = web::Query::<TilesParams>::from_request(&req, &mut Payload::None).await?;
-            let placement = match &params.placement {
-                Some(v) => {
-                    let placement = v.to_lowercase();
-                    if !validate_placement(&v) {
-                        Err(HandlerErrorKind::Validation(
-                            "Invalid placement parameter".to_owned(),
-                        ))?;
-                    };
-                    Some(placement)
+impl FromRequest for LocationResult {
+    type Config = ();
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
+        let req = req.clone();
+        async move {
+            let state = req.app_data::<web::Data<ServerState>>().expect("No State!");
+            let settings = &state.settings;
+            let metrics = Metrics::from(&req);
+
+            let mut addr = None;
+            if let Some(header) = req.headers().get(&*X_FORWARDED_FOR) {
+                if let Ok(value) = header.to_str() {
+                    // Expect a typical X-Forwarded-For where the first address is the
+                    // client's, the front ends should ensure this
+                    addr = value
+                        .split(',')
+                        .next()
+                        .map(|addr| addr.trim())
+                        .and_then(|addr| {
+                            // Fallback to parsing as SocketAddr for when a port
+                            // number's included
+                            addr.parse::<IpAddr>()
+                                .or_else(|_| addr.parse::<SocketAddr>().map(|socket| socket.ip()))
+                                .ok()
+                        });
                 }
-                None => None,
-            };
-            Ok(Self {
-                country: params.country.clone().map(|v| v.to_uppercase()),
-                placement,
-                ua: ua.to_owned(),
-            })
+            }
+
+            if let Some(addr) = addr {
+                if state.mmdb.is_available() {
+                    let result = state
+                        .mmdb
+                        .mmdb_locate(addr, &["en".to_owned()], &metrics)
+                        .await?;
+                    if let Some(location) = result {
+                        return Ok(location);
+                    }
+                }
+            } else {
+                metrics.incr("location.unknown.ip");
+            }
+            Ok(LocationResult::from_header(req.head(), settings, &metrics))
         }
         .boxed_local()
     }
@@ -76,8 +102,4 @@ impl FromRequest for Metrics {
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
         future::ok(Metrics::from(req)).boxed_local()
     }
-}
-
-fn validate_placement(placement: &str) -> bool {
-    VALID_PLACEMENTS.contains(&placement)
 }
