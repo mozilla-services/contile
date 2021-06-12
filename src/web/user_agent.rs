@@ -46,34 +46,6 @@ impl fmt::Display for OsFamily {
     }
 }
 
-/* Currently unused
-/// Strip a Firefox User-Agent string, returning a version only varying in Base
-/// OS (e.g. Mac, Windows, Linux) and Firefox major version number
-pub fn strip_ua(ua: &str) -> String {
-    let WootheeResult {
-        name, os, version, ..
-    } = Parser::new().parse(ua).unwrap_or_default();
-
-    let os = os.to_lowercase();
-    let platform = match os.as_str() {
-        _ if os.starts_with("windows") => "Windows NT 10.0; Win64; x64",
-        "mac osx" => "Macintosh; Intel Mac OS X 10.15",
-        "linux" => "X11; Ubuntu; Linux x86_64",
-        _ => "Other",
-    };
-    let major = if name.to_lowercase().as_str() != "firefox" || version == VALUE_UNKNOWN {
-        "?"
-    } else {
-        version.split('.').take(1).collect::<Vec<_>>()[0]
-    };
-    format!(
-        "Mozilla/5.0 ({}; rv:{major}.0) Gecko/20100101 Firefox/{major}.0",
-        platform,
-        major = major
-    )
-}
-*/
-
 /// Convert a UserAgent header into a simplified ([OsFamily], [FormFactor])
 pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
@@ -114,12 +86,6 @@ mod tests {
 
     use super::{get_device_info, FormFactor, OsFamily};
 
-    macro_rules! assert_strip_eq {
-        ($value:expr, $stripped:expr) => {
-            /* assert_eq!(strip_ua($value), $stripped); */
-        };
-    }
-
     macro_rules! assert_get_device_info {
         ($value:expr, $os_family:expr, $form_factor:expr) => {
             assert_eq!(
@@ -131,10 +97,6 @@ mod tests {
 
     #[test]
     fn macos() {
-        assert_strip_eq!(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11.2; rv:85.0) Gecko/20100101 Firefox/85.0",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:85.0) Gecko/20100101 Firefox/85.0"
-        );
         assert_get_device_info!(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11.2; rv:85.0) Gecko/20100101 Firefox/85.0",
             OsFamily::MacOs,
@@ -144,10 +106,6 @@ mod tests {
 
     #[test]
     fn windows() {
-        assert_strip_eq!(
-            "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0"
-        );
         assert_get_device_info!(
             "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0",
             OsFamily::Windows,
@@ -157,33 +115,11 @@ mod tests {
 
     #[test]
     fn linux() {
-        assert_strip_eq!(
-            "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:82.0.1) Gecko/20100101 Firefox/82.0.1",
-            "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:82.0) Gecko/20100101 Firefox/82.0"
-        );
         assert_get_device_info!(
             "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:82.0.1) Gecko/20100101 Firefox/82.0.1",
             OsFamily::Linux,
             FormFactor::Desktop
         );
-    }
-
-    #[test]
-    fn only_pass_major() {
-        assert_strip_eq!(
-            "Mozilla/5.0 (Windows NT 6.2; rv:78.6) Gecko/20100101 Firefox/78.6",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:78.0) Gecko/20100101 Firefox/78.0"
-        );
-    }
-
-    #[test]
-    fn other_os() {
-        // don't even pass geckoversion (rv), only major
-        assert_strip_eq!(
-            "Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/85.0",
-            "Mozilla/5.0 (Other; rv:85.0) Gecko/20100101 Firefox/85.0"
-        );
-        assert_strip_eq!("", "Mozilla/5.0 (Other; rv:?.0) Gecko/20100101 Firefox/?.0");
     }
 
     #[test]
@@ -226,10 +162,6 @@ mod tests {
 
     #[test]
     fn other_ua() {
-        assert_strip_eq!(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:?.0) Gecko/20100101 Firefox/?.0"
-        );
         assert!(get_device_info(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36")
                 .is_err()
