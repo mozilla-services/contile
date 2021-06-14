@@ -340,14 +340,14 @@ impl Location {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use crate::error::HandlerResult;
     use std::collections::BTreeMap;
 
     use actix_http::http::{HeaderName, HeaderValue};
 
-    const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
+    pub const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
     const TEST_ADDR: &str = "216.160.83.56";
 
     #[test]

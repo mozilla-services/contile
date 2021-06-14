@@ -44,7 +44,12 @@ pub async fn get_tiles(
         let addr = match ip_addr_str.parse() {
             Ok(v) => v,
             Err(e) => {
-                return Err(HandlerErrorKind::General(format!("Invalid remote IP {:?}", e)).into());
+                // Temporary: log the IP addr for debugging mmdb issues
+                return Err(HandlerErrorKind::General(format!(
+                    "Invalid remote IP ({:?}) {:?}",
+                    ip_addr_str, e
+                ))
+                .into());
             }
         };
         state
