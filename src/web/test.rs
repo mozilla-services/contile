@@ -1,11 +1,13 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use actix_cors::Cors;
 use actix_web::{
     dev, http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
     HttpRequest, HttpResponse, HttpServer,
 };
+use futures::{channel::mpsc, StreamExt};
 use serde_json::{json, Value};
+use url::Url;
 
 use crate::{
     adm::{AdmFilter, AdmSettings, DEFAULT},
@@ -60,18 +62,30 @@ macro_rules! init_app {
     };
 }
 
+struct MockAdm {
+    pub server: dev::Server,
+    pub endpoint_url: String,
+    pub request_rx: mpsc::UnboundedReceiver<String>,
+}
+
 /// Bind a mock of the AdM Tiles API to a random port on localhost
-fn init_mock_adm(response: String) -> (dev::Server, SocketAddr) {
+fn init_mock_adm(response: String) -> MockAdm {
+    let (tx, request_rx) = mpsc::unbounded::<String>();
     let server = HttpServer::new(move || {
+        let tx = tx.clone();
         App::new().data(response.clone()).route(
             "/",
-            web::get().to(|req: HttpRequest, resp: web::Data<String>| {
+            web::get().to(move |req: HttpRequest, resp: web::Data<String>| {
                 trace!(
-                    "mock_adm: {:#?} {:#?} {:#?}",
+                    "mock_adm: path: {:#?} query_string: {:#?} {:#?} {:#?}",
                     req.path(),
+                    req.query_string(),
                     req.connection_info(),
                     req.headers()
                 );
+                // TODO: pass more data for validation
+                tx.unbounded_send(req.query_string().to_owned())
+                    .expect("Failed to send");
                 HttpResponse::Ok()
                     .content_type("application/json")
                     .body(resp.get_ref())
@@ -82,7 +96,11 @@ fn init_mock_adm(response: String) -> (dev::Server, SocketAddr) {
         .bind(("127.0.0.1", 0))
         .expect("Couldn't bind mock_adm");
     let addr = server.addrs().pop().expect("No mock_adm addr");
-    (server.run(), addr)
+    MockAdm {
+        server: server.run(),
+        endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        request_rx,
+    }
 }
 
 fn adm_settings() -> AdmSettings {
@@ -125,9 +143,9 @@ fn adm_settings() -> AdmSettings {
 /// Since we may not want to hit the ADM server directly, we use a mock response.
 #[actix_rt::test]
 async fn basic() {
-    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
-        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
@@ -181,9 +199,9 @@ async fn basic_bad_reply() {
                 "impression_url": "https://example.net/static?id=DEADB33F"
             }
         ]}"#;
-    let (_, addr) = init_mock_adm(missing_ci.to_owned());
+    let adm = init_mock_adm(missing_ci.to_owned());
     let mut settings = Settings {
-        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
@@ -241,9 +259,9 @@ async fn basic_all_bad_reply() {
                 "impression_url": "https://example.net/static?id=DEADB33F"
             }
         ]}"#;
-    let (_, addr) = init_mock_adm(missing_ci.to_owned());
+    let adm = init_mock_adm(missing_ci.to_owned());
     let mut settings = Settings {
-        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
@@ -259,7 +277,7 @@ async fn basic_all_bad_reply() {
 
 #[actix_rt::test]
 async fn basic_filtered() {
-    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let mut adm_settings = adm_settings();
     adm_settings.insert(
@@ -276,7 +294,7 @@ async fn basic_filtered() {
     adm_settings.remove("Dunder Mifflin");
 
     let mut settings = Settings {
-        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
@@ -315,13 +333,13 @@ async fn basic_filtered() {
 
 #[actix_rt::test]
 async fn basic_default() {
-    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let adm_settings = adm_settings();
     trace!("Settings: {:?}", &adm_settings);
 
     let mut settings = Settings {
-        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
@@ -362,9 +380,9 @@ async fn basic_default() {
 
 #[actix_rt::test]
 async fn invalid_placement() {
-    let (_, addr) = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
-        adm_endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
+        adm_endpoint_url: adm.endpoint_url,
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
@@ -389,4 +407,31 @@ async fn invalid_placement() {
     let _result: Value = test::read_body_json(resp).await;
     // XXX: fixup error json
     //assert_eq!(result["code"], 600);
+}
+
+#[actix_rt::test]
+async fn fallback_country() {
+    let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: json!(adm_settings()).to_string(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let query_string = adm.request_rx.next().await.expect("No request_rx result");
+    let params: HashMap<_, _> = Url::parse(&format!("{}{}", adm.endpoint_url, query_string))
+        .expect("Couldn't parse request_rx result")
+        .query_pairs()
+        .into_owned()
+        .collect();
+    assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
+    assert_eq!(params.get("region-code"), Some(&"".to_owned()));
 }
