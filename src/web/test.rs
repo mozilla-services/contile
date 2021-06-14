@@ -12,7 +12,11 @@ use crate::{
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
-    server::{cache, location::Location, ServerState},
+    server::{
+        cache,
+        location::{test::MMDB_LOC, Location},
+        ServerState,
+    },
     settings::{test_settings, Settings},
     web::{dockerflow, handlers, middleware},
 };
@@ -24,6 +28,7 @@ const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100
 fn get_test_settings() -> Settings {
     let treq = test::TestRequest::with_uri("/").to_http_request();
     Settings {
+        maxminddb_loc: Some(MMDB_LOC.to_owned()),
         port: treq.uri().port_u16().unwrap_or(8080),
         host: treq.uri().host().unwrap_or("localhost").to_owned(),
         ..test_settings()
