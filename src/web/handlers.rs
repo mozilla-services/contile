@@ -1,5 +1,8 @@
 //! API Handlers
-use actix_web::{web, HttpRequest, HttpResponse};
+use std::net::{IpAddr, SocketAddr};
+
+use actix_web::{http::HeaderName, web, HttpRequest, HttpResponse};
+use lazy_static::lazy_static;
 
 use super::user_agent;
 use crate::{
@@ -10,6 +13,10 @@ use crate::{
     tags::Tags,
     web::{extractors::TilesRequest, middleware::sentry as l_sentry},
 };
+
+lazy_static! {
+    static ref X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
+}
 
 /// Handler for `.../v1/tiles` endpoint
 ///
@@ -24,34 +31,33 @@ pub async fn get_tiles(
     trace!("get_tiles");
     metrics.incr("tiles.update");
 
-    let cinfo = request.connection_info();
     let settings = &state.settings;
-    let ip_addr_str = cinfo.remote_addr().unwrap_or({
-        let default = state
-            .adm_country_ip_map
-            .get("US")
-            .expect("Invalid ADM_COUNTRY_IP_MAP settting");
-        if let Some(country) = &treq.country {
-            state.adm_country_ip_map.get(country).unwrap_or(default)
-        } else {
-            default
+    let mut addr = None;
+    if let Some(header) = request.headers().get(&*X_FORWARDED_FOR) {
+        if let Ok(value) = header.to_str() {
+            // Expect a typical X-Forwarded-For where the first address is the
+            // client's, the front ends should ensure this
+            addr = value
+                .split(',')
+                .next()
+                .map(|addr| addr.trim())
+                .and_then(|addr| {
+                    // Fallback to parsing as SocketAddr for when a port
+                    // number's included
+                    addr.parse::<IpAddr>()
+                        .or_else(|_| addr.parse::<SocketAddr>().map(|socket| socket.ip()))
+                        .ok()
+                });
         }
-    });
+    }
+    if addr.is_none() {
+        metrics.incr("location.unknown.ip");
+    }
     let (os_family, form_factor) = user_agent::get_device_info(&treq.ua)?;
 
     let header = request.head();
-    let location = if state.mmdb.is_available() {
-        let addr = match ip_addr_str.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                // Temporary: log the IP addr for debugging mmdb issues
-                return Err(HandlerErrorKind::General(format!(
-                    "Invalid remote IP ({:?}) {:?}",
-                    ip_addr_str, e
-                ))
-                .into());
-            }
-        };
+    let location = if state.mmdb.is_available() && addr.is_some() {
+        let addr = addr.unwrap();
         state
             .mmdb
             .mmdb_locate(addr, &["en".to_owned()], &metrics)
@@ -65,7 +71,6 @@ pub async fn get_tiles(
     {
         tags.add_extra("country", &location.country());
         tags.add_extra("region", &location.region());
-        tags.add_extra("ip", ip_addr_str);
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
