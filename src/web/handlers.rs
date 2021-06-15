@@ -35,6 +35,8 @@ pub async fn get_tiles(
     let mut addr = None;
     if let Some(header) = request.headers().get(&*X_FORWARDED_FOR) {
         if let Ok(value) = header.to_str() {
+            // Expect a typical X-Forwarded-For where the first address is the
+            // client's, the front ends should ensure this
             addr = value
                 .split(',')
                 .next()
