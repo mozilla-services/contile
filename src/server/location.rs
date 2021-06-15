@@ -32,11 +32,10 @@ pub struct LocationResult {
 
 impl From<&Settings> for LocationResult {
     fn from(settings: &Settings) -> Self {
-        let default_loc = settings.fallback_location.clone();
         Self {
             city: None,
-            subdivision: Some(default_loc[2..4].to_string()),
-            country: Some(default_loc[..2].to_string()),
+            subdivision: None,
+            country: Some(settings.fallback_country.clone()),
             dma: None,
         }
     }
@@ -240,16 +239,13 @@ impl Location {
         self.iploc.is_some()
     }
 
-    pub fn fix(location_str: &str) -> Result<String, ConfigError> {
-        let mut loc = location_str.to_uppercase();
-        loc.retain(|e| e.is_alphabetic());
-        let llen = loc.len();
-        if !(4..=5).contains(&llen) {
+    pub fn fix_fallback_country(fallback_country: &str) -> Result<String, ConfigError> {
+        if fallback_country.len() != 2 {
             return Err(ConfigError::Message(
-                "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
+                "Invalid fallback_country specified. Please use a string like \"US\"".to_owned(),
             ));
         }
-        Ok(loc)
+        Ok(fallback_country.to_uppercase())
     }
 
     /// Resolve an `ip_addr` to a `LocationResult` using the `preferred_languages` as a hint for the language to use.
@@ -409,18 +405,14 @@ pub mod test {
         };
         let location = Location::from(&settings);
         let metrics = Metrics::noop();
-        if location.is_available() {
-            // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
-            let result = location
-                .mmdb_locate(test_ip, &langs, &metrics)
-                .await?
-                .unwrap();
-            assert_eq!(result.city, Some("Milton".to_owned()));
-            assert_eq!(result.subdivision, Some("Washington".to_owned()));
-            assert_eq!(result.country, Some("United States".to_owned()));
-        } else {
-            println!("⚠Location Database not found, cannot test location, skipping");
-        }
+        // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
+        let result = location
+            .mmdb_locate(test_ip, &langs, &metrics)
+            .await?
+            .unwrap();
+        assert_eq!(result.city, Some("Milton".to_owned()));
+        assert_eq!(result.subdivision, Some("Washington".to_owned()));
+        assert_eq!(result.country, Some("United States".to_owned()));
         Ok(())
     }
 
@@ -434,12 +426,8 @@ pub mod test {
         };
         let location = Location::from(&settings);
         let metrics = Metrics::noop();
-        if location.is_available() {
-            let result = location.mmdb_locate(test_ip, &langs, &metrics).await?;
-            assert!(result.is_none());
-        } else {
-            println!("⚠Location Database not found, cannot test location, skipping");
-        }
+        let result = location.mmdb_locate(test_ip, &langs, &metrics).await?;
+        assert!(result.is_none());
         Ok(())
     }
 
@@ -469,17 +457,17 @@ pub mod test {
     async fn test_default_loc() -> HandlerResult<()> {
         // From a bad setting
         let mut settings = Settings {
-            fallback_location: "Us".to_owned(),
+            fallback_country: "USA".to_owned(),
             adm_endpoint_url: "http://localhost:8080".to_owned(),
             ..Default::default()
         };
         let metrics = Metrics::noop();
         assert!(settings.verify_settings().is_err());
-        settings.fallback_location = "Us, Oklahoma".to_owned();
+        settings.fallback_country = "US,OK".to_owned();
         assert!(settings.verify_settings().is_err());
-        settings.fallback_location = "us, Ok".to_owned();
+        settings.fallback_country = "US".to_owned();
         assert!(settings.verify_settings().is_ok());
-        assert!(settings.fallback_location == *"USOK");
+        assert!(settings.fallback_country == "US");
 
         // From an empty Google LB header
         let mut test_head = RequestHead::default();
@@ -489,8 +477,8 @@ pub mod test {
             HeaderValue::from_static(&hv),
         );
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
-        assert!(loc.region() == *"OK");
-        assert!(loc.country() == *"US");
+        assert!(loc.region() == "");
+        assert!(loc.country() == "US");
         Ok(())
     }
 }

@@ -63,8 +63,10 @@ pub struct Settings {
     pub test_file_path: String,
     /// Location test header override
     pub location_test_header: Option<String>,
-    /// Default location (if no location info is able to be determined for an IP)
-    pub fallback_location: String,
+    /// Fallback country (if no country is able to be determined for an
+    /// IP). adM's API requires a minimum of country-code and form-factor
+    /// parameters to return tiles
+    pub fallback_country: String,
     /// URL to the official documentation
     pub documentation_url: String,
     /// Operational trace header
@@ -117,7 +119,7 @@ impl Default for Settings {
             test_mode: false,
             test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
-            fallback_location: "USOK".to_owned(),
+            fallback_country: "US".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
             // ADM specific settings
@@ -141,7 +143,7 @@ impl Settings {
         if self.adm_endpoint_url.is_empty() {
             return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
         }
-        self.fallback_location = Location::fix(&self.fallback_location)?;
+        self.fallback_country = Location::fix_fallback_country(&self.fallback_country)?;
         // preflight check the storage
         StorageSettings::from(&*self);
         AdmSettings::from(&mut *self);
