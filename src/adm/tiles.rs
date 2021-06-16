@@ -144,7 +144,7 @@ pub async fn get_tiles(
     let adm_url = adm_url.as_str();
 
     info!("adm::get_tiles GET {}", adm_url);
-    metrics.incr("adm.get_tiles");
+    metrics.incr("tiles.adm.request");
     let response: AdmTileResponse = if state.settings.test_mode {
         let default = HeaderValue::from_str(DEFAULT).unwrap();
         let test_response = headers
