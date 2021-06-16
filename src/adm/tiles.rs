@@ -143,7 +143,8 @@ pub async fn get_tiles(
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
     let adm_url = adm_url.as_str();
 
-    info!("get_tiles GET {}", adm_url);
+    info!("adm::get_tiles GET {}", adm_url);
+    metrics.incr("adm.get_tiles");
     let response: AdmTileResponse = if state.settings.test_mode {
         let default = HeaderValue::from_str(DEFAULT).unwrap();
         let test_response = headers
@@ -177,7 +178,7 @@ pub async fn get_tiles(
             })?
     };
     if response.tiles.is_empty() {
-        error!("get_tiles empty response {}", adm_url);
+        error!("adm::get_tiles empty response {}", adm_url);
     }
 
     let tiles = response

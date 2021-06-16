@@ -29,7 +29,7 @@ pub async fn get_tiles(
     request: HttpRequest,
 ) -> Result<HttpResponse, HandlerError> {
     trace!("get_tiles");
-    metrics.incr("tiles.update");
+    metrics.incr("get_tiles");
 
     let settings = &state.settings;
     let mut addr = None;
