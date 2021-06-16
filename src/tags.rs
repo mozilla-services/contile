@@ -20,6 +20,8 @@ use serde_json::value::Value;
 use slog::{Key, Record, KV};
 use woothee::parser::{Parser, WootheeResult};
 
+use crate::settings::Settings;
+
 /*
 /// List of valid user-agent attributes to keep, anything not in this
 /// list is considered 'Other'. We log the user-agent on connect always
@@ -111,8 +113,8 @@ fn insert_if_not_empty(label: &str, val: &str, tags: &mut HashMap<String, String
     }
 }
 
-impl From<&RequestHead> for Tags {
-    fn from(req_head: &RequestHead) -> Self {
+impl Tags {
+    pub fn from_head(req_head: &RequestHead, settings: &Settings) -> Self {
         // Return an Option<> type because the later consumers (HandlerErrors) presume that
         // tags are optional and wrapped by an Option<> type.
         let mut tags = HashMap::new();
@@ -127,6 +129,15 @@ impl From<&RequestHead> for Tags {
                 extra.insert("ua".to_owned(), uas.to_string());
             }
         }
+        if let Some(tracer) = settings.trace_header.clone() {
+            if let Some(header) = req_head.headers().get(tracer) {
+                if let Ok(val) = header.to_str() {
+                    if !val.is_empty() {
+                        extra.insert("header.trace".to_owned(), val.to_owned());
+                    }
+                }
+            }
+        }
         tags.insert("uri.method".to_owned(), req_head.method.to_string());
         // `uri.path` causes too much cardinality for influx but keep it in
         // extra for sentry
@@ -137,9 +148,10 @@ impl From<&RequestHead> for Tags {
 
 impl From<HttpRequest> for Tags {
     fn from(request: HttpRequest) -> Self {
+        let settings = (&request).into();
         match request.extensions().get::<Self>() {
             Some(v) => v.clone(),
-            None => Tags::from(request.head()),
+            None => Tags::from_head(request.head(), settings),
         }
     }
 }
@@ -254,11 +266,12 @@ impl FromRequest for Tags {
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
+        let settings = req.into();
         let tags = {
             let exts = req.extensions();
             match exts.get::<Tags>() {
                 Some(t) => t.clone(),
-                None => Tags::from(req.head()),
+                None => Tags::from_head(req.head(), settings),
             }
         };
 

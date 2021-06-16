@@ -1,7 +1,8 @@
 //! API Handlers
-use std::time::{Duration, SystemTime};
+use std::net::{IpAddr, SocketAddr};
 
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{http::HeaderName, web, HttpRequest, HttpResponse};
+use lazy_static::lazy_static;
 
 use super::user_agent;
 use crate::{
@@ -12,6 +13,10 @@ use crate::{
     tags::Tags,
     web::{extractors::TilesRequest, middleware::sentry as l_sentry},
 };
+
+lazy_static! {
+    static ref X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
+}
 
 /// Handler for `.../v1/tiles` endpoint
 ///
@@ -26,29 +31,33 @@ pub async fn get_tiles(
     trace!("get_tiles");
     metrics.incr("tiles.update");
 
-    let cinfo = request.connection_info();
     let settings = &state.settings;
-    let ip_addr_str = cinfo.remote_addr().unwrap_or({
-        let default = state
-            .adm_country_ip_map
-            .get("US")
-            .expect("Invalid ADM_COUNTRY_IP_MAP settting");
-        if let Some(country) = &treq.country {
-            state.adm_country_ip_map.get(country).unwrap_or(default)
-        } else {
-            default
+    let mut addr = None;
+    if let Some(header) = request.headers().get(&*X_FORWARDED_FOR) {
+        if let Ok(value) = header.to_str() {
+            // Expect a typical X-Forwarded-For where the first address is the
+            // client's, the front ends should ensure this
+            addr = value
+                .split(',')
+                .next()
+                .map(|addr| addr.trim())
+                .and_then(|addr| {
+                    // Fallback to parsing as SocketAddr for when a port
+                    // number's included
+                    addr.parse::<IpAddr>()
+                        .or_else(|_| addr.parse::<SocketAddr>().map(|socket| socket.ip()))
+                        .ok()
+                });
         }
-    });
+    }
+    if addr.is_none() {
+        metrics.incr("location.unknown.ip");
+    }
     let (os_family, form_factor) = user_agent::get_device_info(&treq.ua)?;
 
     let header = request.head();
-    let location = if state.mmdb.is_available() {
-        let addr = match ip_addr_str.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(HandlerErrorKind::General(format!("Invalid remote IP {:?}", e)).into());
-            }
-        };
+    let location = if state.mmdb.is_available() && addr.is_some() {
+        let addr = addr.unwrap();
         state
             .mmdb
             .mmdb_locate(addr, &["en".to_owned()], &metrics)
@@ -62,7 +71,6 @@ pub async fn get_tiles(
     {
         tags.add_extra("country", &location.country());
         tags.add_extra("region", &location.region());
-        tags.add_extra("ip", ip_addr_str);
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
@@ -71,18 +79,22 @@ pub async fn get_tiles(
         country_code: location.country(),
         region_code: location.region(),
         form_factor,
-        os_family,
     };
+    let mut expired = false;
     if !settings.test_mode {
-        if let Some(tiles) = state.tiles_cache.read().await.get(&audience_key) {
-            trace!("get_tiles: cache hit: {:?}", audience_key);
-            metrics.incr("tiles_cache.hit");
-            return Ok(HttpResponse::Ok()
-                .content_type("application/json")
-                .body(&tiles.json));
+        if let Some(tiles) = state.tiles_cache.get(&audience_key) {
+            expired = tiles.expired();
+            if !expired {
+                trace!("get_tiles: cache hit: {:?}", audience_key);
+                metrics.incr("tiles_cache.hit");
+                return Ok(HttpResponse::Ok()
+                    .content_type("application/json")
+                    .body(&tiles.json));
+            }
         }
     }
-    let tiles = match adm::get_tiles(
+
+    let result = adm::get_tiles(
         &state.reqwest_client,
         &state.adm_endpoint_url,
         &location,
@@ -98,47 +110,53 @@ pub async fn get_tiles(
             None
         },
     )
-    .await
-    {
+    .await;
+
+    let json = match result {
         Ok(response) => {
-            // adM sometimes returns an invalid response. We don't want to cache that.
+            let json = serde_json::to_string(&response).map_err(|e| {
+                HandlerError::internal(&format!("Response failed to serialize: {}", e))
+            })?;
+
+            trace!(
+                "get_tiles: cache miss{}: {:?}",
+                if expired { " (expired)" } else { "" },
+                &audience_key
+            );
+            metrics.incr("tiles_cache.miss");
+            state.tiles_cache.insert(
+                audience_key,
+                cache::Tiles::new(json.clone(), state.settings.tiles_ttl),
+            );
+
             if response.tiles.is_empty() {
                 metrics.incr_with_tags("tiles.empty", Some(&tags));
                 return Ok(HttpResponse::NoContent().finish());
             };
-            let tiles = serde_json::to_string(&response).map_err(|e| {
-                HandlerError::internal(&format!("Response failed to serialize: {}", e))
-            })?;
-            trace!("get_tiles: cache miss: {:?}", audience_key);
-            metrics.incr("tiles_cache.miss");
-            state.tiles_cache.write().await.insert(
-                audience_key,
-                cache::Tiles {
-                    json: tiles.clone(),
-                    ttl: SystemTime::now() + Duration::from_secs(settings.tiles_ttl as u64),
-                },
-            );
-            tiles
+
+            json
         }
-        Err(e) => match e.kind() {
-            HandlerErrorKind::BadAdmResponse(es) => {
-                warn!("Bad response from ADM: {:?}", e);
-                metrics.incr_with_tags("tiles.invalid", Some(&tags));
-                // Report directly to sentry
-                // (This is starting to become a pattern. 🤔)
-                let mut tags = Tags::from(request.head());
-                tags.add_extra("err", &es);
-                tags.add_tag("level", "warning");
-                l_sentry::report(&tags, sentry::event_from_error(&e));
-                //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
-                warn!("ADM Server error: {:?}", e);
-                return Ok(HttpResponse::NoContent().finish());
-            }
-            _ => return Err(e),
-        },
+        Err(e) => {
+            match e.kind() {
+                HandlerErrorKind::BadAdmResponse(es) => {
+                    warn!("Bad response from ADM: {:?}", e);
+                    metrics.incr_with_tags("tiles.invalid", Some(&tags));
+                    // Report directly to sentry
+                    // (This is starting to become a pattern. 🤔)
+                    let mut tags = Tags::from_head(request.head(), &settings);
+                    tags.add_extra("err", &es);
+                    tags.add_tag("level", "warning");
+                    l_sentry::report(&tags, sentry::event_from_error(&e));
+                    //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
+                    warn!("ADM Server error: {:?}", e);
+                    return Ok(HttpResponse::NoContent().finish());
+                }
+                _ => return Err(e),
+            };
+        }
     };
 
     Ok(HttpResponse::Ok()
         .content_type("application/json")
-        .body(tiles))
+        .body(json))
 }

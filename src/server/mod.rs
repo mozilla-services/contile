@@ -19,8 +19,12 @@ pub mod cache;
 pub mod img_storage;
 pub mod location;
 
+/// Arbitrary initial cache size based on the expected mean, feel free to
+/// adjust
+const TILES_CACHE_INITIAL_CAPACITY: usize = 768;
+
 /// User-Agent sent to adM
-static REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+const REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
@@ -88,24 +92,22 @@ impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
         let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        let metrics = metrics_from_opts(&settings)?;
+        let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let state = ServerState {
-            metrics: Box::new(metrics_from_opts(&settings)?),
+            metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
             adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::builder()
                 .user_agent(REQWEST_USER_AGENT)
                 .build()?,
-            tiles_cache: cache::TilesCache::new(75),
+            tiles_cache: tiles_cache.clone(),
             mmdb: (&settings).into(),
             settings: settings.clone(),
             filter,
         };
 
-        // causing panic in arbiter thread
-        cache::spawn_tile_cache_updater(
-            Duration::from_secs(settings.tiles_ttl as u64),
-            state.clone(),
-        );
+        tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics);
 
         let mut server = HttpServer::new(move || build_app!(state.clone()));
         if let Some(keep_alive) = settings.actix_keep_alive {
