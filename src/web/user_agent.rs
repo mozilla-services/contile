@@ -4,7 +4,7 @@ use std::fmt;
 
 use woothee::parser::Parser;
 
-use crate::error::{HandlerErrorKind, HandlerResult};
+use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 
 /// ADM required browser format form
 #[allow(dead_code)]
@@ -80,7 +80,11 @@ pub fn get_device_info(ua: &str) -> HandlerResult<(OsFamily, FormFactor)> {
 
     // If it's not firefox, it doesn't belong here...
     if !["firefox"].contains(&wresult.name.to_lowercase().as_str()) {
-        return Err(HandlerErrorKind::InvalidUA(ua.to_owned()).into());
+        let mut err: HandlerError = HandlerErrorKind::InvalidUA().into();
+        err.tags.add_extra("useragent", ua);
+        err.tags
+            .add_extra("name", &wresult.name.to_lowercase().as_str());
+        return Err(err);
     }
 
     let os = wresult.os.to_lowercase();
@@ -206,12 +210,17 @@ mod tests {
 
     #[test]
     fn chromeos() {
-        let result = get_device_info("Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36");
+        let ua_str = "Mozilla/5.0 (X11; CrOS x86_64 13816.64.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.100 Safari/537.36";
+        let result = get_device_info(ua_str);
         assert!(result.is_err());
-        match result.unwrap_err().kind() {
-            HandlerErrorKind::InvalidUA(_) => {}
+        let err = result.unwrap_err();
+        match err.kind() {
+            HandlerErrorKind::InvalidUA() => {}
             _ => panic!("Incorrect error returned for test"),
         }
+        assert!(err.tags.extra.get("useragent") == Some(&ua_str.to_owned()));
+        assert!(err.tags.extra.get("name") == Some(&"chrome".to_owned()));
+        dbg!(err.tags);
     }
 
     #[test]

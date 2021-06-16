@@ -163,6 +163,7 @@ where
                             return future::ok(sresp);
                         }
                         */
+                        tags.extend(herr.tags.clone());
                         report(&tags, sentry::event_from_error(herr));
                     }
                 }
