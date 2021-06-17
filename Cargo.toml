@@ -38,6 +38,7 @@ serde = "1.0"
 # pin to 0.19 (until our onpremise is upgraded):
 # https://github.com/getsentry/sentry-rust/issues/277
 sentry = "0.19"
+sentry-backtrace = "0.19"
 serde_json = "1.0"
 sha2 = "0.9"
 slog = { version = "2.7", features = ["max_level_trace", "release_max_level_info", "dynamic-keys"] }
