@@ -24,7 +24,7 @@ pub type HandlerResult<T> = result::Result<T, HandlerError>;
 #[derive(Debug)]
 pub struct HandlerError {
     kind: HandlerErrorKind,
-    backtrace: Backtrace,
+    pub(crate) backtrace: Backtrace,
     pub tags: Tags,
 }
 
@@ -182,20 +182,7 @@ impl From<HandlerError> for HttpResponse {
 
 impl fmt::Display for HandlerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Error: {}\nTags:{:?}\nBacktrace:\n{:?}",
-            self.kind, self.tags, self.backtrace
-        )?;
-
-        // Go down the chain of errors
-        let mut error: &dyn Error = &self.kind;
-        while let Some(source) = error.source() {
-            write!(f, "\n\nCaused by: {}", source)?;
-            error = source;
-        }
-
-        Ok(())
+        self.kind.fmt(f)
     }
 }
 
