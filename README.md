@@ -1,5 +1,3 @@
-> NOTE: this repo is temporarily in read only mode for a migration
-
 ![Contile graphic](imgs/Contile_title.svg)
 # Contile Tile Server
 
