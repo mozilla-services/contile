@@ -1,3 +1,23 @@
+<a name="0.3.0"></a>
+## 0.3.0 (2021-06-17)
+
+
+#### Features
+
+*   fill in sentry stacktraces (#159) ([623028fd](https://github.com/mozilla-services/contile/commit/623028fd882e68231e171215c395577c5f77d85f), closes [#158](https://github.com/mozilla-services/contile/issues/158))
+*   metric calls to adM (#157) ([5edcca92](https://github.com/mozilla-services/contile/commit/5edcca92f53541e43d4bec4eef271459f9cde35a), closes [#138](https://github.com/mozilla-services/contile/issues/138))
+*   don't fallback on unknown subdivisions (#156) ([5d02edff](https://github.com/mozilla-services/contile/commit/5d02edff03e513ea64e1433e7075642e96bfdbc8), closes [#148](https://github.com/mozilla-services/contile/issues/148))
+*   get the client IP for mmdb from X-Forwarded-For (#155) ([2a3882de](https://github.com/mozilla-services/contile/commit/2a3882de79f1b91d55ad0d910b69ee2aeea480dc))
+*   include ip addr for diagnosing mmdb lookup failures (#154) ([4f1d61f8](https://github.com/mozilla-services/contile/commit/4f1d61f8c9ac26382651983649905c6402cd52c8))
+*   add an optional trace header to metrics/logging (#146) ([762bc398](https://github.com/mozilla-services/contile/commit/762bc398aa82d9d987cf140ebce7fc75a1a55091), closes [#145](https://github.com/mozilla-services/contile/issues/145))
+*   integrate cache updating into the GET request (#152) ([109ec114](https://github.com/mozilla-services/contile/commit/109ec114e4f4780ddbf55dc9dc4b6060ea254eb9), closes [#151](https://github.com/mozilla-services/contile/issues/151))
+
+#### Bug Fixes
+
+*   make UA name an 'extra' value for Sentry errors. (#153) ([582c3270](https://github.com/mozilla-services/contile/commit/582c3270b6c526d2345ad1c538e2b5d6a69aab1d), closes [#147](https://github.com/mozilla-services/contile/issues/147))
+
+
+
 <a name="0.2.0"></a>
 ## 0.2.0 (2021-06-08)
 
