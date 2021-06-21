@@ -14,7 +14,8 @@ def test_read_root(client, version):
     assert response.json() == {"message": message}
 
 
-def test_read_tilesp(client):
+def test_read_tilesp(client, available_tiles):
+    results = 2
     response = client.get(
         "/tilesp"
         "?partner=demofeed"
@@ -25,29 +26,10 @@ def test_read_tilesp(client):
         "&form-factor=desktop"
         "&os-family=macOS"
         "&v=1.0"
-        "&results=2"
+        f"&results={results}"
     )
 
-    response_body = {
-        "tiles": [
-            {
-                "id": 12345,
-                "name": "Example",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
-                "image_url": "https://example.com/image_url.jpg",
-                "impression_url": "https://example.com/impression_url?id=0001",
-                "advertiser_url": "https://www.example.com/advertiser_url",
-            },
-            {
-                "id": 56789,
-                "name": "Example",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
-                "image_url": "https://example.com/image_url.jpg",
-                "impression_url": "https://example.com/impression_url?id=0002",
-                "advertiser_url": "https://www.example.com/advertiser_url",
-            },
-        ]
-    }
+    response_body = {"tiles": available_tiles[:results]}
 
     assert response.status_code == 200
     assert response.json() == response_body
