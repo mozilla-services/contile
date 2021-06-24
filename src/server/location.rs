@@ -1,12 +1,9 @@
 //! Resolve a given IP into a stripped location
 //!
 //! This uses the MaxMindDB geoip2-City database.
-use std::collections::BTreeMap;
-use std::net::IpAddr;
-use std::sync::Arc;
+use std::{collections::BTreeMap, fmt, net::IpAddr, sync::Arc};
 
-use actix_http::http::HeaderValue;
-use actix_http::RequestHead;
+use actix_http::{http::HeaderValue, RequestHead};
 use config::ConfigError;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
@@ -19,6 +16,20 @@ use crate::{
 };
 
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
+
+#[derive(Serialize, Debug, Clone, Copy)]
+pub enum Provider {
+    MaxMind,
+    LoadBalancer,
+    Fallback,
+}
+
+impl fmt::Display for Provider {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = format!("{:?}", self).to_lowercase();
+        write!(fmt, "{}", name)
+    }
+}
 
 /// The returned, stripped location.
 #[derive(Serialize, Debug, Clone)]
@@ -35,6 +46,7 @@ pub struct LocationResult {
     /// Not currently used
     #[serde(skip_serializing_if = "Option::is_none")]
     pub city: Option<String>,
+    pub provider: Provider,
 }
 
 impl From<&Settings> for LocationResult {
@@ -44,6 +56,7 @@ impl From<&Settings> for LocationResult {
             subdivision: None,
             country: Some(settings.fallback_country.clone()),
             dma: None,
+            provider: Provider::Fallback,
         }
     }
 }
@@ -68,11 +81,13 @@ impl LocationResult {
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
     fn from_headervalue(header: &HeaderValue, settings: &Settings, metrics: &Metrics) -> Self {
+        let provider = Provider::LoadBalancer;
         let mut tags = Tags::default();
-        tags.add_tag("provider", "lb");
+        tags.add_tag("provider", &provider.to_string());
 
         let loc_string = header.to_str().unwrap_or("");
         let mut loc = Self::from(settings);
+        loc.provider = provider;
         let mut parts = loc_string.split(',');
         if let Some(country) = parts.next().map(|country| country.trim().to_owned()) {
             if !country.is_empty() {
@@ -123,7 +138,7 @@ impl LocationResult {
 pub struct Location {
     iploc: Option<Arc<maxminddb::Reader<Vec<u8>>>>,
     test_header: Option<String>,
-    default_loc: LocationResult,
+    fallback_loc: LocationResult,
 }
 
 /// Process and convert the MaxMindDB errors into native [crate::error::HandlerError]s
@@ -163,7 +178,7 @@ impl From<&Settings> for Location {
         Self {
             iploc: settings.into(),
             test_header: settings.location_test_header.clone(),
-            default_loc: LocationResult::from(settings),
+            fallback_loc: LocationResult::from(settings),
         }
     }
 }
@@ -271,8 +286,9 @@ impl Location {
         if self.iploc.is_none() {
             return Ok(None);
         }
+        let provider = Provider::MaxMind;
         let mut tags = Tags::default();
-        tags.add_tag("provider", "maxmind");
+        tags.add_tag("provider", &provider.to_string());
 
         /*
         The structure of the returned maxminddb free record is:
@@ -313,7 +329,8 @@ impl Location {
             traits: None }
         }
         */
-        let mut result = self.default_loc.clone();
+        let mut result = self.fallback_loc.clone();
+        result.provider = provider;
         match self.iploc.clone().unwrap().lookup::<City<'_>>(ip_addr) {
             Ok(location) => {
                 if let Some(names) = location.city.and_then(|c| c.names) {
@@ -465,7 +482,7 @@ pub mod test {
     }
 
     #[actix_rt::test]
-    async fn test_default_loc() -> HandlerResult<()> {
+    async fn test_fallback_loc() -> HandlerResult<()> {
         // From a bad setting
         let mut settings = Settings {
             fallback_country: "USA".to_owned(),
