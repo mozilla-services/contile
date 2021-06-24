@@ -436,3 +436,29 @@ async fn maxmind_lookup() {
     assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
     assert_eq!(params.get("region-code"), Some(&"WA".to_owned()));
 }
+
+#[actix_rt::test]
+async fn empty_tiles() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    // no adm_settings filters everything out
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+    // Ensure same result from cache
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
