@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -53,7 +53,6 @@ macro_rules! init_app {
             let state = ServerState {
                 metrics: Box::new(Metrics::sink()),
                 adm_endpoint_url: $settings.adm_endpoint_url.clone(),
-                adm_country_ip_map: Arc::new($settings.build_adm_country_ip_map()),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 mmdb: Location::from(&$settings),
@@ -391,37 +390,6 @@ async fn basic_default() {
         })
         .collect();
     assert!(!names.contains(&"Dunder Mifflin"));
-}
-
-#[actix_rt::test]
-async fn invalid_placement() {
-    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
-    let mut settings = Settings {
-        adm_endpoint_url: adm.endpoint_url,
-        ..get_test_settings()
-    };
-    let mut app = init_app!(settings).await;
-
-    let req = test::TestRequest::get()
-        .uri("/v1/tiles?country=US&placement=bus12")
-        .header(header::USER_AGENT, UA)
-        .to_request();
-    let resp = test::call_service(&mut app, req).await;
-    assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-
-    let content_type = resp.headers().get(header::CONTENT_TYPE);
-    assert!(content_type.is_some());
-    assert_eq!(
-        content_type
-            .unwrap()
-            .to_str()
-            .expect("Couldn't parse Content-Type"),
-        "application/json"
-    );
-
-    let _result: Value = test::read_body_json(resp).await;
-    // XXX: fixup error json
-    //assert_eq!(result["code"], 600);
 }
 
 #[actix_rt::test]

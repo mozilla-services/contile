@@ -7,7 +7,10 @@ use std::{
 use lazy_static::lazy_static;
 use url::Url;
 
-use super::{tiles::AdmTile, AdmAdvertiserFilterSettings, Tile, DEFAULT};
+use super::{
+    tiles::{AdmTile, Tile},
+    AdmAdvertiserFilterSettings, DEFAULT,
+};
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,

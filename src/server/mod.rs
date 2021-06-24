@@ -1,5 +1,5 @@
 //! Main application server
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::time::Duration;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -33,7 +33,6 @@ pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
     pub adm_endpoint_url: String,
-    pub adm_country_ip_map: Arc<HashMap<String, String>>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub mmdb: location::Location,
@@ -51,7 +50,6 @@ impl std::fmt::Debug for ServerState {
         fmt.debug_struct("ServerState")
             .field("metrics", &self.metrics)
             .field("adm_endpoint_url", &self.adm_endpoint_url)
-            .field("adm_country_ip_map", &self.adm_country_ip_map)
             .field("reqwest_client", &self.reqwest_client)
             .field("tiles_cache", &self.tiles_cache)
             .field("mmdb", &mmdb_status.to_owned())
@@ -97,7 +95,6 @@ impl Server {
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
-            adm_country_ip_map: Arc::new(settings.build_adm_country_ip_map()),
             reqwest_client: reqwest::Client::builder()
                 .user_agent(REQWEST_USER_AGENT)
                 .build()?,

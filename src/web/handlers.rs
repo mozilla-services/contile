@@ -1,29 +1,22 @@
 //! API Handlers
-use std::net::{IpAddr, SocketAddr};
+use actix_web::{web, HttpRequest, HttpResponse};
 
-use actix_web::{http::HeaderName, web, HttpRequest, HttpResponse};
-use lazy_static::lazy_static;
-
-use super::user_agent;
 use crate::{
     adm,
     error::{HandlerError, HandlerErrorKind},
     metrics::Metrics,
     server::{cache, location::LocationResult, ServerState},
     tags::Tags,
-    web::{extractors::TilesRequest, middleware::sentry as l_sentry},
+    web::{middleware::sentry as l_sentry, DeviceInfo},
 };
-
-lazy_static! {
-    static ref X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
-}
 
 /// Handler for `.../v1/tiles` endpoint
 ///
 /// Normalizes User Agent info and searches cache for possible tile suggestions.
 /// On a miss, it will attempt to fetch new tiles from ADM.
 pub async fn get_tiles(
-    treq: TilesRequest,
+    location: LocationResult,
+    device_info: DeviceInfo,
     metrics: Metrics,
     state: web::Data<ServerState>,
     request: HttpRequest,
@@ -32,41 +25,6 @@ pub async fn get_tiles(
     metrics.incr("tiles.get");
 
     let settings = &state.settings;
-    let mut addr = None;
-    if let Some(header) = request.headers().get(&*X_FORWARDED_FOR) {
-        if let Ok(value) = header.to_str() {
-            // Expect a typical X-Forwarded-For where the first address is the
-            // client's, the front ends should ensure this
-            addr = value
-                .split(',')
-                .next()
-                .map(|addr| addr.trim())
-                .and_then(|addr| {
-                    // Fallback to parsing as SocketAddr for when a port
-                    // number's included
-                    addr.parse::<IpAddr>()
-                        .or_else(|_| addr.parse::<SocketAddr>().map(|socket| socket.ip()))
-                        .ok()
-                });
-        }
-    }
-    if addr.is_none() {
-        metrics.incr("location.unknown.ip");
-    }
-    let (os_family, form_factor) = user_agent::get_device_info(&treq.ua)?;
-
-    let header = request.head();
-    let location = if state.mmdb.is_available() && addr.is_some() {
-        let addr = addr.unwrap();
-        state
-            .mmdb
-            .mmdb_locate(addr, &["en".to_owned()], &metrics)
-            .await?
-            .unwrap_or_else(|| LocationResult::from_header(header, settings, &metrics))
-    } else {
-        LocationResult::from_header(header, settings, &metrics)
-    };
-
     let mut tags = Tags::default();
     {
         tags.add_extra("country", &location.country());
@@ -78,7 +36,7 @@ pub async fn get_tiles(
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
         region_code: location.region(),
-        form_factor,
+        form_factor: device_info.form_factor,
     };
     let mut expired = false;
     if !settings.test_mode {
@@ -95,12 +53,9 @@ pub async fn get_tiles(
     }
 
     let result = adm::get_tiles(
-        &state.reqwest_client,
-        &state.adm_endpoint_url,
-        &location,
-        os_family,
-        form_factor,
         &state,
+        &location,
+        device_info,
         &mut tags,
         &metrics,
         // be aggressive about not passing headers unless we absolutely need to

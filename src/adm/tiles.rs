@@ -11,7 +11,7 @@ use crate::{
     server::{location::LocationResult, ServerState},
     settings::Settings,
     tags::Tags,
-    web::{FormFactor, OsFamily},
+    web::DeviceInfo,
 };
 
 /// The payload provided by ADM
@@ -107,32 +107,25 @@ impl Tile {
 
 /// Main handler for the User Agent HTTP request
 ///
-#[allow(clippy::too_many_arguments)]
 pub async fn get_tiles(
-    reqwest_client: &reqwest::Client,
-    adm_endpoint_url: &str,
-    location: &LocationResult,
-    os_family: OsFamily,
-    form_factor: FormFactor,
     state: &ServerState,
+    location: &LocationResult,
+    device_info: DeviceInfo,
     tags: &mut Tags,
     metrics: &Metrics,
     headers: Option<&HeaderMap>,
 ) -> Result<TileResponse, HandlerError> {
-    // XXX: Assumes adm_endpoint_url includes
-    // ?partner=<mozilla_partner_name>&sub1=<mozilla_tag_id> (probably should
-    // validate this on startup)
     let settings = &state.settings;
     let adm_url = Url::parse_with_params(
-        adm_endpoint_url,
+        &state.adm_endpoint_url,
         &[
             ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
             ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
             ("country-code", &location.country()),
             ("region-code", &location.region()),
             // ("dma-code", location.dma),
-            ("form-factor", &form_factor.to_string()),
-            ("os-family", &os_family.to_string()),
+            ("form-factor", &device_info.form_factor.to_string()),
+            ("os-family", &device_info.os_family.to_string()),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
@@ -157,8 +150,8 @@ pub async fn get_tiles(
         trace!("Getting fake response: {:?}", &test_response);
         AdmTileResponse::fake_response(&state.settings, test_response)?
     } else {
-        // TODO: Add timeout
-        reqwest_client
+        state
+            .reqwest_client
             .get(adm_url)
             .timeout(Duration::from_secs(settings.adm_timeout))
             .send()
