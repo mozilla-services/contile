@@ -11,23 +11,30 @@ use config::ConfigError;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
 
-use crate::error::{HandlerErrorKind, HandlerResult};
-use crate::metrics::Metrics;
-use crate::settings::Settings;
+use crate::{
+    error::{HandlerErrorKind, HandlerResult},
+    metrics::Metrics,
+    settings::Settings,
+    tags::Tags,
+};
 
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
 
 /// The returned, stripped location.
 #[derive(Serialize, Debug, Clone)]
 pub struct LocationResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub city: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subdivision: Option<String>,
+    /// Country in ISO 3166-1 alpha-2 format
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
+    /// Region/subdivision (e.g. a US state) in ISO 3166-2 format
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subdivision: Option<String>,
+    /// Not currently used
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dma: Option<u16>,
+    /// Not currently used
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
 }
 
 impl From<&Settings> for LocationResult {
@@ -61,6 +68,9 @@ impl LocationResult {
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
     fn from_headervalue(header: &HeaderValue, settings: &Settings, metrics: &Metrics) -> Self {
+        let mut tags = Tags::default();
+        tags.add_tag("provider", "lb");
+
         let loc_string = header.to_str().unwrap_or("");
         let mut loc = Self::from(settings);
         let mut parts = loc_string.split(',');
@@ -68,7 +78,7 @@ impl LocationResult {
             if !country.is_empty() {
                 loc.country = Some(country)
             } else {
-                metrics.incr("location.unknown.country");
+                metrics.incr_with_tags("location.unknown.country", Some(&tags));
             }
         }
         if let Some(subdivision) = parts.next().map(|subdivision| {
@@ -85,7 +95,7 @@ impl LocationResult {
             if !subdivision.is_empty() {
                 loc.subdivision = Some(subdivision)
             } else {
-                metrics.incr("location.unknown.subdivision");
+                metrics.incr_with_tags("location.unknown.subdivision", Some(&tags));
             }
         }
         loc
@@ -261,6 +271,9 @@ impl Location {
         if self.iploc.is_none() {
             return Ok(None);
         }
+        let mut tags = Tags::default();
+        tags.add_tag("provider", "maxmind");
+
         /*
         The structure of the returned maxminddb free record is:
         City:maxminddb::geoip::model::City {
@@ -274,7 +287,8 @@ impl Location {
                 }),
             country: Some(Country{
                 geoname_id: Some(#),
-                names: Some({...})
+                names: Some({...}),
+                iso_code: Some("..")
                 }),
             location: Some(Location{
                 latitude: Some(#.#),
@@ -305,33 +319,30 @@ impl Location {
                 if let Some(names) = location.city.and_then(|c| c.names) {
                     result.city = get_preferred_language_element(&preferred_languages, &names)
                 } else {
-                    metrics.incr("location.unknown.city");
+                    metrics.incr_with_tags("location.unknown.city", Some(&tags));
                 };
-                if let Some(names) = location.country.and_then(|c| c.names) {
-                    result.country = get_preferred_language_element(&preferred_languages, &names)
+                if let Some(country_code) = location.country.and_then(|c| c.iso_code) {
+                    result.country = Some(country_code.to_owned());
                 } else {
-                    metrics.incr("location.unknown.country");
+                    metrics.incr_with_tags("location.unknown.country", Some(&tags));
                 };
                 if let Some(divs) = location.subdivisions {
-                    if let Some(subdivision) = divs.get(0) {
-                        if let Some(names) = &subdivision.names {
-                            result.subdivision =
-                                get_preferred_language_element(&preferred_languages, names);
-                        }
+                    if let Some(subdivision_code) = divs.get(0).and_then(|s| s.iso_code) {
+                        result.subdivision = Some(subdivision_code.to_owned());
                     }
                 } else {
-                    metrics.incr("location.unknown.subdivision")
+                    metrics.incr_with_tags("location.unknown.subdivision", Some(&tags))
                 }
                 if let Some(location) = location.location {
                     result.dma = location.metro_code;
                 };
-                return Ok(Some(result));
+                Ok(Some(result))
             }
             Err(err) => match handle_mmdb_err(&err) {
-                Some(e) => return Err(e.into()),
-                None => return Ok(None),
+                Some(e) => Err(e.into()),
+                None => Ok(None),
             },
-        };
+        }
     }
 }
 
@@ -344,7 +355,7 @@ pub mod test {
     use actix_http::http::{HeaderName, HeaderValue};
 
     pub const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
-    const TEST_ADDR: &str = "216.160.83.56";
+    pub const TEST_ADDR: &str = "216.160.83.56";
 
     #[test]
     fn test_preferred_language() {
@@ -411,8 +422,8 @@ pub mod test {
             .await?
             .unwrap();
         assert_eq!(result.city, Some("Milton".to_owned()));
-        assert_eq!(result.subdivision, Some("Washington".to_owned()));
-        assert_eq!(result.country, Some("United States".to_owned()));
+        assert_eq!(result.subdivision, Some("WA".to_owned()));
+        assert_eq!(result.country, Some("US".to_owned()));
         Ok(())
     }
 

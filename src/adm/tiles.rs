@@ -178,7 +178,7 @@ pub async fn get_tiles(
             })?
     };
     if response.tiles.is_empty() {
-        error!("adm::get_tiles empty response {}", adm_url);
+        warn!("adm::get_tiles empty response {}", adm_url);
     }
 
     let tiles = response

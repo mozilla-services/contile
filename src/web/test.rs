@@ -16,7 +16,10 @@ use crate::{
     metrics::Metrics,
     server::{
         cache,
-        location::{test::MMDB_LOC, Location},
+        location::{
+            test::{MMDB_LOC, TEST_ADDR},
+            Location,
+        },
         ServerState,
     },
     settings::{test_settings, Settings},
@@ -66,6 +69,18 @@ struct MockAdm {
     pub server: dev::Server,
     pub endpoint_url: String,
     pub request_rx: mpsc::UnboundedReceiver<String>,
+}
+
+impl MockAdm {
+    /// Return the passed in query params
+    async fn params(&mut self) -> HashMap<String, String> {
+        let query_string = self.request_rx.next().await.expect("No request_rx result");
+        Url::parse(&format!("{}{}", self.endpoint_url, query_string))
+            .expect("Couldn't parse request_rx result")
+            .query_pairs()
+            .into_owned()
+            .collect()
+    }
 }
 
 /// Bind a mock of the AdM Tiles API to a random port on localhost
@@ -426,12 +441,30 @@ async fn fallback_country() {
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let query_string = adm.request_rx.next().await.expect("No request_rx result");
-    let params: HashMap<_, _> = Url::parse(&format!("{}{}", adm.endpoint_url, query_string))
-        .expect("Couldn't parse request_rx result")
-        .query_pairs()
-        .into_owned()
-        .collect();
+    let params = adm.params().await;
     assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
     assert_eq!(params.get("region-code"), Some(&"".to_owned()));
+}
+
+#[actix_rt::test]
+async fn maxmind_lookup() {
+    let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: json!(adm_settings()).to_string(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA)
+        .header("X-Forwarded-For", TEST_ADDR)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let params = adm.params().await;
+    assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
+    assert_eq!(params.get("region-code"), Some(&"WA".to_owned()));
 }
