@@ -1,3 +1,23 @@
+<a name="0.4.0"></a>
+## 0.4.0 (2021-06-25)
+
+
+#### Features
+
+*   optionally include location info in /__error__ (w/ ?with_location=true) (#198) ([f0be5e9d](https://github.com/mozilla-services/contile/commit/f0be5e9d7c6b0fabe0cfe723e6f0f314bfb573d4), closes [#192](https://github.com/mozilla-services/contile/issues/192))
+
+#### Refactor
+
+*   kill the old adM API's country mapping ([11ff5ece](https://github.com/mozilla-services/contile/commit/11ff5ece683f997e11c6f29d49b5c2ff509e55c6), closes [#195](https://github.com/mozilla-services/contile/issues/195))
+*   kill unused ua code ([26f10ce5](https://github.com/mozilla-services/contile/commit/26f10ce52fbd898afc1c4eb60dc004f6537b8e92))
+
+#### Bug Fixes
+
+*   fix maxmind country/subdivision to use iso_code (#193) ([bdfdf24d](https://github.com/mozilla-services/contile/commit/bdfdf24d2c50fd12eb7ae3d3cf230dcd771c3c6a), closes [#183](https://github.com/mozilla-services/contile/issues/183), [#184](https://github.com/mozilla-services/contile/issues/184))
+*   return 204 no contents for cache hits (#199) ([b8afa238](https://github.com/mozilla-services/contile/commit/b8afa23808203178922c9d2f2dc84882df784cf3), closes [#191](https://github.com/mozilla-services/contile/issues/191))
+
+
+
 <a name="0.3.0"></a>
 ## 0.3.0 (2021-06-17)
 
