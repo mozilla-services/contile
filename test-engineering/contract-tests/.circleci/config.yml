@@ -4,9 +4,11 @@ jobs:
   run_checks:
     docker:
       - image: python:3.8
-    working_directory: ~/project/partner
+    working_directory: "~/project/<< parameters.component >>"
     parameters:
       tox_env:
+        type: string
+      component:
         type: string
     steps:
       - checkout:
@@ -26,7 +28,14 @@ workflows:
   build:
     jobs:
       - run_checks:
-          name: Run checks << matrix.tox_env >> 🤖
+          name: Run << matrix.tox_env >> checks for client 🤖
+          component: client
           matrix:
             parameters:
-              tox_env: ["black", "flake8", "mypy", "py38"]
+              tox_env: [black, flake8, mypy]
+      - run_checks:
+          name: Run << matrix.tox_env >> checks for partner 📋
+          component: partner
+          matrix:
+            parameters:
+              tox_env: [black, flake8, mypy, py38]
