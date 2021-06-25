@@ -9,7 +9,7 @@ use std::{
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
-use crate::{metrics::Metrics, web::FormFactor};
+use crate::{adm::TileResponse, error::HandlerError, metrics::Metrics, web::FormFactor};
 
 /// AudienceKey is the primary key used to store and fetch tiles from the
 /// local cache.
@@ -55,22 +55,50 @@ impl Deref for TilesCache {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Tiles {
-    pub json: String,
+    pub content: TilesContent,
     expiry: SystemTime,
 }
 
 impl Tiles {
-    pub fn new(json: String, ttl: u32) -> Self {
+    pub fn new(tile_response: TileResponse, ttl: u32) -> Result<Self, HandlerError> {
+        let empty = Self::empty(ttl);
+        if tile_response.tiles.is_empty() {
+            return Ok(empty);
+        }
+        let json = serde_json::to_string(&tile_response)
+            .map_err(|e| HandlerError::internal(&format!("Response failed to serialize: {}", e)))?;
+        Ok(Self {
+            content: TilesContent::Json(json),
+            ..empty
+        })
+    }
+
+    fn empty(ttl: u32) -> Self {
         Self {
-            json,
+            content: TilesContent::Empty,
             expiry: SystemTime::now() + Duration::from_secs(ttl as u64),
         }
     }
 
     pub fn expired(&self) -> bool {
         self.expiry <= SystemTime::now()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum TilesContent {
+    Json(String),
+    Empty,
+}
+
+impl TilesContent {
+    fn size(&self) -> usize {
+        match self {
+            Self::Json(json) => json.len(),
+            _ => 0,
+        }
     }
 }
 
@@ -82,7 +110,7 @@ async fn tiles_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
     cache.retain(|_, tiles| {
         if !tiles.expired() {
             cache_count += 1;
-            cache_size += tiles.json.len();
+            cache_size += tiles.content.size();
             return true;
         }
         false

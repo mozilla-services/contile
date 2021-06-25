@@ -45,9 +45,7 @@ pub async fn get_tiles(
             if !expired {
                 trace!("get_tiles: cache hit: {:?}", audience_key);
                 metrics.incr("tiles_cache.hit");
-                return Ok(HttpResponse::Ok()
-                    .content_type("application/json")
-                    .body(&tiles.json));
+                return Ok(content_response(&tiles.content, &metrics));
             }
         }
     }
@@ -67,29 +65,17 @@ pub async fn get_tiles(
     )
     .await;
 
-    let json = match result {
+    match result {
         Ok(response) => {
-            let json = serde_json::to_string(&response).map_err(|e| {
-                HandlerError::internal(&format!("Response failed to serialize: {}", e))
-            })?;
-
+            let tiles = cache::Tiles::new(response, state.settings.tiles_ttl)?;
             trace!(
                 "get_tiles: cache miss{}: {:?}",
                 if expired { " (expired)" } else { "" },
                 &audience_key
             );
             metrics.incr("tiles_cache.miss");
-            state.tiles_cache.insert(
-                audience_key,
-                cache::Tiles::new(json.clone(), state.settings.tiles_ttl),
-            );
-
-            if response.tiles.is_empty() {
-                metrics.incr_with_tags("tiles.empty", Some(&tags));
-                return Ok(HttpResponse::NoContent().finish());
-            };
-
-            json
+            state.tiles_cache.insert(audience_key, tiles.clone());
+            Ok(content_response(&tiles.content, &metrics))
         }
         Err(e) => {
             match e.kind() {
@@ -102,16 +88,23 @@ pub async fn get_tiles(
                     tags.add_extra("err", &es);
                     tags.add_tag("level", "warning");
                     l_sentry::report(&tags, sentry::event_from_error(&e));
-                    //TODO: probably should do: json!(vec![adm::AdmTile::default()]).to_string()
                     warn!("ADM Server error: {:?}", e);
-                    return Ok(HttpResponse::NoContent().finish());
+                    Ok(HttpResponse::NoContent().finish())
                 }
-                _ => return Err(e),
-            };
+                _ => Err(e),
+            }
         }
-    };
+    }
+}
 
-    Ok(HttpResponse::Ok()
-        .content_type("application/json")
-        .body(json))
+fn content_response(content: &cache::TilesContent, metrics: &Metrics) -> HttpResponse {
+    match content {
+        cache::TilesContent::Json(json) => HttpResponse::Ok()
+            .content_type("application/json")
+            .body(json),
+        cache::TilesContent::Empty => {
+            metrics.incr("tiles.empty");
+            HttpResponse::NoContent().finish()
+        }
+    }
 }
