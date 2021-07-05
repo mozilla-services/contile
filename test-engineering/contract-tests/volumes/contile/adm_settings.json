@@ -1,5 +1,5 @@
 {
-    "Example": {
+    "Example COM": {
         "advertiser_hosts": [
             "www.example.com",
             "www.example.co.uk",
@@ -14,6 +14,19 @@
         ],
         "click_hosts": [],
         "impression_hosts": [],
+        "include_regions": [],
+        "position": 1
+    },
+    "Example ORG": {
+        "advertiser_hosts": [
+            "www.example.org"
+        ],
+        "click_hosts": [
+            "example.org"
+        ],
+        "impression_hosts": [
+            "example.org"
+        ],
         "include_regions": [],
         "position": 1
     },
