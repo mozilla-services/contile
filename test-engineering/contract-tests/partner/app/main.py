@@ -2,18 +2,17 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import asyncio
 import json
 import logging
 import os
 import pathlib
 import sys
-import time
 
 import yaml
 from fastapi import FastAPI, Query, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-
 from models import ResponseFromFile, Tiles
 
 logger = logging.getLogger("partner")
@@ -72,7 +71,7 @@ async def read_tilesp(
     if delay:
         # Add an artificual delay to the handler
         logger.debug("response is delayed by %s seconds", delay)
-        time.sleep(delay)
+        await asyncio.sleep(delay)
 
     logger.debug("response status_code: %s", status_code)
     logger.debug("response headers %s", json.dumps(headers))
