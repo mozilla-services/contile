@@ -1,0 +1,42 @@
+{
+    "Example": {
+        "advertiser_hosts": [
+            "www.example.com",
+            "www.example.co.uk",
+            "www.example.it",
+            "www.example.com.au",
+            "www.example.ca",
+            "www.example.de",
+            "www.example.fr",
+            "www.example.es",
+            "www.example.in",
+            "www.example.com.mx"
+        ],
+        "click_hosts": [],
+        "impression_hosts": [],
+        "include_regions": [],
+        "position": 1
+    },
+    "DEFAULT": {
+        "advertiser_hosts": [],
+        "click_hosts": [
+            "example.com"
+        ],
+        "impression_hosts": [
+            "example.com"
+        ],
+        "include_regions": [
+            "US",
+            "GB",
+            "IT",
+            "AU",
+            "CA",
+            "DE",
+            "FR",
+            "ES",
+            "IN",
+            "MX",
+            "CN"
+        ]
+    }
+}
