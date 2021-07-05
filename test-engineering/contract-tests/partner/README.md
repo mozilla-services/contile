@@ -49,7 +49,7 @@ Example response body:
   "tiles": [
     {
       "id": 12346,
-      "name": "Example",
+      "name": "Example COM",
       "click_url": "https://example.com/desktop_macos?version=16.0.0",
       "image_url": "https://example.com/desktop_macos01.jpg",
       "impression_url": "https://example.com/desktop_macos?id=0001",
@@ -57,11 +57,11 @@ Example response body:
     },
     {
       "id": 56790,
-      "name": "Example",
-      "click_url": "https://example.com/desktop_macos?version=16.0.0",
-      "image_url": "https://example.com/desktop_macos02.jpg",
-      "impression_url": "https://example.com/desktop_macos?id=0002",
-      "advertiser_url": "https://www.example.com/desktop_macos"
+      "name": "Example ORG",
+      "click_url": "https://example.org/desktop_macos?version=16.0.0",
+      "image_url": "https://example.org/desktop_macos02.jpg",
+      "impression_url": "https://example.org/desktop_macos?id=0002",
+      "advertiser_url": "https://www.example.org/desktop_macos"
     }
   ]
 }
