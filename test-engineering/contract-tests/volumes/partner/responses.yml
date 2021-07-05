@@ -7,17 +7,17 @@ desktop:
       content:
         tiles:
           - id: 12345
-            name: 'Example'
+            name: 'Example COM'
             click_url: 'https://example.com/desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
             image_url: 'https://example.com/desktop_windows01.jpg'
             impression_url: 'https://example.com/desktop_windows?id=0001'
             advertiser_url: 'https://www.example.com/desktop_windows'
           - id: 56789
-            name: 'Example'
-            click_url: 'https://example.com/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-            image_url: 'https://example.com/desktop_windows02.jpg'
-            impression_url: 'https://example.com/desktop_windows?id=0002'
-            advertiser_url: 'https://www.example.com/desktop_windows'
+            name: 'Example ORG'
+            click_url: 'https://example.org/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/desktop_windows02.jpg'
+            impression_url: 'https://example.org/desktop_windows?id=0002'
+            advertiser_url: 'https://www.example.org/desktop_windows'
 
     macos:
       status_code: 200
@@ -25,17 +25,17 @@ desktop:
       content:
         tiles:
           - id: 12346
-            name: 'Example'
+            name: 'Example COM'
             click_url: 'https://example.com/desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
             image_url: 'https://example.com/desktop_macos01.jpg'
             impression_url: 'https://example.com/desktop_macos?id=0001'
             advertiser_url: 'https://www.example.com/desktop_macos'
           - id: 56790
-            name: 'Example'
-            click_url: 'https://example.com/desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-            image_url: 'https://example.com/desktop_macos02.jpg'
-            impression_url: 'https://example.com/desktop_macos?id=0002'
-            advertiser_url: 'https://www.example.com/desktop_macos'
+            name: 'Example ORG'
+            click_url: 'https://example.org/desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/desktop_macos02.jpg'
+            impression_url: 'https://example.org/desktop_macos?id=0002'
+            advertiser_url: 'https://www.example.org/desktop_macos'
 
     linux:
       status_code: 200
@@ -43,17 +43,17 @@ desktop:
       content:
         tiles:
           - id: 12347
-            name: 'Example'
+            name: 'Example COM'
             click_url: 'https://example.com/desktop_linux?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
             image_url: 'https://example.com/desktop_linux01.jpg'
             impression_url: 'https://example.com/desktop_linux?id=0001'
             advertiser_url: 'https://www.example.com/desktop_linux'
           - id: 56791
-            name: 'Example'
-            click_url: 'https://example.com/desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-            image_url: 'https://example.com/desktop_linux02.jpg'
-            impression_url: 'https://example.com/desktop_linux?id=0002'
-            advertiser_url: 'https://www.example.com/desktop_linux'
+            name: 'Example ORG'
+            click_url: 'https://example.org/desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/desktop_linux02.jpg'
+            impression_url: 'https://example.org/desktop_linux?id=0002'
+            advertiser_url: 'https://www.example.org/desktop_linux'
 
 phone:
     android:
@@ -68,17 +68,17 @@ phone:
       content:
         tiles:
           - id: 12348
-            name: 'Example'
+            name: 'Example COM'
             click_url: 'https://example.com/desktop_ios?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
             image_url: 'https://example.com/desktop_ios01.jpg'
             impression_url: 'https://example.com/desktop_ios?id=0001'
             advertiser_url: 'https://www.example.com/desktop_ios'
           - id: 56792
-            name: 'Example'
-            click_url: 'https://example.com/desktop_ios?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-            image_url: 'https://example.com/desktop_ios02.jpg'
-            impression_url: 'https://example.com/desktop_ios?id=0002'
-            advertiser_url: 'https://www.example.com/desktop_ios'
+            name: 'Example ORG'
+            click_url: 'https://example.org/desktop_ios?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/desktop_ios02.jpg'
+            impression_url: 'https://example.org/desktop_ios?id=0002'
+            advertiser_url: 'https://www.example.org/desktop_ios'
 
 tablet:
     ios:
