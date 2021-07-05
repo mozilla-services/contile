@@ -28,7 +28,7 @@ isort==5.9.1
     # via -r dev-requirements.in
 mccabe==0.6.1
     # via flake8
-mypy==0.812
+mypy==0.910
     # via -r dev-requirements.in
 mypy-extensions==0.4.3
     # via
@@ -57,9 +57,8 @@ requests==2.25.1
 toml==0.10.2
     # via
     #   black
+    #   mypy
     #   pytest
-typed-ast==1.4.3
-    # via mypy
 typing-extensions==3.10.0.0
     # via
     #   -c requirements.txt
