@@ -3,8 +3,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
+from typing import List
+
 import pytest
 import requests
+from models import Step
 
 
 @pytest.fixture(name="contile_host")
@@ -14,14 +17,18 @@ def fixture_contile_host(request):
     return request.config.option.contile_url
 
 
-def test_contile(contile_host, steps):
+def test_contile(contile_host: str, steps: List[Step]):
     """Test for requesting tiles from Contile."""
 
     for step in steps:
+        # Each step in a test scenario consists of a request and a response.
+        # Use the parameters to perform the request and verify the response.
+
+        method = step.request.method
         url = f"{contile_host}{step.request.path}"
         headers = {header.name: header.value for header in step.request.headers}
 
-        r = requests.get(url, headers=headers)
+        r = requests.request(method, url, headers=headers)
 
         assert r.status_code == step.response.status_code
 
