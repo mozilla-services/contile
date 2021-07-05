@@ -3,11 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import pathlib
 import sys
 
 import pytest
-import yaml
 from fastapi.testclient import TestClient
 
 from ..main import app
@@ -21,10 +19,3 @@ def fixture_version() -> str:
 @pytest.fixture(name="client")
 def fixture_client() -> TestClient:
     return TestClient(app)
-
-
-@pytest.fixture(name="available_tiles")
-def fixture_available_tiles():
-    with pathlib.Path("app/tiles.yml").open() as f:
-        available_tiles = yaml.safe_load(f)
-    return available_tiles
