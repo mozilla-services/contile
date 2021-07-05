@@ -5,3 +5,4 @@ isort
 mypy
 pytest
 requests
+types-PyYAML
