@@ -1,5 +1,5 @@
 //! Main application entry point
-
+#![forbid(unsafe_code)]
 use std::error::Error;
 
 #[macro_use]
