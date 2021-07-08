@@ -2,7 +2,6 @@
 #![allow(clippy::try_err)]
 #![forbid(unsafe_code)]
 
-
 //! Context Tile service
 //!
 //! Tiles are the links displayed on a "Firefox Home" page (displayed as

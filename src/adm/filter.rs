@@ -340,8 +340,7 @@ mod tests {
     }
 
     #[test]
-    fn check_mx_domains()
-    {
+    fn check_mx_domains() {
         // Ensure that complex domains are validated correctly.
         assert!(check_url(
             "https://foo.co.mx".parse().unwrap(),
@@ -351,6 +350,7 @@ mod tests {
                 vec!["bar".to_owned(), "com".to_owned()],
                 vec!["foo".to_owned(), "co".to_owned(), "uk".to_owned()],
             ]
-        ).is_err());
+        )
+        .is_err());
     }
 }
