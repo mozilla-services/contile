@@ -7,7 +7,10 @@ use std::{
 use lazy_static::lazy_static;
 use url::Url;
 
-use super::{tiles::AdmTile, AdmAdvertiserFilterSettings, Tile, DEFAULT};
+use super::{
+    tiles::{AdmTile, Tile},
+    AdmAdvertiserFilterSettings, DEFAULT,
+};
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
@@ -37,6 +40,7 @@ lazy_static! {
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
+    pub ignore_list: HashSet<String>,
 }
 
 /// Extract the host from Url
@@ -69,7 +73,9 @@ impl AdmFilter {
     fn report(&self, error: &HandlerError, tags: &Tags) {
         // trace!(&error, &tags);
         // TODO: if not error.is_reportable, just add to metrics.
-        l_sentry::report(tags, sentry::event_from_error(error));
+        let mut merged_tags = error.tags.clone();
+        merged_tags.extend(tags.clone());
+        l_sentry::report(&merged_tags, sentry::event_from_error(error));
     }
 
     /// Check the advertiser URL
@@ -269,11 +275,13 @@ impl AdmFilter {
                 ))
             }
             None => {
-                metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
-                self.report(
-                    &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
-                    tags,
-                );
+                if !self.ignore_list.contains(&tile.name.to_lowercase()) {
+                    metrics.incr_with_tags("filter.adm.err.unexpected_advertiser", Some(tags));
+                    self.report(
+                        &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
+                        tags,
+                    );
+                }
                 None
             }
         }
@@ -329,5 +337,15 @@ mod tests {
             &[vec!["example".to_owned(), "com".to_owned()]]
         )
         .is_err());
+    }
+
+    #[test]
+    fn check_mx_domains()
+    {
+        assert!(check_url(
+            "https://foo.co.mx".parse().unwrap(),
+            "Click",
+            &[vec!["bar.co.mx"]]
+        ))
     }
 }

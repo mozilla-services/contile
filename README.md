@@ -1,4 +1,3 @@
-
 ![Contile graphic](imgs/Contile_title.svg)
 # Contile Tile Server
 

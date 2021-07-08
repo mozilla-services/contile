@@ -2,10 +2,11 @@
 //!
 //! This sends [crate::error::HandlerError] events to Sentry
 
-use std::task::Context;
 use std::{
     cell::{RefCell, RefMut},
+    error::Error as StdError,
     rc::Rc,
+    task::{Context, Poll},
 };
 
 use actix_http::Extensions;
@@ -15,10 +16,8 @@ use actix_web::{
 };
 use futures::future::{self, LocalBoxFuture, TryFutureExt};
 use sentry::protocol::Event;
-use std::task::Poll;
 
-use crate::error::HandlerError;
-use crate::tags::Tags;
+use crate::{error::HandlerError, settings::Settings, tags::Tags};
 
 pub struct SentryWrapper;
 
@@ -69,7 +68,7 @@ pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
             return;
         }
         */
-        let event = sentry::event_from_error(herr);
+        let event = event_from_error(herr);
         if let Some(events) = ext.get_mut::<Vec<Event<'static>>>() {
             events.push(event);
         } else {
@@ -80,8 +79,7 @@ pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
 
 /// Report an error with [crate::tags::Tags] and [Event] directly to sentry
 ///
-/// And [Event] can be derived using
-/// `sentry::event_from_error(err:Error)`
+/// And [Event] can be derived using `event_from_error(HandlerError)`
 pub fn report(tags: &Tags, mut event: Event<'static>) {
     let tags = tags.clone();
     event.tags = tags.clone().tag_tree();
@@ -106,7 +104,8 @@ where
     }
 
     fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
-        let mut tags = Tags::from(sreq.head());
+        let settings: &Settings = (&sreq).into();
+        let mut tags = Tags::from_head(sreq.head(), settings);
         sreq.extensions_mut().insert(tags.clone());
 
         Box::pin(self.service.call(sreq).and_then(move |mut sresp| {
@@ -161,11 +160,60 @@ where
                             return future::ok(sresp);
                         }
                         */
-                        report(&tags, sentry::event_from_error(herr));
+                        tags.extend(herr.tags.clone());
+                        report(&tags, event_from_error(herr));
                     }
                 }
             }
             future::ok(sresp)
         }))
+    }
+}
+
+/// Custom `sentry::event_from_error` for `HandlerError`
+///
+/// `sentry::event_from_error` can't access `std::Error` backtraces as its
+/// `backtrace()` method is currently Rust nightly only. This function works
+/// against `HandlerError` instead to access its backtrace.
+pub fn event_from_error(err: &HandlerError) -> Event<'static> {
+    let mut exceptions = vec![exception_from_error_with_backtrace(err)];
+
+    let mut source = err.source();
+    while let Some(err) = source {
+        let exception = if let Some(err) = err.downcast_ref() {
+            exception_from_error_with_backtrace(err)
+        } else {
+            exception_from_error(err)
+        };
+        exceptions.push(exception);
+        source = err.source();
+    }
+
+    exceptions.reverse();
+    Event {
+        exception: exceptions.into(),
+        level: sentry::protocol::Level::Error,
+        ..Default::default()
+    }
+}
+
+/// Custom `exception_from_error` support function for `HandlerError`
+///
+/// Based moreso on sentry_failure's `exception_from_single_fail`.
+fn exception_from_error_with_backtrace(err: &HandlerError) -> sentry::protocol::Exception {
+    let mut exception = exception_from_error(err);
+    // format the stack trace with alternate debug to get addresses
+    let bt = format!("{:#?}", err.backtrace);
+    exception.stacktrace = sentry_backtrace::parse_stacktrace(&bt);
+    exception
+}
+
+/// Exact copy of sentry's unfortunately private `exception_from_error`
+fn exception_from_error<E: StdError + ?Sized>(err: &E) -> sentry::protocol::Exception {
+    let dbg = format!("{:?}", err);
+    sentry::protocol::Exception {
+        ty: sentry::parse_type_from_debug(&dbg).to_owned(),
+        value: Some(err.to_string()),
+        ..Default::default()
     }
 }

@@ -1,43 +1,62 @@
 //! Resolve a given IP into a stripped location
 //!
 //! This uses the MaxMindDB geoip2-City database.
-use std::collections::BTreeMap;
-use std::net::IpAddr;
-use std::sync::Arc;
+use std::{collections::BTreeMap, fmt, net::IpAddr, sync::Arc};
 
-use actix_http::http::HeaderValue;
-use actix_http::RequestHead;
+use actix_http::{http::HeaderValue, RequestHead};
 use config::ConfigError;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
 
-use crate::error::{HandlerErrorKind, HandlerResult};
-use crate::metrics::Metrics;
-use crate::settings::Settings;
+use crate::{
+    error::{HandlerErrorKind, HandlerResult},
+    metrics::Metrics,
+    settings::Settings,
+    tags::Tags,
+};
 
 const GOOG_LOC_HEADER: &str = "x-client-geo-location";
+
+#[derive(Serialize, Debug, Clone, Copy)]
+pub enum Provider {
+    MaxMind,
+    LoadBalancer,
+    Fallback,
+}
+
+impl fmt::Display for Provider {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = format!("{:?}", self).to_lowercase();
+        write!(fmt, "{}", name)
+    }
+}
 
 /// The returned, stripped location.
 #[derive(Serialize, Debug, Clone)]
 pub struct LocationResult {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub city: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub subdivision: Option<String>,
+    /// Country in ISO 3166-1 alpha-2 format
     #[serde(skip_serializing_if = "Option::is_none")]
     pub country: Option<String>,
+    /// Region/subdivision (e.g. a US state) in ISO 3166-2 format
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subdivision: Option<String>,
+    /// Not currently used
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dma: Option<u16>,
+    /// Not currently used
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    pub provider: Provider,
 }
 
 impl From<&Settings> for LocationResult {
     fn from(settings: &Settings) -> Self {
-        let default_loc = settings.fallback_location.clone();
         Self {
             city: None,
-            subdivision: Some(default_loc[2..4].to_string()),
-            country: Some(default_loc[..2].to_string()),
+            subdivision: None,
+            country: Some(settings.fallback_country.clone()),
             dma: None,
+            provider: Provider::Fallback,
         }
     }
 }
@@ -62,14 +81,19 @@ impl LocationResult {
 
     /// Read a [HeaderValue] to see if there's anything we can use to derive the location
     fn from_headervalue(header: &HeaderValue, settings: &Settings, metrics: &Metrics) -> Self {
+        let provider = Provider::LoadBalancer;
+        let mut tags = Tags::default();
+        tags.add_tag("provider", &provider.to_string());
+
         let loc_string = header.to_str().unwrap_or("");
         let mut loc = Self::from(settings);
+        loc.provider = provider;
         let mut parts = loc_string.split(',');
         if let Some(country) = parts.next().map(|country| country.trim().to_owned()) {
             if !country.is_empty() {
                 loc.country = Some(country)
             } else {
-                metrics.incr("location.unknown.country");
+                metrics.incr_with_tags("location.unknown.country", Some(&tags));
             }
         }
         if let Some(subdivision) = parts.next().map(|subdivision| {
@@ -86,7 +110,7 @@ impl LocationResult {
             if !subdivision.is_empty() {
                 loc.subdivision = Some(subdivision)
             } else {
-                metrics.incr("location.unknown.subdivision");
+                metrics.incr_with_tags("location.unknown.subdivision", Some(&tags));
             }
         }
         loc
@@ -114,7 +138,7 @@ impl LocationResult {
 pub struct Location {
     iploc: Option<Arc<maxminddb::Reader<Vec<u8>>>>,
     test_header: Option<String>,
-    default_loc: LocationResult,
+    fallback_loc: LocationResult,
 }
 
 /// Process and convert the MaxMindDB errors into native [crate::error::HandlerError]s
@@ -154,7 +178,7 @@ impl From<&Settings> for Location {
         Self {
             iploc: settings.into(),
             test_header: settings.location_test_header.clone(),
-            default_loc: LocationResult::from(settings),
+            fallback_loc: LocationResult::from(settings),
         }
     }
 }
@@ -240,16 +264,13 @@ impl Location {
         self.iploc.is_some()
     }
 
-    pub fn fix(location_str: &str) -> Result<String, ConfigError> {
-        let mut loc = location_str.to_uppercase();
-        loc.retain(|e| e.is_alphabetic());
-        let llen = loc.len();
-        if !(4..=5).contains(&llen) {
+    pub fn fix_fallback_country(fallback_country: &str) -> Result<String, ConfigError> {
+        if fallback_country.len() != 2 {
             return Err(ConfigError::Message(
-                "Invalid default location specified. Please use a string like \"USOK\"".to_owned(),
+                "Invalid fallback_country specified. Please use a string like \"US\"".to_owned(),
             ));
         }
-        Ok(loc)
+        Ok(fallback_country.to_uppercase())
     }
 
     /// Resolve an `ip_addr` to a `LocationResult` using the `preferred_languages` as a hint for the language to use.
@@ -265,6 +286,10 @@ impl Location {
         if self.iploc.is_none() {
             return Ok(None);
         }
+        let provider = Provider::MaxMind;
+        let mut tags = Tags::default();
+        tags.add_tag("provider", &provider.to_string());
+
         /*
         The structure of the returned maxminddb free record is:
         City:maxminddb::geoip::model::City {
@@ -278,7 +303,8 @@ impl Location {
                 }),
             country: Some(Country{
                 geoname_id: Some(#),
-                names: Some({...})
+                names: Some({...}),
+                iso_code: Some("..")
                 }),
             location: Some(Location{
                 latitude: Some(#.#),
@@ -303,52 +329,50 @@ impl Location {
             traits: None }
         }
         */
-        let mut result = self.default_loc.clone();
+        let mut result = self.fallback_loc.clone();
+        result.provider = provider;
         match self.iploc.clone().unwrap().lookup::<City<'_>>(ip_addr) {
             Ok(location) => {
                 if let Some(names) = location.city.and_then(|c| c.names) {
                     result.city = get_preferred_language_element(&preferred_languages, &names)
                 } else {
-                    metrics.incr("location.unknown.city");
+                    metrics.incr_with_tags("location.unknown.city", Some(&tags));
                 };
-                if let Some(names) = location.country.and_then(|c| c.names) {
-                    result.country = get_preferred_language_element(&preferred_languages, &names)
+                if let Some(country_code) = location.country.and_then(|c| c.iso_code) {
+                    result.country = Some(country_code.to_owned());
                 } else {
-                    metrics.incr("location.unknown.country");
+                    metrics.incr_with_tags("location.unknown.country", Some(&tags));
                 };
                 if let Some(divs) = location.subdivisions {
-                    if let Some(subdivision) = divs.get(0) {
-                        if let Some(names) = &subdivision.names {
-                            result.subdivision =
-                                get_preferred_language_element(&preferred_languages, names);
-                        }
+                    if let Some(subdivision_code) = divs.get(0).and_then(|s| s.iso_code) {
+                        result.subdivision = Some(subdivision_code.to_owned());
                     }
                 } else {
-                    metrics.incr("location.unknown.subdivision")
+                    metrics.incr_with_tags("location.unknown.subdivision", Some(&tags))
                 }
                 if let Some(location) = location.location {
                     result.dma = location.metro_code;
                 };
-                return Ok(Some(result));
+                Ok(Some(result))
             }
             Err(err) => match handle_mmdb_err(&err) {
-                Some(e) => return Err(e.into()),
-                None => return Ok(None),
+                Some(e) => Err(e.into()),
+                None => Ok(None),
             },
-        };
+        }
     }
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use crate::error::HandlerResult;
     use std::collections::BTreeMap;
 
     use actix_http::http::{HeaderName, HeaderValue};
 
-    const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
-    const TEST_ADDR: &str = "216.160.83.56";
+    pub const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
+    pub const TEST_ADDR: &str = "216.160.83.56";
 
     #[test]
     fn test_preferred_language() {
@@ -409,18 +433,14 @@ mod test {
         };
         let location = Location::from(&settings);
         let metrics = Metrics::noop();
-        if location.is_available() {
-            // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
-            let result = location
-                .mmdb_locate(test_ip, &langs, &metrics)
-                .await?
-                .unwrap();
-            assert_eq!(result.city, Some("Milton".to_owned()));
-            assert_eq!(result.subdivision, Some("Washington".to_owned()));
-            assert_eq!(result.country, Some("United States".to_owned()));
-        } else {
-            println!("⚠Location Database not found, cannot test location, skipping");
-        }
+        // TODO: either mock maxminddb::Reader or pass it in as a wrapped impl
+        let result = location
+            .mmdb_locate(test_ip, &langs, &metrics)
+            .await?
+            .unwrap();
+        assert_eq!(result.city, Some("Milton".to_owned()));
+        assert_eq!(result.subdivision, Some("WA".to_owned()));
+        assert_eq!(result.country, Some("US".to_owned()));
         Ok(())
     }
 
@@ -434,12 +454,8 @@ mod test {
         };
         let location = Location::from(&settings);
         let metrics = Metrics::noop();
-        if location.is_available() {
-            let result = location.mmdb_locate(test_ip, &langs, &metrics).await?;
-            assert!(result.is_none());
-        } else {
-            println!("⚠Location Database not found, cannot test location, skipping");
-        }
+        let result = location.mmdb_locate(test_ip, &langs, &metrics).await?;
+        assert!(result.is_none());
         Ok(())
     }
 
@@ -466,20 +482,20 @@ mod test {
     }
 
     #[actix_rt::test]
-    async fn test_default_loc() -> HandlerResult<()> {
+    async fn test_fallback_loc() -> HandlerResult<()> {
         // From a bad setting
         let mut settings = Settings {
-            fallback_location: "Us".to_owned(),
+            fallback_country: "USA".to_owned(),
             adm_endpoint_url: "http://localhost:8080".to_owned(),
             ..Default::default()
         };
         let metrics = Metrics::noop();
         assert!(settings.verify_settings().is_err());
-        settings.fallback_location = "Us, Oklahoma".to_owned();
+        settings.fallback_country = "US,OK".to_owned();
         assert!(settings.verify_settings().is_err());
-        settings.fallback_location = "us, Ok".to_owned();
+        settings.fallback_country = "US".to_owned();
         assert!(settings.verify_settings().is_ok());
-        assert!(settings.fallback_location == *"USOK");
+        assert!(settings.fallback_country == "US");
 
         // From an empty Google LB header
         let mut test_head = RequestHead::default();
@@ -489,8 +505,8 @@ mod test {
             HeaderValue::from_static(&hv),
         );
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
-        assert!(loc.region() == *"OK");
-        assert!(loc.country() == *"US");
+        assert!(loc.region() == "");
+        assert!(loc.country() == "US");
         Ok(())
     }
 }
