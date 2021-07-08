@@ -24,22 +24,27 @@ impl From<&Settings> for StorageSettings {
         if settings.storage.is_empty() {
             return Self::default();
         }
-        serde_json::from_str(&settings.storage).expect("Invalud storage settings")
+        serde_json::from_str(&settings.storage).expect("Invalid storage settings")
     }
 }
 
 impl Default for StorageSettings {
     fn default() -> Self {
         Self {
+            project_name: "".to_owned(),
+            bucket_name: "".to_owned(),
+            endpoint: "".to_owned(),
+            /*
             project_name: "secondary-project".to_owned(),
             bucket_name: "moz-contile-test-jr".to_owned(),
             endpoint: "https://storage.googleapis.com".to_owned(),
+            */
         }
     }
 }
 
 /// Image storage container
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct StoreImage {
     // bucket isn't really needed here, since `Object` stores and manages itself,
     // but it may prove useful in future contexts.
@@ -60,10 +65,19 @@ pub struct StoreResult {
 // TODO: Reduce all the `Internal` errors to more specific storage based ones
 impl StoreImage {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
-    pub async fn create(settings: &Settings) -> HandlerResult<Self> {
+    pub async fn create(settings: &Settings) -> HandlerResult<Option<Self>> {
         let sset = StorageSettings::from(settings);
         // TODO: Validate bucket name?
         // https://cloud.google.com/storage/docs/naming-buckets
+        // don't try to open an empty bucket
+        let empty = ["", "none"];
+        if empty.contains(&sset.bucket_name.to_lowercase().as_str())
+            || empty.contains(&sset.project_name.to_lowercase().as_str())
+            || empty.contains(&sset.endpoint.to_lowercase().as_str())
+        {
+            trace!("No bucket set. Not storing...");
+            return Ok(None);
+        }
         trace!("Try creating bucket...");
         let bucket = match Bucket::create(&cloud_storage::NewBucket {
             name: sset.bucket_name.clone(),
@@ -79,10 +93,10 @@ impl StoreImage {
                     let _content = Bucket::read(&sset.bucket_name).await.map_err(|e| {
                         HandlerError::internal(&format!("Could not read bucket {:?}", e))
                     })?;
-                    return Ok(Self {
+                    return Ok(Some(Self {
                         // bucket: Some(_content),
                         settings: sset,
-                    });
+                    }));
                 } else {
                     return Err(HandlerError::internal(&format!(
                         "Bucket create error {:?}",
@@ -131,10 +145,10 @@ impl StoreImage {
         };
         trace!("Bucket OK");
 
-        Ok(Self {
+        Ok(Some(Self {
             // bucket: Some(bucket),
             settings: sset,
-        })
+        }))
     }
 
     /// Generate an image path for data storage into Google Storage

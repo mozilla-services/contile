@@ -58,6 +58,7 @@ macro_rules! init_app {
                 mmdb: Location::from(&$settings),
                 settings: $settings.clone(),
                 filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
+                img_store: None,
             };
             test::init_service(build_app!(state)).await
         }

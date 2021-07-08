@@ -89,10 +89,12 @@ pub struct Tile {
     pub image_url: String,
     pub impression_url: String,
     pub position: Option<u8>,
+    #[serde(skip_serializing)]
+    pub new: bool,
 }
 
 impl Tile {
-    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>) -> Self {
+    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>, new: bool) -> Self {
         Self {
             id: tile.id,
             name: tile.name,
@@ -101,6 +103,7 @@ impl Tile {
             image_url: tile.image_url,
             impression_url: tile.impression_url,
             position,
+            new,
         }
     }
 }
@@ -116,6 +119,7 @@ pub async fn get_tiles(
     headers: Option<&HeaderMap>,
 ) -> Result<TileResponse, HandlerError> {
     let settings = &state.settings;
+    let image_store = &state.img_store;
     let adm_url = Url::parse_with_params(
         &state.adm_endpoint_url,
         &[
@@ -174,11 +178,22 @@ pub async fn get_tiles(
         warn!("adm::get_tiles empty response {}", adm_url);
     }
 
-    let tiles = response
+    let filtered: Vec<Tile> = response
         .tiles
         .into_iter()
         .filter_map(|tile| state.filter.filter_and_process(tile, tags, metrics))
         .take(settings.adm_max_tiles as usize)
         .collect();
+
+    let mut tiles: Vec<Tile> = Vec::new();
+    for mut tile in filtered {
+        if tile.new {
+            if let Some(storage) = image_store {
+                let result = storage.store(&tile.image_url.parse().unwrap()).await?;
+                tile.image_url = result.url.to_string();
+            }
+        }
+        tiles.push(tile);
+    }
     Ok(TileResponse { tiles })
 }
