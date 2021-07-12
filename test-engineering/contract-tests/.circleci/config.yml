@@ -1,4 +1,14 @@
+# These environment variables must be set in CircleCI UI
+#
+# DOCKERHUB_REPO_PARTNER - Name of the partner Docker image: format <username>/<repo>
+# DOCKERHUB_REPO_CLIENT - Name of the client Docker image: format <username>/<repo>
+# DOCKER_LOGIN - Docker username
+# DOCKER_PASSWORD - Docker password
+
 version: 2.1
+
+orbs:
+  docker: circleci/docker@1.6.0
 
 jobs:
   run_checks:
@@ -25,17 +35,52 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  checks-and-docker-publish:
     jobs:
       - run_checks:
           name: Run << matrix.tox_env >> checks for client 🤖
           component: client
           matrix:
+            alias: run_checks_client
             parameters:
               tox_env: [black, flake8, mypy]
+
       - run_checks:
           name: Run << matrix.tox_env >> checks for partner 📋
           component: partner
           matrix:
+            alias: run_checks_partner
             parameters:
               tox_env: [black, flake8, mypy, py38]
+
+      - docker/publish:
+          name: Publish Docker image for client 🤖
+          path: client
+          docker-context: client
+          image: $DOCKERHUB_REPO_CLIENT
+          tag: $CIRCLE_TAG,latest
+          requires:
+            - run_checks_client
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+            branches:
+              # Only run this for pushes to the main branch
+              only: main
+
+      - docker/publish:
+          name: Publish Docker image for partner 📋
+          path: partner
+          docker-context: partner
+          image: $DOCKERHUB_REPO_PARTNER
+          tag: $CIRCLE_TAG,latest
+          requires:
+            - run_checks_partner
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+            branches:
+              # Only run this for pushes to the main branch
+              only: main
