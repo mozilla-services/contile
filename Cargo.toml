@@ -21,6 +21,7 @@ actix-rt = "1"  # 2+ breaks testing, May need actix-web 4+?
 actix-web = "3"
 backtrace = "0.3"
 cadence = "0.25"
+chrono = "0.4"
 docopt = "1.1"
 cloud-storage = "0.6" # 0.7+ includes request 0.11, tokio 1.4
 config = "0.11"

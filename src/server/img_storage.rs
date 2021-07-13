@@ -1,8 +1,9 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
+use chrono;
 use cloud_storage::{
-    bucket::{Binding, IamPolicy, IamRole, StandardIamRole},
+    bucket::{Binding, IamPolicy, IamRole, RetentionPolicy, StandardIamRole},
     Bucket, Object,
 };
 use serde::Deserialize;
@@ -13,9 +14,20 @@ use crate::settings::Settings;
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize)]
 pub struct StorageSettings {
+    /// The GCP Cloud storage project name
     project_name: String,
+    /// The Bucket name for this data
     bucket_name: String,
-    endpoint: String,
+    /// The bucket TTL is determined by the policy set for the given bucket when it's created.
+    #[serde(default = "default_ttl")]
+    bucket_ttl: u64,
+    /// The max time to live for cached data, ~ 15 days.
+    #[serde(default = "default_ttl")]
+    cache_ttl: u64,
+}
+
+fn default_ttl() -> u64 {
+    86400 * 15
 }
 
 /// Instantiate from [Settings]
@@ -31,14 +43,18 @@ impl From<&Settings> for StorageSettings {
 impl Default for StorageSettings {
     fn default() -> Self {
         Self {
+            //*
             project_name: "".to_owned(),
             bucket_name: "".to_owned(),
-            endpoint: "".to_owned(),
+            bucket_ttl: 86400 * 15,
+            cache_ttl: 86400 * (15 + 1),
+            // */
             /*
             project_name: "secondary-project".to_owned(),
             bucket_name: "moz-contile-test-jr".to_owned(),
-            endpoint: "https://storage.googleapis.com".to_owned(),
-            */
+            bucket_ttl: 86400 * 15,
+            cache_ttl: 86400 * (15 + 1),
+            // */
         }
     }
 }
@@ -59,6 +75,8 @@ pub struct StoreResult {
     pub url: uri::Uri,
     pub hash: String,
     pub object: Object,
+    #[cfg(test)]
+    pub exists: bool,
 }
 
 /// Store a given image into Google Storage
@@ -67,35 +85,53 @@ impl StoreImage {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
     pub async fn create(settings: &Settings) -> HandlerResult<Option<Self>> {
         let sset = StorageSettings::from(settings);
+
+        Self::build_bucket(&sset).await
+    }
+
+    pub async fn build_bucket(settings: &StorageSettings) -> HandlerResult<Option<Self>> {
         // TODO: Validate bucket name?
         // https://cloud.google.com/storage/docs/naming-buckets
         // don't try to open an empty bucket
         let empty = ["", "none"];
-        if empty.contains(&sset.bucket_name.to_lowercase().as_str())
-            || empty.contains(&sset.project_name.to_lowercase().as_str())
-            || empty.contains(&sset.endpoint.to_lowercase().as_str())
+        if empty.contains(&settings.bucket_name.to_lowercase().as_str())
+            || empty.contains(&settings.project_name.to_lowercase().as_str())
         {
             trace!("No bucket set. Not storing...");
             return Ok(None);
         }
+        // It's better if the bucket already exists.
+        // Creating the bucket requires "Storage Object Creator" account permissions,
+        // which can be a bit tricky to configure correctly.
         trace!("Try creating bucket...");
         let bucket = match Bucket::create(&cloud_storage::NewBucket {
-            name: sset.bucket_name.clone(),
+            name: settings.bucket_name.clone(),
             ..Default::default()
         })
         .await
         {
-            Ok(v) => v,
+            Ok(mut v) => {
+                // Set the newly created buckets retention policy
+                v.retention_policy = Some(RetentionPolicy {
+                    retention_period: settings.bucket_ttl,
+                    effective_time: chrono::Utc::now(),
+                    is_locked: None,
+                });
+                v.update()
+                    .await
+                    .map_err(|e| HandlerError::internal(&e.to_string()))?;
+                v
+            }
             Err(cloud_storage::Error::Google(ger)) => {
                 if ger.errors_has_reason(&cloud_storage::Reason::Conflict) {
-                    trace!("Already exists {:?}", &sset.bucket_name);
+                    trace!("Already exists {:?}", &settings.bucket_name);
                     // try fetching the existing bucket.
-                    let _content = Bucket::read(&sset.bucket_name).await.map_err(|e| {
+                    let _content = Bucket::read(&settings.bucket_name).await.map_err(|e| {
                         HandlerError::internal(&format!("Could not read bucket {:?}", e))
                     })?;
                     return Ok(Some(Self {
                         // bucket: Some(_content),
-                        settings: sset,
+                        settings: settings.clone(),
                     }));
                 } else {
                     return Err(HandlerError::internal(&format!(
@@ -110,8 +146,8 @@ impl StoreImage {
                 )
             }
         };
-        // Set the permissions for the newly created bucket.
         trace!("Trying to grant viewing to all");
+        // Set the permissions for the newly created bucket.
         // grant allUsers view access
         let all_binding = Binding {
             role: IamRole::Standard(StandardIamRole::ObjectViewer),
@@ -143,28 +179,13 @@ impl StoreImage {
                 .into())
             }
         };
+        // Yay! Bucket created.
         trace!("Bucket OK");
 
         Ok(Some(Self {
             // bucket: Some(bucket),
-            settings: sset,
+            settings: settings.clone(),
         }))
-    }
-
-    /// Generate an image path for data storage into Google Storage
-    fn gen_path(uri: &uri::Uri) -> String {
-        format!("{}{}", uri.host().expect("No host!?"), uri.path())
-    }
-
-    /// Generate the public URI for the stored image.
-    fn gen_public_url(&self, image_path: &str) -> String {
-        format!(
-            "{endpoint}/{project_name}/{bucket_name}/{image_path}",
-            endpoint = self.settings.endpoint,
-            project_name = self.settings.project_name,
-            bucket_name = self.settings.bucket_name,
-            image_path = image_path,
-        )
     }
 
     /// Store an image fetched from the passed `uri` into Google Cloud Storage
@@ -176,17 +197,16 @@ impl StoreImage {
 
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoreResult> {
         trace!("fetching... {:?}", &uri);
-        /*
-        // Should we preserve the name of the image?
-        let mut hasher = Sha256::new();
-        hasher.update(uri.path().as_bytes());
-        let hash = hex::encode(hasher.finalize().as_slice());
-        */
-
         let res = reqwest::get(&uri.to_string())
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image fetch error: {:?}", e)))?;
         // TODO: Verify that we have an image (content type matches, size within limits, etc.)
+        dbg!(
+            "image type: {:?}, size: {:?}",
+            res.headers().get("content-type"),
+            res.content_length()
+        );
+
         let mut content_type: &str = "image/jpg";
         let default_type = HeaderValue::from_str(content_type).unwrap();
         let headers = res.headers().clone();
@@ -200,9 +220,30 @@ impl StoreImage {
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?;
 
-        let image_path = Self::gen_path(&uri);
+        // image paths tend to be "https://<host>/account/###/###/####.jpg"
+        // for now, let's use the various numbers to construct the file name.
+        // this will presume that new images will use a different filename, since the last ####.jpg
+        // looks an awful lot like <creation_utc>.jpg
+        let image_path = &uri
+            .path()
+            .split('/')
+            .filter(|v| !(v.is_empty() || v == &"account")) // remove useless bits.
+            .collect::<Vec<&str>>()
+            .join("_");
 
-        let public_url = self.gen_public_url(&image_path);
+        // check to see if image exists.
+        if let Ok(exists) =
+            cloud_storage::Object::read(&self.settings.bucket_name, &image_path).await
+        {
+            trace!("Found existing image in bucket: {:?}", &exists.media_link);
+            return Ok(StoreResult {
+                hash: exists.etag.clone(),
+                url: exists.self_link.clone().parse()?,
+                object: exists,
+                #[cfg(test)]
+                exists: true,
+            });
+        }
 
         // store data to the googles
         match cloud_storage::Object::create(
@@ -213,11 +254,16 @@ impl StoreImage {
         )
         .await
         {
-            Ok(v) => Ok(StoreResult {
-                hash: v.etag.clone(),
-                url: public_url.parse()?,
-                object: v,
-            }),
+            Ok(v) => {
+                trace!("Stored to {:?}", &v.self_link);
+                Ok(StoreResult {
+                    hash: v.etag.clone(),
+                    url: v.self_link.clone().parse()?,
+                    object: v,
+                    #[cfg(test)]
+                    exists: false,
+                })
+            }
             Err(cloud_storage::Error::Google(ger)) => {
                 Err(HandlerErrorKind::Internal(format!("Could not create object {:?}", ger)).into())
             }
@@ -226,5 +272,56 @@ impl StoreImage {
                 Err(HandlerErrorKind::Internal(format!("Error creating object {:?}", e)).into())
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::settings::test_settings;
+    use actix_http::http::Uri;
+
+    #[test]
+    fn test_config() {
+        let test_val = r#"{"project_name": "project", "bucket_name": "bucket"}"#;
+
+        let mut setting = test_settings();
+        setting.storage = test_val.to_owned();
+        let store_set: StorageSettings = (&setting).into();
+
+        assert!(store_set.project_name == *"project");
+        assert!(store_set.bucket_name == *"bucket");
+        assert!(store_set.cache_ttl == default_ttl());
+    }
+
+    #[tokio::test]
+    async fn test_bucket_gen() -> Result<(), ()> {
+        // TODO: Add credentials and settings for this test
+        if std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err() {
+            print!("Skipping test: No credentials found.");
+            return Ok(());
+        }
+        // TODO: Set these to be valid bucket data.
+        let project_name = "secondary_project";
+        let bucket_name = "moz-contile-test-jr";
+        // TODO: Give this an appropriate target image, at least one dir down.
+        let src_img = "https://evilonastick.com/i/catfact16.png";
+
+        let test_settings = StorageSettings {
+            project_name: project_name.to_owned(),
+            bucket_name: bucket_name.to_owned(),
+            bucket_ttl: 86400 * 15,
+            cache_ttl: 86400 * (15 + 1),
+        };
+        let bucket = StoreImage::build_bucket(&test_settings)
+            .await
+            .unwrap()
+            .unwrap();
+        let target = src_img.parse::<Uri>().unwrap();
+        let result = bucket.store(&target).await;
+        dbg!(&result);
+        assert!(result.is_ok());
+        Ok(())
     }
 }
