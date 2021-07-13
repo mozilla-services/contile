@@ -189,6 +189,7 @@ pub async fn get_tiles(
     for mut tile in filtered {
         if tile.new {
             if let Some(storage) = image_store {
+                // we should have already proven the image_url in `filter_and_process`
                 let result = storage.store(&tile.image_url.parse().unwrap()).await?;
                 tile.image_url = result.url.to_string();
             }
