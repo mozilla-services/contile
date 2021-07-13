@@ -1,5 +1,6 @@
 #![warn(rust_2018_idioms)]
 #![allow(clippy::try_err)]
+#![forbid(unsafe_code)]
 
 //! Context Tile service
 //!
