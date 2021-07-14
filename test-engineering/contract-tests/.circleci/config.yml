@@ -64,7 +64,8 @@ workflows:
           filters:
             tags:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
-              only: /^\d+\.\d+\.\d+$/
+              #only: /^\d+\.\d+\.\d+$/
+              only: /.*/
             branches:
               # Only run this for pushes to the main branch
               only: main
@@ -80,7 +81,8 @@ workflows:
           filters:
             tags:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
-              only: /^\d+\.\d+\.\d+$/
+              #only: /^\d+\.\d+\.\d+$/
+              only: /.*/
             branches:
               # Only run this for pushes to the main branch
               only: main
