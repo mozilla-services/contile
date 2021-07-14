@@ -18,6 +18,9 @@ pub struct StorageSettings {
     project_name: String,
     /// The Bucket name for this data
     bucket_name: String,
+    /// The external CDN host
+    #[serde(default = "default_cdn")]
+    cdn_host: String,
     /// The bucket TTL is determined by the policy set for the given bucket when it's created.
     #[serde(default = "default_ttl")]
     bucket_ttl: u64,
@@ -28,6 +31,10 @@ pub struct StorageSettings {
 
 fn default_ttl() -> u64 {
     86400 * 15
+}
+
+fn default_cdn() -> String {
+    "https://cdn.services.mozilla.org/".to_owned()
 }
 
 /// Instantiate from [Settings]
@@ -46,6 +53,7 @@ impl Default for StorageSettings {
             //*
             project_name: "".to_owned(),
             bucket_name: "".to_owned(),
+            cdn_host: "".to_owned(),
             bucket_ttl: 86400 * 15,
             cache_ttl: 86400 * (15 + 1),
             // */
@@ -258,7 +266,7 @@ impl StoreImage {
                 trace!("Stored to {:?}", &v.self_link);
                 Ok(StoreResult {
                     hash: v.etag.clone(),
-                    url: v.self_link.clone().parse()?,
+                    url: format!("{:?}/{:?}", &self.settings.cdn_host, &image_path).parse()?,
                     object: v,
                     #[cfg(test)]
                     exists: false,
@@ -313,6 +321,7 @@ mod tests {
             bucket_name: bucket_name.to_owned(),
             bucket_ttl: 86400 * 15,
             cache_ttl: 86400 * (15 + 1),
+            cdn_host: "https://example.com/".to_owned(),
         };
         let bucket = StoreImage::build_bucket(&test_settings)
             .await
