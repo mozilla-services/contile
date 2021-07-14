@@ -42,7 +42,7 @@ MTS.
 The `client` directory contains a Python-based test framework for the
 integration tests. The HTTP client used in the framework requests tiles from the
 MTS and performs checks against the responses. The framework implements response
-models for the MTS API
+models for the MTS API.
 
 ### volumes
 

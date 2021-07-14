@@ -44,6 +44,13 @@ workflows:
             alias: run_checks_client
             parameters:
               tox_env: [black, flake8, mypy]
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+            # branches:
+              # Only run this for pushes to the main branch
+              # only: main
 
       - run_checks:
           name: Run << matrix.tox_env >> checks for partner 📋
@@ -52,6 +59,13 @@ workflows:
             alias: run_checks_partner
             parameters:
               tox_env: [black, flake8, mypy, py38]
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+            # branches:
+              # Only run this for pushes to the main branch
+              # only: main
 
       - docker/publish:
           name: Publish Docker image for client 🤖
@@ -64,8 +78,7 @@ workflows:
           filters:
             tags:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
-              #only: /^\d+\.\d+\.\d+$/
-              only: /.*/
+              only: /^\d+\.\d+\.\d+$/
             branches:
               # Only run this for pushes to the main branch
               only: main
@@ -81,8 +94,7 @@ workflows:
           filters:
             tags:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
-              #only: /^\d+\.\d+\.\d+$/
-              only: /.*/
+              only: /^\d+\.\d+\.\d+$/
             branches:
               # Only run this for pushes to the main branch
               only: main
