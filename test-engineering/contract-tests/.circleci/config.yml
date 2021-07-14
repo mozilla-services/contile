@@ -48,9 +48,6 @@ workflows:
             tags:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
               only: /^\d+\.\d+\.\d+$/
-            # branches:
-              # Only run this for pushes to the main branch
-              # only: main
 
       - run_checks:
           name: Run << matrix.tox_env >> checks for partner 📋
@@ -63,9 +60,6 @@ workflows:
             tags:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
               only: /^\d+\.\d+\.\d+$/
-            # branches:
-              # Only run this for pushes to the main branch
-              # only: main
 
       - docker/publish:
           name: Publish Docker image for client 🤖
@@ -80,8 +74,8 @@ workflows:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
               only: /^\d+\.\d+\.\d+$/
             branches:
-              # Only run this for pushes to the main branch
-              only: main
+              # Ignore for all the branches and run only for tags
+              ignore: /.*/
 
       - docker/publish:
           name: Publish Docker image for partner 📋
@@ -96,5 +90,5 @@ workflows:
               # Only run this for tags using version identifiers (YY.MINOR.MICRO)
               only: /^\d+\.\d+\.\d+$/
             branches:
-              # Only run this for pushes to the main branch
-              only: main
+               # Ignore for all the branches and run only for tags
+              ignore: /.*/
