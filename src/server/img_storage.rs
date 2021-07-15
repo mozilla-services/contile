@@ -9,14 +9,40 @@ use cloud_storage::{
     bucket::{Binding, IamPolicy, IamRole, RetentionPolicy, StandardIamRole},
     Bucket, Object,
 };
-use image::io::Reader as ImageReader;
+use image::{io::Reader as ImageReader, ImageFormat};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
+use crate::tags::Tags;
 
 /// These values generally come from the Google console for Cloud Storage.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ImageMetrics {
+    /// maximum length of the image
+    max_size: u64,
+    /// max image height
+    max_height: u64,
+    max_width: u64,
+    min_height: u64,
+    min_width: u64,
+    symmetric: bool,
+}
+
+impl Default for ImageMetrics {
+    fn default() -> Self {
+        Self {
+            max_size: 100_000,
+            max_height: 256,
+            max_width: 256,
+            min_height: 96,
+            min_width: 96,
+            symmetric: true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StorageSettings {
     /// The GCP Cloud storage project name
     project_name: String,
@@ -31,6 +57,9 @@ pub struct StorageSettings {
     /// The max time to live for cached data, ~ 15 days.
     #[serde(default = "default_ttl")]
     cache_ttl: u64,
+    /// Max dimensions for an image
+    #[serde(default = "ImageMetrics::default")]
+    metrics: ImageMetrics,
 }
 
 fn default_ttl() -> u64 {
@@ -60,6 +89,7 @@ impl Default for StorageSettings {
             cdn_host: "".to_owned(),
             bucket_ttl: 86400 * 15,
             cache_ttl: 86400 * (15 + 1),
+            metrics: ImageMetrics::default(),
             // */
             /*
             project_name: "secondary-project".to_owned(),
@@ -96,6 +126,7 @@ pub struct StoreResult {
 pub struct ImageMeta {
     pub width: u32,
     pub height: u32,
+    pub size: usize,
 }
 
 /// Store a given image into Google Storage
@@ -207,14 +238,17 @@ impl StoreImage {
         }))
     }
 
-    pub fn meta(&self, image: &Bytes) -> HandlerResult<ImageMeta> {
-        let img = ImageReader::new(Cursor::new(image))
+    pub fn meta(&self, image: &Bytes, fmt: ImageFormat) -> HandlerResult<ImageMeta> {
+        let mut reader = ImageReader::new(Cursor::new(image));
+        reader.set_format(fmt);
+        let img = reader
             .decode()
-            .map_err(|e| HandlerErrorKind::Internal(format!("Invalid image from ADM: {:?}", e)))?;
-        let meta = img.to_rgb16().dimensions();
+            .map_err(|_| HandlerErrorKind::BadImage("Image unreadable"))?;
+        let rgb_img = img.to_rgb16();
         Ok(ImageMeta {
-            height: meta.1,
-            width: meta.0,
+            height: rgb_img.height(),
+            width: rgb_img.width(),
+            size: rgb_img.len(),
         })
     }
 
@@ -231,7 +265,7 @@ impl StoreImage {
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image fetch error: {:?}", e)))?;
         // TODO: Verify that we have an image (content type matches, size within limits, etc.)
-        dbg!(
+        trace!(
             "image type: {:?}, size: {:?}",
             res.headers().get("content-type"),
             res.content_length()
@@ -245,13 +279,49 @@ impl StoreImage {
             .unwrap_or(&default_type)
             .to_str()
             .unwrap_or(content_type);
+
+        // TODO: Make this a setting?
+        // `image` can't currently handle svg
+        let fmt = match content_type.to_lowercase().as_str() {
+            "image/jpg" | "image/jpeg" => ImageFormat::Jpeg,
+            "image/png" => ImageFormat::Png,
+            _ => {
+                let mut tags = Tags::default();
+                tags.add_extra("url", &uri.to_string());
+                let mut err: HandlerError =
+                    HandlerErrorKind::BadImage("Invalid image format").into();
+                err.tags = tags;
+                return Err(err);
+            }
+        };
+        trace!("Reading...");
         let image = res
             .bytes()
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?;
 
-        let meta = self.meta(&image)?;
+        let meta = self.meta(&image, fmt)?;
+        if self.settings.metrics.symmetric && meta.width != meta.height {
+            let mut tags = Tags::default();
+            tags.add_extra("metrics", &format!("{:?}", meta));
+            tags.add_extra("url", &uri.to_string());
+            let mut err: HandlerError = HandlerErrorKind::BadImage("Non symmetric image").into();
+            err.tags = tags;
+            return Err(err);
+        }
         // TODO: Check image meta sizes
+        if (meta.width as u64) < self.settings.metrics.min_width
+            || (meta.width as u64) > self.settings.metrics.max_width
+            || (meta.height as u64) > self.settings.metrics.max_height
+            || (meta.size as u64) > self.settings.metrics.max_size
+        {
+            let mut tags = Tags::default();
+            tags.add_extra("metrics", &format!("{:?}", meta));
+            tags.add_extra("url", &uri.to_string());
+            let mut err: HandlerError = HandlerErrorKind::BadImage("Invalid image size").into();
+            err.tags = tags;
+            return Err(err);
+        }
 
         // image paths tend to be "https://<host>/account/###/###/####.jpg"
         // for now, let's use the various numbers to construct the file name.
@@ -289,10 +359,11 @@ impl StoreImage {
         .await
         {
             Ok(v) => {
-                trace!("Stored to {:?}", &v.self_link);
+                let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
+                trace!("Stored to {:?}: {:?}", &v.self_link, &url);
                 Ok(StoreResult {
                     hash: v.etag.clone(),
-                    url: format!("{:?}/{:?}", &self.settings.cdn_host, &image_path).parse()?,
+                    url: url.parse()?,
                     object: v,
                     meta,
                     #[cfg(test)]
@@ -331,8 +402,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_bucket_gen() -> Result<(), ()> {
+    async fn test_image_proc() -> Result<(), ()> {
         // TODO: Add credentials and settings for this test
+        std::env::set_var(
+            "GOOGLE_APPLICATION_CREDENTIALS",
+            "/home/jrconlin/.ssh/keys/sync-spanner-dev.json",
+        );
+
         if std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err() {
             print!("Skipping test: No credentials found.");
             return Ok(());
@@ -341,14 +417,15 @@ mod tests {
         let project_name = "secondary_project";
         let bucket_name = "moz-contile-test-jr";
         // TODO: Give this an appropriate target image, at least one dir down.
-        let src_img = "https://evilonastick.com/i/catfact16.png";
+        let src_img = "https://evilonastick.com/test/128px.jpg";
 
         let test_settings = StorageSettings {
             project_name: project_name.to_owned(),
             bucket_name: bucket_name.to_owned(),
             bucket_ttl: 86400 * 15,
             cache_ttl: 86400 * (15 + 1),
-            cdn_host: "https://example.com/".to_owned(),
+            cdn_host: "https://example.com".to_owned(),
+            ..Default::default()
         };
         let bucket = StoreImage::build_bucket(&test_settings)
             .await
@@ -356,7 +433,6 @@ mod tests {
             .unwrap();
         let target = src_img.parse::<Uri>().unwrap();
         let result = bucket.store(&target).await;
-        dbg!(&result);
         assert!(result.is_ok());
         Ok(())
     }
