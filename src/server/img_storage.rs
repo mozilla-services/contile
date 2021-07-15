@@ -1,4 +1,5 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
+///
 use std::io::Cursor;
 
 use actix_http::http::HeaderValue;
@@ -18,7 +19,7 @@ use crate::tags::Tags;
 
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ImageMetrics {
+pub struct ImageMetricSettings {
     /// maximum length of the image
     max_size: u64,
     /// max image height
@@ -29,7 +30,7 @@ pub struct ImageMetrics {
     symmetric: bool,
 }
 
-impl Default for ImageMetrics {
+impl Default for ImageMetricSettings {
     fn default() -> Self {
         Self {
             max_size: 100_000,
@@ -58,12 +59,13 @@ pub struct StorageSettings {
     #[serde(default = "default_ttl")]
     cache_ttl: u64,
     /// Max dimensions for an image
-    #[serde(default = "ImageMetrics::default")]
-    metrics: ImageMetrics,
+    #[serde(default = "ImageMetricSettings::default")]
+    metrics: ImageMetricSettings,
 }
 
 fn default_ttl() -> u64 {
-    86400 * 15
+    86400 * 15 // == 15 days
+    // 31536000 // == 1 year
 }
 
 fn default_cdn() -> String {
@@ -87,9 +89,9 @@ impl Default for StorageSettings {
             project_name: "".to_owned(),
             bucket_name: "".to_owned(),
             cdn_host: "".to_owned(),
-            bucket_ttl: 86400 * 15,
-            cache_ttl: 86400 * (15 + 1),
-            metrics: ImageMetrics::default(),
+            bucket_ttl: default_ttl(),
+            cache_ttl: default_ttl(),
+            metrics: ImageMetricSettings::default(),
             // */
             /*
             project_name: "secondary-project".to_owned(),
@@ -117,13 +119,13 @@ pub struct StoreResult {
     pub url: uri::Uri,
     pub hash: String,
     pub object: Object,
-    pub meta: ImageMeta,
+    pub image_metrics: ImageMetrics,
     #[cfg(test)]
     pub exists: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
-pub struct ImageMeta {
+pub struct ImageMetrics {
     pub width: u32,
     pub height: u32,
     pub size: usize,
@@ -238,14 +240,14 @@ impl StoreImage {
         }))
     }
 
-    pub fn meta(&self, image: &Bytes, fmt: ImageFormat) -> HandlerResult<ImageMeta> {
+    pub fn meta(&self, image: &Bytes, fmt: ImageFormat) -> HandlerResult<ImageMetrics> {
         let mut reader = ImageReader::new(Cursor::new(image));
         reader.set_format(fmt);
         let img = reader
             .decode()
             .map_err(|_| HandlerErrorKind::BadImage("Image unreadable"))?;
         let rgb_img = img.to_rgb16();
-        Ok(ImageMeta {
+        Ok(ImageMetrics {
             height: rgb_img.height(),
             width: rgb_img.width(),
             size: rgb_img.len(),
@@ -280,43 +282,52 @@ impl StoreImage {
             .to_str()
             .unwrap_or(content_type);
 
-        // TODO: Make this a setting?
-        // `image` can't currently handle svg
-        let fmt = match content_type.to_lowercase().as_str() {
-            "image/jpg" | "image/jpeg" => ImageFormat::Jpeg,
-            "image/png" => ImageFormat::Png,
-            _ => {
-                let mut tags = Tags::default();
-                tags.add_extra("url", &uri.to_string());
-                let mut err: HandlerError =
-                    HandlerErrorKind::BadImage("Invalid image format").into();
-                err.tags = tags;
-                return Err(err);
-            }
-        };
         trace!("Reading...");
         let image = res
             .bytes()
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?;
-
-        let meta = self.meta(&image, fmt)?;
-        if self.settings.metrics.symmetric && meta.width != meta.height {
+        // TODO: Make this a setting?
+        // `image` can't currently handle svg
+        let image_metrics = if "image/svg" == content_type.to_lowercase().as_str() {
+            // svg images are vector based, so we can set the size to whatever we want.
+            ImageMetrics {
+                width: 128,
+                height: 128,
+                size: image.len(),
+            }
+        } else {
+            // Otherwise we get the images metrics.
+            let fmt = match content_type.to_lowercase().as_str() {
+                "image/jpg" | "image/jpeg" => ImageFormat::Jpeg,
+                "image/png" => ImageFormat::Png,
+                _ => {
+                    let mut tags = Tags::default();
+                    tags.add_extra("url", &uri.to_string());
+                    let mut err: HandlerError =
+                        HandlerErrorKind::BadImage("Invalid image format").into();
+                    err.tags = tags;
+                    return Err(err);
+                }
+            };
+            self.meta(&image, fmt)?
+        };
+        if self.settings.metrics.symmetric && image_metrics.width != image_metrics.height {
             let mut tags = Tags::default();
-            tags.add_extra("metrics", &format!("{:?}", meta));
+            tags.add_extra("metrics", &format!("{:?}", image_metrics));
             tags.add_extra("url", &uri.to_string());
             let mut err: HandlerError = HandlerErrorKind::BadImage("Non symmetric image").into();
             err.tags = tags;
             return Err(err);
         }
         // TODO: Check image meta sizes
-        if (meta.width as u64) < self.settings.metrics.min_width
-            || (meta.width as u64) > self.settings.metrics.max_width
-            || (meta.height as u64) > self.settings.metrics.max_height
-            || (meta.size as u64) > self.settings.metrics.max_size
+        if (image_metrics.width as u64) < self.settings.metrics.min_width
+            || (image_metrics.width as u64) > self.settings.metrics.max_width
+            || (image_metrics.height as u64) > self.settings.metrics.max_height
+            || (image_metrics.size as u64) > self.settings.metrics.max_size
         {
             let mut tags = Tags::default();
-            tags.add_extra("metrics", &format!("{:?}", meta));
+            tags.add_extra("metrics", &format!("{:?}", image_metrics));
             tags.add_extra("url", &uri.to_string());
             let mut err: HandlerError = HandlerErrorKind::BadImage("Invalid image size").into();
             err.tags = tags;
@@ -343,7 +354,7 @@ impl StoreImage {
                 hash: exists.etag.clone(),
                 url: exists.self_link.clone().parse()?,
                 object: exists,
-                meta,
+                image_metrics,
                 #[cfg(test)]
                 exists: true,
             });
@@ -365,7 +376,7 @@ impl StoreImage {
                     hash: v.etag.clone(),
                     url: url.parse()?,
                     object: v,
-                    meta,
+                    image_metrics,
                     #[cfg(test)]
                     exists: false,
                 })
@@ -404,11 +415,6 @@ mod tests {
     #[tokio::test]
     async fn test_image_proc() -> Result<(), ()> {
         // TODO: Add credentials and settings for this test
-        std::env::set_var(
-            "GOOGLE_APPLICATION_CREDENTIALS",
-            "/home/jrconlin/.ssh/keys/sync-spanner-dev.json",
-        );
-
         if std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err() {
             print!("Skipping test: No credentials found.");
             return Ok(());
