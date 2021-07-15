@@ -4,15 +4,7 @@ use actix_http::http::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{
-    adm::DEFAULT,
-    error::{HandlerError, HandlerErrorKind, HandlerResult},
-    metrics::Metrics,
-    server::{location::LocationResult, ServerState},
-    settings::Settings,
-    tags::Tags,
-    web::DeviceInfo,
-};
+use crate::{adm::DEFAULT, error::{HandlerError, HandlerErrorKind, HandlerResult}, metrics::Metrics, server::{ServerState, img_storage::ImageMeta, location::LocationResult}, settings::Settings, tags::Tags, web::DeviceInfo};
 
 /// The payload provided by ADM
 #[derive(Debug, Deserialize, Serialize)]
@@ -87,6 +79,7 @@ pub struct Tile {
     pub url: String,
     pub click_url: String,
     pub image_url: String,
+    pub meta: ImageMeta,
     pub impression_url: String,
     pub position: Option<u8>,
     #[serde(skip_serializing)]
@@ -102,6 +95,7 @@ impl Tile {
             click_url: tile.click_url,
             image_url: tile.image_url,
             impression_url: tile.impression_url,
+            meta: ImageMeta::default(),
             position,
             new,
         }
@@ -192,6 +186,7 @@ pub async fn get_tiles(
                 // we should have already proven the image_url in `filter_and_process`
                 let result = storage.store(&tile.image_url.parse().unwrap()).await?;
                 tile.image_url = result.url.to_string();
+                tile.meta = result.meta;
             }
         }
         tiles.push(tile);

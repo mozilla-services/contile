@@ -1,12 +1,16 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
+use std::io::Cursor;
+
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
+use actix_web::web::Bytes;
 use chrono;
 use cloud_storage::{
     bucket::{Binding, IamPolicy, IamRole, RetentionPolicy, StandardIamRole},
     Bucket, Object,
 };
-use serde::Deserialize;
+use image::io::Reader as ImageReader;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
@@ -83,8 +87,15 @@ pub struct StoreResult {
     pub url: uri::Uri,
     pub hash: String,
     pub object: Object,
+    pub meta: ImageMeta,
     #[cfg(test)]
     pub exists: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Default, Serialize)]
+pub struct ImageMeta {
+    pub width: u32,
+    pub height: u32,
 }
 
 /// Store a given image into Google Storage
@@ -196,6 +207,17 @@ impl StoreImage {
         }))
     }
 
+    pub fn meta(&self, image: &Bytes) -> HandlerResult<ImageMeta>{
+        let img = ImageReader::new(Cursor::new(image)).decode().map_err(|e| {
+            HandlerErrorKind::Internal(format!("Invalid image from ADM: {:?}", e))
+        })?;
+        let meta = img.to_rgb16().dimensions();
+        Ok(ImageMeta{
+            height: meta.1,
+            width:meta.0
+        })
+    }
+
     /// Store an image fetched from the passed `uri` into Google Cloud Storage
     ///
     /// This will absolutely fetch and store the img into the bucket.
@@ -228,6 +250,9 @@ impl StoreImage {
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?;
 
+        let meta = self.meta(&image)?;
+        // TODO: Check image meta sizes
+
         // image paths tend to be "https://<host>/account/###/###/####.jpg"
         // for now, let's use the various numbers to construct the file name.
         // this will presume that new images will use a different filename, since the last ####.jpg
@@ -248,6 +273,7 @@ impl StoreImage {
                 hash: exists.etag.clone(),
                 url: exists.self_link.clone().parse()?,
                 object: exists,
+                meta,
                 #[cfg(test)]
                 exists: true,
             });
@@ -268,6 +294,7 @@ impl StoreImage {
                     hash: v.etag.clone(),
                     url: format!("{:?}/{:?}", &self.settings.cdn_host, &image_path).parse()?,
                     object: v,
+                    meta,
                     #[cfg(test)]
                     exists: false,
                 })
