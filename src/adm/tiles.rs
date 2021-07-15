@@ -87,6 +87,7 @@ pub struct Tile {
     pub url: String,
     pub click_url: String,
     pub image_url: String,
+    pub image_size: Option<u32>,
     pub image_metrics: ImageMetrics,
     pub impression_url: String,
     pub position: Option<u8>,
@@ -102,6 +103,7 @@ impl Tile {
             url: tile.advertiser_url,
             click_url: tile.click_url,
             image_url: tile.image_url,
+            image_size: None,
             impression_url: tile.impression_url,
             image_metrics: ImageMetrics::default(),
             position,
@@ -194,6 +196,7 @@ pub async fn get_tiles(
                 // we should have already proven the image_url in `filter_and_process`
                 let result = storage.store(&tile.image_url.parse().unwrap()).await?;
                 tile.image_url = result.url.to_string();
+                tile.image_size = Some(result.image_metrics.width);
                 tile.image_metrics = result.image_metrics;
             }
         }

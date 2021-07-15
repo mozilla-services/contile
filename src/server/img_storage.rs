@@ -1,4 +1,6 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 ///
 use std::io::Cursor;
 
@@ -267,6 +269,12 @@ impl StoreImage {
         self.upload(uri, image, &content_type, metrics).await
     }
 
+    pub fn as_hash(&self, str: &str) -> String {
+        let mut hasher = DefaultHasher::new();
+        str.hash(&mut hasher);
+        base64::encode_config(hasher.finish().to_ne_bytes(), base64::URL_SAFE_NO_PAD)
+    }
+
     /// Fetch the bytes for an image based on a URI
     pub(crate) async fn fetch(&self, uri: &uri::Uri) -> HandlerResult<(Bytes, String)> {
         trace!("fetching... {:?}", &uri);
@@ -363,15 +371,18 @@ impl StoreImage {
         image_metrics: ImageMetrics,
     ) -> HandlerResult<StoreResult> {
         // image paths tend to be "https://<host>/account/###/###/####.jpg"
-        // for now, let's use the various numbers to construct the file name.
-        // this will presume that new images will use a different filename, since the last ####.jpg
-        // looks an awful lot like <creation_utc>.jpg
-        let image_path = &uri
-            .path()
-            .split('/')
-            .filter(|v| !(v.is_empty() || v == &"account")) // remove useless bits.
-            .collect::<Vec<&str>>()
-            .join("_");
+        // Convert name to our format.
+        let image_path = format!(
+            "{}.{}.{}",
+            self.as_hash(uri.path()),
+            image.len(),
+            match content_type {
+                "image/jpg" | "image/jpeg" => "jpg",
+                "image/png" => "png",
+                "image/svg" => "svg",
+                _ => ".oct",
+            }
+        );
 
         // check to see if image exists.
         if let Ok(exists) =
