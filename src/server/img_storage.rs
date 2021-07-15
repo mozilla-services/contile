@@ -207,14 +207,14 @@ impl StoreImage {
         }))
     }
 
-    pub fn meta(&self, image: &Bytes) -> HandlerResult<ImageMeta>{
-        let img = ImageReader::new(Cursor::new(image)).decode().map_err(|e| {
-            HandlerErrorKind::Internal(format!("Invalid image from ADM: {:?}", e))
-        })?;
+    pub fn meta(&self, image: &Bytes) -> HandlerResult<ImageMeta> {
+        let img = ImageReader::new(Cursor::new(image))
+            .decode()
+            .map_err(|e| HandlerErrorKind::Internal(format!("Invalid image from ADM: {:?}", e)))?;
         let meta = img.to_rgb16().dimensions();
-        Ok(ImageMeta{
+        Ok(ImageMeta {
             height: meta.1,
-            width:meta.0
+            width: meta.0,
         })
     }
 

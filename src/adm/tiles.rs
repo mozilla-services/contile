@@ -4,7 +4,15 @@ use actix_http::http::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::{adm::DEFAULT, error::{HandlerError, HandlerErrorKind, HandlerResult}, metrics::Metrics, server::{ServerState, img_storage::ImageMeta, location::LocationResult}, settings::Settings, tags::Tags, web::DeviceInfo};
+use crate::{
+    adm::DEFAULT,
+    error::{HandlerError, HandlerErrorKind, HandlerResult},
+    metrics::Metrics,
+    server::{img_storage::ImageMeta, location::LocationResult, ServerState},
+    settings::Settings,
+    tags::Tags,
+    web::DeviceInfo,
+};
 
 /// The payload provided by ADM
 #[derive(Debug, Deserialize, Serialize)]
