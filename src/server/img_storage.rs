@@ -65,7 +65,7 @@ pub struct StorageSettings {
 
 fn default_ttl() -> u64 {
     86400 * 15 // == 15 days
-    // 31536000 // == 1 year
+               // 31536000 // == 1 year
 }
 
 fn default_cdn() -> String {
@@ -262,6 +262,13 @@ impl StoreImage {
     /// (e.g. set the path to be the SHA1 of the bytes or whatever.)
 
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoreResult> {
+        let (image, content_type) = self.fetch(uri).await?;
+        let metrics = self.validate(uri, &image, &content_type).await?;
+        self.upload(uri, image, &content_type, metrics).await
+    }
+
+    /// Fetch the bytes for an image based on a URI
+    pub(crate) async fn fetch(&self, uri: &uri::Uri) -> HandlerResult<(Bytes, String)> {
         trace!("fetching... {:?}", &uri);
         let res = reqwest::get(&uri.to_string())
             .await
@@ -283,10 +290,21 @@ impl StoreImage {
             .unwrap_or(content_type);
 
         trace!("Reading...");
-        let image = res
-            .bytes()
-            .await
-            .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?;
+        Ok((
+            res.bytes()
+                .await
+                .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?,
+            content_type.to_owned(),
+        ))
+    }
+
+    /// Check if a given image byte set is "valid" according to our settings.
+    pub(crate) async fn validate(
+        &self,
+        uri: &uri::Uri,
+        image: &Bytes,
+        content_type: &str,
+    ) -> HandlerResult<ImageMetrics> {
         // TODO: Make this a setting?
         // `image` can't currently handle svg
         let image_metrics = if "image/svg" == content_type.to_lowercase().as_str() {
@@ -333,7 +351,17 @@ impl StoreImage {
             err.tags = tags;
             return Err(err);
         }
+        Ok(image_metrics)
+    }
 
+    /// upload an image to Google Cloud Storage
+    pub(crate) async fn upload(
+        &self,
+        uri: &uri::Uri,
+        image: Bytes,
+        content_type: &str,
+        image_metrics: ImageMetrics,
+    ) -> HandlerResult<StoreResult> {
         // image paths tend to be "https://<host>/account/###/###/####.jpg"
         // for now, let's use the various numbers to construct the file name.
         // this will presume that new images will use a different filename, since the last ####.jpg
@@ -369,13 +397,19 @@ impl StoreImage {
         )
         .await
         {
-            Ok(v) => {
+            Ok(mut object) => {
+                object.content_disposition = Some("inline".to_owned());
+                object.cache_control = Some(format!("public, max-age={}", default_ttl()));
+                object.update().await.map_err(|_| {
+                    error!("Could not set disposition for {:?}", object.self_link);
+                    HandlerErrorKind::BadImage("Could not set content disposition")
+                })?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
-                trace!("Stored to {:?}: {:?}", &v.self_link, &url);
+                trace!("Stored to {:?}: {:?}", &object.self_link, &url);
                 Ok(StoreResult {
-                    hash: v.etag.clone(),
+                    hash: object.etag.clone(),
                     url: url.parse()?,
-                    object: v,
+                    object,
                     image_metrics,
                     #[cfg(test)]
                     exists: false,
@@ -422,7 +456,7 @@ mod tests {
         // TODO: Set these to be valid bucket data.
         let project_name = "secondary_project";
         let bucket_name = "moz-contile-test-jr";
-        // TODO: Give this an appropriate target image, at least one dir down.
+        // TODO: Give this an appropriate target image.
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
         let test_settings = StorageSettings {
@@ -440,6 +474,9 @@ mod tests {
         let target = src_img.parse::<Uri>().unwrap();
         let result = bucket.store(&target).await;
         assert!(result.is_ok());
+
+        // TODO: try each step of store and burn the test image out of storage.
+
         Ok(())
     }
 }
