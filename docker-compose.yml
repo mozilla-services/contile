@@ -11,7 +11,7 @@ services:
       - ./tools/volumes/partner:/tmp/partner
   contile:
     image: contile
-    build: ./
+    #build: ./
     container_name: contile
     depends_on:
       - partner
