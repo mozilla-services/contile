@@ -199,7 +199,7 @@ jobs:
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
       - run:
-         command: docker-compose -f docker-compose.yml run client
+         command: pwd && ls -lrt
       #     name: git_checkout
       #     command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
       #     # command: git clone --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
