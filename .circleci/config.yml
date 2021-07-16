@@ -194,21 +194,26 @@ jobs:
     machine:
       docker_layer_caching: true
       image: ubuntu-2004:202101-01 # Ubuntu 20.04, Docker v20.10.2, Docker Compose v1.28.2
+      auth:
+        username: $DOCKER_USER
+        password: $DOCKER_PASS
     working_directory: ~/contile
     steps:
       - checkout
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
       - run:
-         command: |
-           docker login -u $DOCKER_USER -p $DOCKER_PASS
-           docker-compose -f docker-compose.yml run client
+        name: Restore Docker image cache
+        command: docker load -i /home/circleci/cache/docker.tar
+      - run:
+         name: Run Integration tests
+         command: docker-compose -f docker-compose.yml run client
       #     name: git_checkout
       #     command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
       #     # command: git clone --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
       # - run:
       #     name: building_images
-      #     command: docker-compose -f contile-integration-tests/docker-compose.yml up -d
+      #     command: docker-compose -f contile-integration-tests/docker-compose.yml up -d //docker login -u $DOCKER_USER -p $DOCKER_PASS
 
 workflows:
   version: 2
@@ -231,7 +236,7 @@ workflows:
       - contile-integration-tests:
           name: contile-integration-tests
           #requires:
-          #  - build
+          # - build
           filters:
             branches:
               ignore:
