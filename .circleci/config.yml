@@ -206,8 +206,11 @@ jobs:
       #     name: building_images
       #     command: docker-compose -f contile-integration-tests/docker-compose.yml up -d
       - run:
-          name: run tests
-          command: ls
+          shell: /bin/sh
+          name: |
+            echo Running test
+            set +e
+            ls -lrt
           #command: docker-compose -f docker-compose.yml run client
           #command: docker-compose -f ../docker-compose.yml run client
           # command: docker-compose -f contile-integration-tests/docker-compose.yml run client
@@ -216,10 +219,10 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      - checks:
-          filters:
-            tags:
-              only: /.*/
+      # - checks:
+      #     filters:
+      #       tags:
+      #         only: /.*/
       # - build:
       #     filters:
       #       tags:
