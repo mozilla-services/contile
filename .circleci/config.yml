@@ -209,6 +209,7 @@ jobs:
           name: run tests
           command: ls
           #command: docker-compose -f docker-compose.yml run client
+          #command: docker-compose -f ../docker-compose.yml run client
           # command: docker-compose -f contile-integration-tests/docker-compose.yml run client
 
 workflows:
