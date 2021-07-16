@@ -198,16 +198,17 @@ jobs:
     steps:
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
-      - run:
-          name: git_checkout
-          command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
-          # command: git clone --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
-      - run:
-          name: building_images
-          command: docker-compose -f contile-integration-tests/docker-compose.yml up -d
+      # - run:
+      #     name: git_checkout
+      #     command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
+      #     # command: git clone --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
+      # - run:
+      #     name: building_images
+      #     command: docker-compose -f contile-integration-tests/docker-compose.yml up -d
       - run:
           name: run tests
-          command: docker-compose -f contile-integration-tests/docker-compose.yml run client
+          command: docker-compose -f docker-compose.yml run client
+          # command: docker-compose -f contile-integration-tests/docker-compose.yml run client
 
 workflows:
   version: 2
