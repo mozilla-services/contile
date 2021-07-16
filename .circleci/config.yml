@@ -202,11 +202,11 @@ jobs:
           command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
           # command: git clone --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
       - run:
-         name: building_images
-         command: docker-compose -f contile-integration-tests/docker-compose.yml up -d --build
+          name: building_images
+          command: docker-compose -f contile-integration-tests/docker-compose.yml up -d --build
       - run:
-         name: run tests
-         command: docker-compose -f contile-integration-tests/docker-compose.yml run client
+          name: run tests
+          command: docker-compose -f contile-integration-tests/docker-compose.yml run client
 
 workflows:
   version: 2
