@@ -278,6 +278,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-location"
+version = "0.1.1"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "cadence 0.25.0",
+ "futures",
+ "lazy_static",
+ "maxminddb 0.20.0",
+ "thiserror",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -306,6 +320,12 @@ checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "anyhow"
+version = "1.0.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "595d3cfa7a60d4555cb5067b99f07142a08ea778de5cf993f7b75c7d8fabc486"
 
 [[package]]
 name = "arc-swap"
@@ -489,6 +509,15 @@ dependencies = [
 
 [[package]]
 name = "cadence"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "847f3952612c1559b60fe3a4de76b5c0c7745c5f3214a80b29e7aa844fee06d3"
+dependencies = [
+ "crossbeam-channel",
+]
+
+[[package]]
+name = "cadence"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7685b737fff763407351ce3a0d18c980a68e154b36f2d0b0fafebbac47de032"
@@ -586,10 +615,11 @@ dependencies = [
  "actix-http",
  "actix-rt",
  "actix-web",
+ "actix-web-location",
  "backtrace",
  "base64 0.13.0",
  "bytes 1.0.1",
- "cadence",
+ "cadence 0.26.0",
  "chrono",
  "cloud-storage",
  "config",
@@ -601,7 +631,7 @@ dependencies = [
  "image",
  "lazy_static",
  "log",
- "maxminddb",
+ "maxminddb 0.17.3",
  "rand 0.8.4",
  "regex",
  "reqwest",
@@ -1440,6 +1470,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d13fa57adcc4f3aca91e511b3cdaa58ed8cbcbf97f20e342a11218c76e127f51"
 dependencies = [
  "log",
+ "serde 1.0.126",
+]
+
+[[package]]
+name = "maxminddb"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "835288c768ea07fedcccf84f1c9a463fe7e36856b5868d5ea050f858e20b01b8"
+dependencies = [
+ "log",
+ "memchr",
  "serde 1.0.126",
 ]
 

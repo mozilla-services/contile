@@ -5,6 +5,7 @@ use std::{
 };
 
 use actix_http::http::Uri;
+use actix_web_location::Location;
 use lazy_static::lazy_static;
 use url::Url;
 
@@ -15,7 +16,6 @@ use super::{
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
-    server::location::LocationResult,
     tags::Tags,
     web::middleware::sentry as l_sentry,
 };
@@ -220,7 +220,7 @@ impl AdmFilter {
     pub fn filter_and_process(
         &self,
         mut tile: AdmTile,
-        location: &LocationResult,
+        location: &Location,
         tags: &mut Tags,
         metrics: &Metrics,
     ) -> Option<Tile> {
