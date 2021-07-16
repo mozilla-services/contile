@@ -53,26 +53,13 @@ pub struct StorageSettings {
     /// The Bucket name for this data
     bucket_name: String,
     /// The external CDN host
-    #[serde(default = "default_cdn")]
     cdn_host: String,
     /// The bucket TTL is determined by the policy set for the given bucket when it's created.
-    #[serde(default = "default_ttl")]
     bucket_ttl: u64,
     /// The max time to live for cached data, ~ 15 days.
-    #[serde(default = "default_ttl")]
     cache_ttl: u64,
     /// Max dimensions for an image
-    #[serde(default = "ImageMetricSettings::default")]
     metrics: ImageMetricSettings,
-}
-
-fn default_ttl() -> u64 {
-    86400 * 15 // == 15 days
-               // 31536000 // == 1 year
-}
-
-fn default_cdn() -> String {
-    "https://cdn.services.mozilla.org/".to_owned()
 }
 
 /// Instantiate from [Settings]
@@ -88,20 +75,12 @@ impl From<&Settings> for StorageSettings {
 impl Default for StorageSettings {
     fn default() -> Self {
         Self {
-            //*
             project_name: "".to_owned(),
             bucket_name: "".to_owned(),
-            cdn_host: "".to_owned(),
-            bucket_ttl: default_ttl(),
-            cache_ttl: default_ttl(),
-            metrics: ImageMetricSettings::default(),
-            // */
-            /*
-            project_name: "secondary-project".to_owned(),
-            bucket_name: "moz-contile-test-jr".to_owned(),
+            cdn_host: "https://cdn.services.mozilla.org/".to_owned(),
             bucket_ttl: 86400 * 15,
-            cache_ttl: 86400 * (15 + 1),
-            // */
+            cache_ttl: 86400 * 15,
+            metrics: ImageMetricSettings::default(),
         }
     }
 }
@@ -409,7 +388,7 @@ impl StoreImage {
         {
             Ok(mut object) => {
                 object.content_disposition = Some("inline".to_owned());
-                object.cache_control = Some(format!("public, max-age={}", default_ttl()));
+                object.cache_control = Some(format!("public, max-age={}", self.settings.cache_ttl));
                 object.update().await.map_err(|_| {
                     error!("Could not set disposition for {:?}", object.self_link);
                     HandlerErrorKind::BadImage("Could not set content disposition")
@@ -494,7 +473,6 @@ mod tests {
 
         assert!(store_set.project_name == *"project");
         assert!(store_set.bucket_name == *"bucket");
-        assert!(store_set.cache_ttl == default_ttl());
     }
 
     #[tokio::test]
