@@ -46,6 +46,7 @@ impl Default for ImageMetricSettings {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct StorageSettings {
     /// The GCP Cloud storage project name
     project_name: String,
@@ -117,16 +118,13 @@ pub struct StoreImage {
 
 /// Stored image information, suitable for determining the URL to present to the CDN
 #[derive(Debug)]
-pub struct StoreResult {
+pub struct StoredImage {
     pub url: uri::Uri,
-    pub hash: String,
     pub object: Object,
     pub image_metrics: ImageMetrics,
-    #[cfg(test)]
-    pub exists: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Default, Serialize)]
+#[derive(Clone, Debug, Deserialize, Default, Serialize, PartialEq)]
 pub struct ImageMetrics {
     pub width: u32,
     pub height: u32,
@@ -263,15 +261,15 @@ impl StoreImage {
     /// If you have "Storage Legacy Bucket Writer" previous content is overwritten.
     /// (e.g. set the path to be the SHA1 of the bytes or whatever.)
 
-    pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoreResult> {
+    pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoredImage> {
         let (image, content_type) = self.fetch(uri).await?;
         let metrics = self.validate(uri, &image, &content_type).await?;
-        self.upload(uri, image, &content_type, metrics).await
+        self.upload(image, &content_type, metrics).await
     }
 
-    pub fn as_hash(&self, str: &str) -> String {
+    pub fn as_hash(&self, source: &Bytes) -> String {
         let mut hasher = DefaultHasher::new();
-        str.hash(&mut hasher);
+        source.hash(&mut hasher);
         base64::encode_config(hasher.finish().to_ne_bytes(), base64::URL_SAFE_NO_PAD)
     }
 
@@ -346,10 +344,11 @@ impl StoreImage {
             err.tags = tags;
             return Err(err);
         }
-        // TODO: Check image meta sizes
-        if (image_metrics.width as u64) < self.settings.metrics.min_width
-            || (image_metrics.width as u64) > self.settings.metrics.max_width
-            || (image_metrics.height as u64) > self.settings.metrics.max_height
+        // Check image meta sizes
+        if !(self.settings.metrics.min_width..=self.settings.metrics.max_width)
+            .contains(&(image_metrics.width as u64))
+            || !(self.settings.metrics.min_height..=self.settings.metrics.max_height)
+                .contains(&(image_metrics.height as u64))
             || (image_metrics.size as u64) > self.settings.metrics.max_size
         {
             let mut tags = Tags::default();
@@ -365,16 +364,15 @@ impl StoreImage {
     /// upload an image to Google Cloud Storage
     pub(crate) async fn upload(
         &self,
-        uri: &uri::Uri,
         image: Bytes,
         content_type: &str,
         image_metrics: ImageMetrics,
-    ) -> HandlerResult<StoreResult> {
+    ) -> HandlerResult<StoredImage> {
         // image paths tend to be "https://<host>/account/###/###/####.jpg"
-        // Convert name to our format.
+        // They may be unreliable as a hash source, so use the image bytes.
         let image_path = format!(
             "{}.{}.{}",
-            self.as_hash(uri.path()),
+            self.as_hash(&image),
             image.len(),
             match content_type {
                 "image/jpg" | "image/jpeg" => "jpg",
@@ -384,18 +382,19 @@ impl StoreImage {
             }
         );
 
+        if self.settings.bucket_name.is_empty() {
+            return Err(HandlerError::internal("No storage bucket defined"));
+        }
+
         // check to see if image exists.
         if let Ok(exists) =
             cloud_storage::Object::read(&self.settings.bucket_name, &image_path).await
         {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
-            return Ok(StoreResult {
-                hash: exists.etag.clone(),
-                url: exists.self_link.clone().parse()?,
+            return Ok(StoredImage {
+                url: format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
                 object: exists,
                 image_metrics,
-                #[cfg(test)]
-                exists: true,
             });
         }
 
@@ -417,13 +416,10 @@ impl StoreImage {
                 })?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
-                Ok(StoreResult {
-                    hash: object.etag.clone(),
+                Ok(StoredImage {
                     url: url.parse()?,
                     object,
                     image_metrics,
-                    #[cfg(test)]
-                    exists: false,
                 })
             }
             Err(cloud_storage::Error::Google(ger)) => {
@@ -443,6 +439,50 @@ mod tests {
 
     use crate::settings::test_settings;
     use actix_http::http::Uri;
+    use rand::Rng;
+
+    fn set_env() {
+        // sometimes the IDE doesn't include the host env vars.
+        // this lets you set them proactively.
+
+        // std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS","/home/jrconlin/.ssh/keys/sync-spanner-dev.json");
+    }
+
+    fn test_storage_settings() -> StorageSettings {
+        let project =
+            std::env::var("CONTILE_TEST_PROJECT").unwrap_or_else(|_| "topsites_nonprod".to_owned());
+        let bucket =
+            std::env::var("CONTILE_TEST_BUCKET").unwrap_or_else(|_| "moz_test_bucket".to_owned());
+        let cdn = std::env::var("CONTILE_TEST_CDN_HOST")
+            .unwrap_or_else(|_| "https://example.com".to_owned());
+        StorageSettings {
+            project_name: project,
+            bucket_name: bucket,
+            bucket_ttl: 86400 * 15,
+            cache_ttl: 86400 * (15 + 1),
+            cdn_host: cdn,
+            ..Default::default()
+        }
+    }
+
+    fn test_image_buffer(height: u32, width: u32) -> Bytes {
+        let mut rng = rand::thread_rng();
+        // generate a garbage image.
+        let img = image::ImageBuffer::from_fn(width, height, |_x, _y| {
+            image::Rgb([
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+            ])
+        });
+        let buf: Vec<u8> = Vec::new();
+        let mut out = std::io::Cursor::new(buf);
+        let mut encoder = image::codecs::jpeg::JpegEncoder::new(&mut out);
+        encoder
+            .encode(&img.into_raw(), width, height, image::ColorType::Rgb8)
+            .unwrap();
+        Bytes::from(out.into_inner())
+    }
 
     #[test]
     fn test_config() {
@@ -465,19 +505,9 @@ mod tests {
             return Ok(());
         }
         // TODO: Set these to be valid bucket data.
-        let project_name = "secondary_project";
-        let bucket_name = "moz-contile-test-jr";
-        // TODO: Give this an appropriate target image.
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
-        let test_settings = StorageSettings {
-            project_name: project_name.to_owned(),
-            bucket_name: bucket_name.to_owned(),
-            bucket_ttl: 86400 * 15,
-            cache_ttl: 86400 * (15 + 1),
-            cdn_host: "https://example.com".to_owned(),
-            ..Default::default()
-        };
+        let test_settings = test_storage_settings();
         let bucket = StoreImage::build_bucket(&test_settings)
             .await
             .unwrap()
@@ -487,6 +517,43 @@ mod tests {
         assert!(result.is_ok());
 
         // TODO: try each step of store and burn the test image out of storage.
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_image_validate() -> Result<(), ()> {
+        set_env();
+        let test_valid_image = test_image_buffer(96, 96);
+        let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
+        let test_settings = test_storage_settings();
+        let bucket = StoreImage {
+            settings: test_settings,
+        };
+
+        let result = bucket
+            .validate(&test_uri, &test_valid_image, "image/jpg")
+            .await
+            .unwrap();
+
+        assert!(result.height == 96);
+        assert!(result.width == 96);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_image_invalidate_offsize() -> Result<(), ()> {
+        set_env();
+        let test_valid_image = test_image_buffer(96, 100);
+        let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
+        let bucket = StoreImage {
+            settings: test_storage_settings(),
+        };
+
+        assert!(bucket
+            .validate(&test_uri, &test_valid_image, "image/jpg")
+            .await
+            .is_err());
 
         Ok(())
     }

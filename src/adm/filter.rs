@@ -284,7 +284,6 @@ impl AdmFilter {
                 Some(Tile::from_adm_tile(
                     tile,
                     filter.position.or(default.position),
-                    true,
                 ))
             }
             None => {

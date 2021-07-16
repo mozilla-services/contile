@@ -91,12 +91,10 @@ pub struct Tile {
     pub image_metrics: ImageMetrics,
     pub impression_url: String,
     pub position: Option<u8>,
-    #[serde(skip_serializing)]
-    pub new: bool,
 }
 
 impl Tile {
-    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>, new: bool) -> Self {
+    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>) -> Self {
         Self {
             id: tile.id,
             name: tile.name,
@@ -107,7 +105,6 @@ impl Tile {
             impression_url: tile.impression_url,
             image_metrics: ImageMetrics::default(),
             position,
-            new,
         }
     }
 }
@@ -191,14 +188,12 @@ pub async fn get_tiles(
 
     let mut tiles: Vec<Tile> = Vec::new();
     for mut tile in filtered {
-        if tile.new {
-            if let Some(storage) = image_store {
-                // we should have already proven the image_url in `filter_and_process`
-                let result = storage.store(&tile.image_url.parse().unwrap()).await?;
-                tile.image_url = result.url.to_string();
-                tile.image_size = Some(result.image_metrics.width);
-                tile.image_metrics = result.image_metrics;
-            }
+        if let Some(storage) = image_store {
+            // we should have already proven the image_url in `filter_and_process`
+            let result = storage.store(&tile.image_url.parse().unwrap()).await?;
+            tile.image_url = result.url.to_string();
+            tile.image_size = Some(result.image_metrics.width);
+            tile.image_metrics = result.image_metrics;
         }
         tiles.push(tile);
     }

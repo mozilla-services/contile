@@ -601,6 +601,7 @@ dependencies = [
  "lazy_static",
  "log",
  "maxminddb",
+ "rand 0.8.3",
  "regex",
  "reqwest",
  "sentry",
