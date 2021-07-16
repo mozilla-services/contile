@@ -207,7 +207,8 @@ jobs:
       #     command: docker-compose -f contile-integration-tests/docker-compose.yml up -d
       - run:
           name: run tests
-          command: docker-compose -f docker-compose.yml run client
+          command: ls
+          #command: docker-compose -f docker-compose.yml run client
           # command: docker-compose -f contile-integration-tests/docker-compose.yml run client
 
 workflows:
@@ -218,28 +219,28 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - build:
-          filters:
-            tags:
-              only: /.*/
-      - test:
-          filters:
-            tags:
-              only: /.*/
-          requires:
-            - build
+      # - build:
+      #     filters:
+      #       tags:
+      #         only: /.*/
+      # - test:
+      #     filters:
+      #       tags:
+      #         only: /.*/
+      #     requires:
+      #       - build
       - contile-integration-tests:
           name: contile-integration-tests
-          requires:
-            - build
+          #requires:
+          #  - build
           filters:
             branches:
               ignore:
                 - main
-      - deploy:
-          requires:
-            - build
-            - test
-          filters:
-            tags:
-              only: /.*/
+      # - deploy:
+      #     requires:
+      #       - build
+      #       - test
+      #     filters:
+      #       tags:
+      #         only: /.*/
