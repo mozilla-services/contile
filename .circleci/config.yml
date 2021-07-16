@@ -207,7 +207,7 @@ jobs:
       #     command: docker-compose -f contile-integration-tests/docker-compose.yml up -d
       - run:
           name: run tests
-          command: docker-compose -f docker-compose.yml run client
+          command: docker-compose -f ../docker-compose.yml run client
           # command: docker-compose -f contile-integration-tests/docker-compose.yml run client
 
 workflows:
