@@ -196,7 +196,7 @@ jobs:
     working_directory: ~/contile
     steps:
       - restore_cache:
-        key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
+          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
       - run:
           name: git_checkout
           command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
