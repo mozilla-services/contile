@@ -205,7 +205,7 @@ jobs:
       - run:
          name: Run Integration tests
          command: |
-           docker login -u $DOCKER_USER -p $DOCKER_PASS
+           echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
            docker-compose -f docker-compose.yml run client
       #     name: git_checkout
       #     command: git clone -b create-CI-WF --depth 1 https://github.com/mozilla-services/contile-integration-tests.git
