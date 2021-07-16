@@ -137,6 +137,7 @@ jobs:
                 echo "${DOCKER_PASS}" | docker login -u="${DOCKER_USER}" --password-stdin
               fi
       #- save-sccache-cache
+      - checkout
       - run:
           name: Build Docker image
           command: docker build -t app:build .
