@@ -8,10 +8,10 @@ services:
       PORT: 5000
       RESPONSES_FILE: /tmp/partner/responses.yml
     volumes:
-      - ./tools/volumes/partner:/tmp/partner
+      - /tools/volumes/partner:/tmp/partner
   contile:
     image: contile
-    build: ./
+    #build: ./
     container_name: contile
     depends_on:
       - partner
@@ -29,7 +29,7 @@ services:
       CONTILE_PORT: 8000
       RUST_LOG: main,contile=INFO
     volumes:
-      - ./tools/volumes/contile:/tmp/contile
+      - /tools/volumes/contile:/tmp/contile
   client:
     image: mozilla/contile-integration-tests-client
     #build: client
@@ -43,6 +43,6 @@ services:
       CONTILE_URL: http://contile:8000
       SCENARIOS_FILE: /tmp/client/scenarios.yml
     volumes:
-      - ./tools/volumes/client:/tmp/client
+      - /tools/volumes/client:/tmp/client
     command: >
       "-vv"
