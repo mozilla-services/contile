@@ -206,7 +206,8 @@ jobs:
           name: run sample commands to list working_directory
           command: |
             pwd
-            cd contile
+            cd tools
+            pwd
             ls -lrt
       - run:
          name: Run Integration tests
