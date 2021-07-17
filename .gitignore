@@ -2,3 +2,6 @@
 
 target/
 tools/test/venv
+.pytest_cache
+.DS_Store
+.Python
