@@ -203,13 +203,6 @@ jobs:
          name: Restore Docker image cache
          command: docker load -i /home/circleci/cache/docker.tar
       - run:
-          name: run sample commands to list working_directory
-          command: |
-            pwd
-            cd tools
-            pwd
-            ls -lrt
-      - run:
          name: Run Integration tests
          command: |
            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
@@ -225,32 +218,32 @@ workflows:
   version: 2
   build-deploy:
     jobs:
-      # - checks:
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      # - build:
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      # - test:
-      #     filters:
-      #       tags:
-      #         only: /.*/
-      #     requires:
-      #       - build
+      - checks:
+          filters:
+            tags:
+              only: /.*/
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - test:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - build
       - contile-integration-tests:
           name: contile-integration-tests
-          #requires:
-          # - build
+          requires:
+          - build
           filters:
             branches:
               ignore:
                 - main
-      # - deploy:
-      #     requires:
-      #       - build
-      #       - test
-      #     filters:
-      #       tags:
-      #         only: /.*/
+      - deploy:
+          requires:
+            - build
+            - test
+          filters:
+            tags:
+              only: /.*/
