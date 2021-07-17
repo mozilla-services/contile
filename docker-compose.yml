@@ -1,7 +1,7 @@
 version: "3"
 services:
   partner:
-    image: partner
+    image: mozilla/contile-integration-tests-partner
     #build: partner
     container_name: partner
     environment:
@@ -11,7 +11,7 @@ services:
       - ./tools/volumes/partner:/tmp/partner
   contile:
     image: contile
-    #build: ./
+    build: ./
     container_name: contile
     depends_on:
       - partner
@@ -31,7 +31,7 @@ services:
     volumes:
       - ./tools/volumes/contile:/tmp/contile
   client:
-    image: client
+    image: mozilla/contile-integration-tests-client
     #build: client
     container_name: client
     depends_on:
