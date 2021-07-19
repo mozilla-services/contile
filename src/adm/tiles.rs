@@ -8,7 +8,7 @@ use crate::{
     adm::DEFAULT,
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
-    server::{img_storage::ImageMetrics, location::LocationResult, ServerState},
+    server::{location::LocationResult, ServerState},
     settings::Settings,
     tags::Tags,
     web::DeviceInfo,
@@ -86,15 +86,19 @@ pub struct Tile {
     pub name: String,
     pub url: String,
     pub click_url: String,
+    // The UA only expects image_url and the image's height/width specified as
+    // `image_size`. The height and width should be equal.
     pub image_url: String,
     pub image_size: Option<u32>,
-    pub image_metrics: ImageMetrics,
     pub impression_url: String,
     pub position: Option<u8>,
 }
 
 impl Tile {
     pub fn from_adm_tile(tile: AdmTile, position: Option<u8>) -> Self {
+        // Generate a base response tile from the ADM provided tile structure.
+        // NOTE: the `image_size` is still required to be determined, and is
+        // provided by `StoreImage.store()`
         Self {
             id: tile.id,
             name: tile.name,
@@ -103,7 +107,6 @@ impl Tile {
             image_url: tile.image_url,
             image_size: None,
             impression_url: tile.impression_url,
-            image_metrics: ImageMetrics::default(),
             position,
         }
     }
@@ -190,10 +193,12 @@ pub async fn get_tiles(
     for mut tile in filtered {
         if let Some(storage) = image_store {
             // we should have already proven the image_url in `filter_and_process`
+            // we need to validate the image, store the image for eventual CDN retrieval,
+            // and get the metrics of the image.
             let result = storage.store(&tile.image_url.parse().unwrap()).await?;
             tile.image_url = result.url.to_string();
+            // Since height should equal width, using either value here works.
             tile.image_size = Some(result.image_metrics.width);
-            tile.image_metrics = result.image_metrics;
         }
         tiles.push(tile);
     }

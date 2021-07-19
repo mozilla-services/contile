@@ -73,8 +73,9 @@ impl From<&Settings> for StorageSettings {
         if settings.storage.is_empty() {
             return Self::default();
         }
-        let storage_settings:StorageSettings = serde_json::from_str(&settings.storage).expect("Invalid storage settings");
-        if INVALID.is_match(&storage_settings.bucket_name){
+        let storage_settings: StorageSettings =
+            serde_json::from_str(&settings.storage).expect("Invalid storage settings");
+        if INVALID.is_match(&storage_settings.bucket_name) {
             panic!("Invalid storage settings: invalid bucket name")
         }
         storage_settings
@@ -253,6 +254,7 @@ impl StoreImage {
         self.upload(image, &content_type, metrics).await
     }
 
+    /// Generate a unique hash based on the content of the image
     pub fn as_hash(&self, source: &Bytes) -> String {
         let mut hasher = DefaultHasher::new();
         source.hash(&mut hasher);
@@ -352,6 +354,10 @@ impl StoreImage {
         content_type: &str,
         image_metrics: ImageMetrics,
     ) -> HandlerResult<StoredImage> {
+        if self.settings.bucket_name.is_empty() {
+            return Err(HandlerError::internal("No storage bucket defined"));
+        }
+
         // image paths tend to be "https://<host>/account/###/###/####.jpg"
         // They may be unreliable as a hash source, so use the image bytes.
         let image_path = format!(
@@ -366,11 +372,7 @@ impl StoreImage {
             }
         );
 
-        if self.settings.bucket_name.is_empty() {
-            return Err(HandlerError::internal("No storage bucket defined"));
-        }
-
-        // check to see if image exists.
+        // check to see if image has already been stored.
         if let Ok(exists) =
             cloud_storage::Object::read(&self.settings.bucket_name, &image_path).await
         {
@@ -382,7 +384,7 @@ impl StoreImage {
             });
         }
 
-        // store data to the googles
+        // store new data to the googles
         match cloud_storage::Object::create(
             &self.settings.bucket_name,
             image.to_vec(),
@@ -544,6 +546,5 @@ mod tests {
         let mut setting = test_settings();
         setting.storage = test_val.to_owned();
         let _store_set: StorageSettings = (&setting).into();
-
     }
 }
