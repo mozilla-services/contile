@@ -230,10 +230,6 @@ workflows:
           name: contile-integration-tests
           requires:
           - build
-          filters:
-            branches:
-              only:
-                - main
       - deploy:
           requires:
             - build
