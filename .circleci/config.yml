@@ -232,7 +232,7 @@ workflows:
           - build
           filters:
             branches:
-              ignore:
+              only:
                 - main
       - deploy:
           requires:
