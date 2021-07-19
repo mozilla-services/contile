@@ -13,6 +13,8 @@ use cloud_storage::{
     Bucket, Object,
 };
 use image::{io::Reader as ImageReader, ImageFormat};
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
@@ -65,10 +67,17 @@ pub struct StorageSettings {
 /// Instantiate from [Settings]
 impl From<&Settings> for StorageSettings {
     fn from(settings: &Settings) -> Self {
+        lazy_static! {
+            static ref INVALID: Regex = Regex::new("[^0-9A-Za-z_]").unwrap();
+        }
         if settings.storage.is_empty() {
             return Self::default();
         }
-        serde_json::from_str(&settings.storage).expect("Invalid storage settings")
+        let storage_settings:StorageSettings = serde_json::from_str(&settings.storage).expect("Invalid storage settings");
+        if INVALID.is_match(&storage_settings.bucket_name){
+            panic!("Invalid storage settings: invalid bucket name")
+        }
+        storage_settings
     }
 }
 
@@ -111,7 +120,6 @@ pub struct ImageMetrics {
 }
 
 /// Store a given image into Google Storage
-// TODO: Reduce all the `Internal` errors to more specific storage based ones
 impl StoreImage {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
     pub async fn create(settings: &Settings) -> HandlerResult<Option<Self>> {
@@ -121,7 +129,6 @@ impl StoreImage {
     }
 
     pub async fn build_bucket(settings: &StorageSettings) -> HandlerResult<Option<Self>> {
-        // TODO: Validate bucket name?
         // https://cloud.google.com/storage/docs/naming-buckets
         // don't try to open an empty bucket
         let empty = ["", "none"];
@@ -258,7 +265,6 @@ impl StoreImage {
         let res = reqwest::get(&uri.to_string())
             .await
             .map_err(|e| HandlerErrorKind::Internal(format!("Image fetch error: {:?}", e)))?;
-        // TODO: Verify that we have an image (content type matches, size within limits, etc.)
         trace!(
             "image type: {:?}, size: {:?}",
             res.headers().get("content-type"),
@@ -290,7 +296,6 @@ impl StoreImage {
         image: &Bytes,
         content_type: &str,
     ) -> HandlerResult<ImageMetrics> {
-        // TODO: Make this a setting?
         // `image` can't currently handle svg
         let image_metrics = if "image/svg" == content_type.to_lowercase().as_str() {
             // svg images are vector based, so we can set the size to whatever we want.
@@ -477,12 +482,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_image_proc() -> Result<(), ()> {
-        // TODO: Add credentials and settings for this test
         if std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err() {
             print!("Skipping test: No credentials found.");
             return Ok(());
         }
-        // TODO: Set these to be valid bucket data.
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
         let test_settings = test_storage_settings();
@@ -493,9 +496,6 @@ mod tests {
         let target = src_img.parse::<Uri>().unwrap();
         let result = bucket.store(&target).await;
         assert!(result.is_ok());
-
-        // TODO: try each step of store and burn the test image out of storage.
-
         Ok(())
     }
 
@@ -534,5 +534,16 @@ mod tests {
             .is_err());
 
         Ok(())
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_bucket() {
+        let test_val = r#"{"project_name": "project", "bucket_name": "+bucket"}"#;
+
+        let mut setting = test_settings();
+        setting.storage = test_val.to_owned();
+        let _store_set: StorageSettings = (&setting).into();
+
     }
 }
