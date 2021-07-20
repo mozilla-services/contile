@@ -85,9 +85,9 @@ impl From<&Settings> for StorageSettings {
 impl Default for StorageSettings {
     fn default() -> Self {
         Self {
-            project_name: "".to_owned(),
-            bucket_name: "".to_owned(),
-            cdn_host: "https://cdn.services.mozilla.org/".to_owned(),
+            project_name: "topsites-nonprod".to_owned(),
+            bucket_name: "moz-topsites-stage-cdn".to_owned(),
+            cdn_host: "https://cdn.stage.topsites.nonprod.cloudops.mozgcp.net/".to_owned(),
             bucket_ttl: 86400 * 15,
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
