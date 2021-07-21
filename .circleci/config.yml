@@ -98,7 +98,24 @@ jobs:
       - rust-check
       - rust-clippy
 
-  build-and-test:
+  test:
+    docker:
+      - image: circleci/rust:latest
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PASS
+        environment:
+          RUST_BACKTRACE: 1
+          # XXX: begin_test_transaction doesn't play nice over threaded tests
+          RUST_TEST_THREADS: 1
+    steps:
+      - checkout
+      - setup-rust
+      - write-version
+      - cargo-build
+      - run-tests
+
+  build:
     docker:
       - image: circleci/rust:latest
         auth:
@@ -119,12 +136,8 @@ jobs:
               else
                 echo "${DOCKER_PASS}" | docker login -u="${DOCKER_USER}" --password-stdin
               fi
-      - checkout
-      - setup-rust
-      - write-version
-      - cargo-build
-      - run-tests
       #- save-sccache-cache
+      - checkout
       - run:
           name: Build Docker image
           command: docker build -t app:build .
@@ -177,6 +190,23 @@ jobs:
             else
               echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
             fi
+  contile-integration-tests:
+    machine:
+      docker_layer_caching: true
+      image: ubuntu-2004:202101-01 # Ubuntu 20.04, Docker v20.10.2, Docker Compose v1.28.2
+    working_directory: ~/contile
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
+      - run:
+         name: Restore Docker image cache
+         command: docker load -i /home/circleci/cache/docker.tar
+      - run:
+         name: Run Integration tests
+         command: |
+           echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+           docker-compose -f docker-compose.yml run client
 
 workflows:
   version: 2
@@ -186,13 +216,24 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - build-and-test:
+      - build:
           filters:
             tags:
               only: /.*/
+      - test:
+          filters:
+            tags:
+              only: /.*/
+          requires:
+            - build
+      - contile-integration-tests:
+          name: contile-integration-tests
+          requires:
+          - build
       - deploy:
           requires:
-            - build-and-test
+            - build
+            - test
           filters:
             tags:
               only: /.*/
