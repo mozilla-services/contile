@@ -177,7 +177,11 @@ pub async fn get_tiles(
     let tiles = response
         .tiles
         .into_iter()
-        .filter_map(|tile| state.filter.filter_and_process(tile, tags, metrics))
+        .filter_map(|tile| {
+            state
+                .filter
+                .filter_and_process(tile, location, tags, metrics)
+        })
         .take(settings.adm_max_tiles as usize)
         .collect();
     Ok(TileResponse { tiles })

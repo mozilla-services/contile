@@ -124,21 +124,21 @@ fn adm_settings() -> AdmSettings {
             "impression_hosts": [],
             "click_hosts": [],
             "position": 0,
-            "include_regions": []
+            "include_regions": ["US"]
         },
         "Dunder Mifflin": {
             "advertiser_hosts": ["www.dunderm.biz"],
             "impression_hosts": [],
             "click_hosts": [],
             "position": 1,
-            "include_regions": []
+            "include_regions": ["US"]
         },
         "Los Pollos Hermanos": {
             "advertiser_hosts": ["www.lph-nm.biz"],
             "impression_hosts": [],
             "click_hosts": [],
             "position": 2,
-            "include_regions": []
+            "include_regions": ["US"]
         },
         DEFAULT: {
             "advertiser_hosts": [],
@@ -166,7 +166,7 @@ async fn basic() {
     let mut app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
-        .uri("/v1/tiles?country=UK&placement=newtab")
+        .uri("/v1/tiles")
         .header(header::USER_AGENT, UA)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
@@ -222,7 +222,7 @@ async fn basic_bad_reply() {
     let mut app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
-        .uri("/v1/tiles?country=UK&placement=newtab")
+        .uri("/v1/tiles")
         .header(header::USER_AGENT, UA)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
@@ -241,15 +241,7 @@ async fn basic_bad_reply() {
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert!(tiles.len() == 1);
-    assert!(
-        &tiles[0]
-            .as_object()
-            .unwrap()
-            .get("name")
-            .unwrap()
-            .to_string()
-            == "\"Dunder Mifflin\""
-    );
+    assert_eq!("Dunder Mifflin", &tiles[0]["name"]);
 }
 
 #[actix_rt::test]
@@ -282,7 +274,7 @@ async fn basic_all_bad_reply() {
     let mut app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
-        .uri("/v1/tiles?country=US&placement=newtab")
+        .uri("/v1/tiles")
         .header(header::USER_AGENT, UA)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
@@ -315,7 +307,7 @@ async fn basic_filtered() {
     let mut app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
-        .uri("/v1/tiles?country=UK&placement=newtab")
+        .uri("/v1/tiles")
         .header(header::USER_AGENT, UA)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
@@ -360,7 +352,7 @@ async fn basic_default() {
     let mut app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
-        .uri("/v1/tiles?country=UK&placement=newtab")
+        .uri("/v1/tiles")
         .header(header::USER_AGENT, UA)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
@@ -380,14 +372,7 @@ async fn basic_default() {
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     let names: Vec<&str> = tiles
         .iter()
-        .map(|tile| {
-            tile.as_object()
-                .unwrap()
-                .get("name")
-                .unwrap()
-                .as_str()
-                .unwrap()
-        })
+        .map(|tile| tile["name"].as_str().unwrap())
         .collect();
     assert!(!names.contains(&"Dunder Mifflin"));
 }
@@ -461,4 +446,39 @@ async fn empty_tiles() {
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+#[actix_rt::test]
+async fn include_regions() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut adm_settings = adm_settings();
+    adm_settings.remove("Los Pollos Hermanos");
+    let mut acme = adm_settings
+        .get_mut("Acme")
+        .expect("No Acme tile");
+    // ensure case insensitive matching
+    acme.include_regions = vec!["us".to_owned()];
+    let mut dunderm = adm_settings
+        .get_mut("Dunder Mifflin")
+        .expect("No Dunder Mifflin tile");
+    dunderm.include_regions = vec!["MX".to_owned()];
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: json!(adm_settings).to_string(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // "Dunder Mifflin" should be filtered out
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert!(tiles.len() == 1);
+    assert_eq!(&tiles[0]["name"], "Acme");
 }

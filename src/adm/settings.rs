@@ -140,9 +140,9 @@ impl From<&mut Settings> for AdmSettings {
 ///     "advertiser_hosts": ["www.example.org", "example.org"],
 ///     /* Valid tile positions for this advertiser (empty for "all") */
 ///     "positions": 1,
-///     /* Valid target regions for this advertiser
-///        (use "en-US" for "all in english speaking United States") */
-///     "include_regions": ["en-US/TX", "en-US/CA"],
+///     /* Valid target countries for this advertiser
+///        TODO: could support country + subdivision, e.g. "USOK" */
+///     "include_regions": ["US", "MX"],
 ///     /* Allowed hosts for impression URLs.
 ///        Empty means to use the impression URLs in "DEFAULT" */
 ///     "impression_hosts: [],
