@@ -128,7 +128,7 @@ fn adm_settings() -> AdmSettings {
         },
         "Dunder Mifflin": {
             "advertiser_hosts": ["www.dunderm.biz"],
-            "impression_hosts": [],
+            "impression_hosts": ["example.com", "example.net"],
             "click_hosts": [],
             "position": 1,
             "include_regions": ["US"]
@@ -240,7 +240,7 @@ async fn basic_bad_reply() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    assert!(tiles.len() == 1);
+    assert_eq!(tiles.len(), 1);
     assert_eq!("Dunder Mifflin", &tiles[0]["name"]);
 }
 
@@ -326,15 +326,14 @@ async fn basic_filtered() {
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     // remember, we cap at `settings.adm_max_tiles` (currently 2)
-    assert!(tiles.len() == 2);
-    for tile in tiles {
-        let tile = tile.as_object().expect("!tile.is_object()");
-        match tile.get("name").unwrap().as_str() {
-            Some("Acme") => assert!(tile.get("position") == Some(&Value::from(0))),
-            Some("Los Pollos Hermanos") => assert!(tile.get("position") == Some(&Value::from(2))),
-            _ => panic!("Unknown result"),
-        }
-    }
+    assert_eq!(tiles.len(), 2);
+    // Ensure the tile order from adM is preserved
+    let tile1 = &tiles[0];
+    assert_eq!(tile1["name"], "Acme");
+    assert_eq!(tile1["position"], 0);
+    let tile2 = &tiles[1];
+    assert_eq!(tile2["name"], "Los Pollos Hermanos");
+    assert_eq!(tile2["position"], 2);
 }
 
 #[actix_rt::test]
@@ -370,11 +369,13 @@ async fn basic_default() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    // remember, we cap at `settings.adm_max_tiles` (currently 2)
+    assert_eq!(tiles.len(), 2);
     let names: Vec<&str> = tiles
         .iter()
         .map(|tile| tile["name"].as_str().unwrap())
         .collect();
-    assert!(!names.contains(&"Dunder Mifflin"));
+    assert!(!names.contains(&"Los Pollos Hermanos"));
 }
 
 #[actix_rt::test]
@@ -451,17 +452,13 @@ async fn empty_tiles() {
 #[actix_rt::test]
 async fn include_regions() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+
     let mut adm_settings = adm_settings();
     adm_settings.remove("Los Pollos Hermanos");
-    let mut acme = adm_settings
-        .get_mut("Acme")
-        .expect("No Acme tile");
-    // ensure case insensitive matching
-    acme.include_regions = vec!["us".to_owned()];
-    let mut dunderm = adm_settings
+    adm_settings
         .get_mut("Dunder Mifflin")
-        .expect("No Dunder Mifflin tile");
-    dunderm.include_regions = vec!["MX".to_owned()];
+        .expect("No Dunder Mifflin tile")
+        .include_regions = vec!["MX".to_owned()];
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url.clone(),
         adm_settings: json!(adm_settings).to_string(),
@@ -479,6 +476,6 @@ async fn include_regions() {
     // "Dunder Mifflin" should be filtered out
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    assert!(tiles.len() == 1);
+    assert_eq!(tiles.len(), 1);
     assert_eq!(&tiles[0]["name"], "Acme");
 }

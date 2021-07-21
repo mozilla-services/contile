@@ -126,7 +126,18 @@ impl From<&mut Settings> for AdmSettings {
                 return serde_json::from_reader(f).expect("Invalid ADM Settings file");
             }
         }
-        serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings JSON string")
+        let adm_settings: AdmSettings =
+            serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings JSON string");
+        for (adv, filter_setting) in &adm_settings {
+            if filter_setting
+                .include_regions
+                .iter()
+                .any(|region| region != &region.to_uppercase())
+            {
+                panic!("Advertiser {:?} include_regions must be uppercase", adv);
+            }
+        }
+        adm_settings
     }
 }
 
