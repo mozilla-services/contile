@@ -1,3 +1,21 @@
+<a name="0.4.1"></a>
+## 0.4.1 (2021-07-21)
+
+
+#### Chore
+
+*   Security checklist final bits (#211) ([132ec029](https://github.com/mozilla-services/contile/commit/132ec029cadccc10382aafebde541c94543405fe))
+
+#### Bug Fixes
+
+*   take include_regions into account for filtering  (#217) ([14d38926](https://github.com/mozilla-services/contile/commit/14d3892633d0e99021fe8eaa742ce82fa17c4547), closes [#216](https://github.com/mozilla-services/contile/issues/216))
+
+#### Test
+
+* **Integration_test:**  add integration test to the CircleCI workflow (#214) ([bc8d5f29](https://github.com/mozilla-services/contile/commit/bc8d5f29e406f57cfbbae533ee5cbd21cd49e38e))
+
+
+
 <a name="0.4.0"></a>
 ## 0.4.0 (2021-06-25)
 
