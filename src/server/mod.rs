@@ -94,13 +94,14 @@ impl Server {
         let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         let metrics = metrics_from_opts(&settings)?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
-        let img_store = StoreImage::create(&settings).await?;
+        let req = reqwest::Client::builder()
+            .user_agent(REQWEST_USER_AGENT)
+            .build()?;
+        let img_store = StoreImage::create(&settings, &req).await?;
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
-            reqwest_client: reqwest::Client::builder()
-                .user_agent(REQWEST_USER_AGENT)
-                .build()?,
+            reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             mmdb: (&settings).into(),
             settings: settings.clone(),

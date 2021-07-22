@@ -3,6 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 ///
 use std::io::Cursor;
+use std::time::Duration;
 
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
@@ -62,6 +63,8 @@ pub struct StorageSettings {
     cache_ttl: u64,
     /// Max dimensions for an image
     metrics: ImageMetricSettings,
+    /// Max request time (in seconds)
+    request_timeout: u64,
 }
 
 /// Instantiate from [Settings]
@@ -91,18 +94,29 @@ impl Default for StorageSettings {
             bucket_ttl: 86400 * 15,
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
+            request_timeout: 3,
         }
     }
 }
 
 /// Image storage container
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct StoreImage {
     // bucket isn't really needed here, since `Object` stores and manages itself,
     // but it may prove useful in future contexts.
     //
     // bucket: Option<cloud_storage::Bucket>,
     settings: StorageSettings,
+    req: reqwest::Client,
+}
+
+impl Default for StoreImage {
+    fn default() -> Self {
+        Self {
+            settings: StorageSettings::default(),
+            req: reqwest::Client::new(),
+        }
+    }
 }
 
 /// Stored image information, suitable for determining the URL to present to the CDN
@@ -123,13 +137,18 @@ pub struct ImageMetrics {
 /// Store a given image into Google Storage
 impl StoreImage {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
-    pub async fn create(settings: &Settings) -> HandlerResult<Option<Self>> {
+    pub async fn create(
+        settings: &Settings,
+        client: &reqwest::Client,
+    ) -> HandlerResult<Option<Self>> {
         let sset = StorageSettings::from(settings);
-
-        Self::build_bucket(&sset).await
+        Self::build_bucket(&sset, client).await
     }
 
-    pub async fn build_bucket(settings: &StorageSettings) -> HandlerResult<Option<Self>> {
+    pub async fn build_bucket(
+        settings: &StorageSettings,
+        client: &reqwest::Client,
+    ) -> HandlerResult<Option<Self>> {
         // https://cloud.google.com/storage/docs/naming-buckets
         // don't try to open an empty bucket
         let empty = ["", "none"];
@@ -171,6 +190,7 @@ impl StoreImage {
                     return Ok(Some(Self {
                         // bucket: Some(_content),
                         settings: settings.clone(),
+                        req: client.clone(),
                     }));
                 } else {
                     return Err(HandlerError::internal(&format!(
@@ -224,6 +244,7 @@ impl StoreImage {
         Ok(Some(Self {
             // bucket: Some(bucket),
             settings: settings.clone(),
+            req: client.clone(),
         }))
     }
 
@@ -264,9 +285,14 @@ impl StoreImage {
     /// Fetch the bytes for an image based on a URI
     pub(crate) async fn fetch(&self, uri: &uri::Uri) -> HandlerResult<(Bytes, String)> {
         trace!("fetching... {:?}", &uri);
-        let res = reqwest::get(&uri.to_string())
+        let res = self
+            .req
+            .get(&uri.to_string())
+            .timeout(Duration::from_secs(self.settings.request_timeout))
+            .send()
             .await
-            .map_err(|e| HandlerErrorKind::Internal(format!("Image fetch error: {:?}", e)))?;
+            .map_err(|e| HandlerErrorKind::Internal(format!("Image fetch error: {:?}", e)))?
+            .error_for_status()?;
         trace!(
             "image type: {:?}, size: {:?}",
             res.headers().get("content-type"),
@@ -358,7 +384,8 @@ impl StoreImage {
             return Err(HandlerError::internal("No storage bucket defined"));
         }
 
-        // image paths tend to be "https://<host>/account/###/###/####.jpg"
+        // image source paths tend to be
+        // "https://<remote_host>/account/###/###/####.jpg"
         // They may be unreliable as a hash source, so use the image bytes.
         let image_path = format!(
             "{}.{}.{}",
@@ -491,13 +518,13 @@ mod tests {
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
         let test_settings = test_storage_settings();
-        let bucket = StoreImage::build_bucket(&test_settings)
+        let client = reqwest::Client::new();
+        let bucket = StoreImage::build_bucket(&test_settings, &client)
             .await
             .unwrap()
             .unwrap();
         let target = src_img.parse::<Uri>().unwrap();
-        let result = bucket.store(&target).await;
-        assert!(result.is_ok());
+        bucket.store(&target).await.expect("Store failed");
         Ok(())
     }
 
@@ -509,6 +536,7 @@ mod tests {
         let test_settings = test_storage_settings();
         let bucket = StoreImage {
             settings: test_settings,
+            req: reqwest::Client::new(),
         };
 
         let result = bucket
@@ -528,6 +556,7 @@ mod tests {
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
         let bucket = StoreImage {
             settings: test_storage_settings(),
+            req: reqwest::Client::new(),
         };
 
         assert!(bucket
