@@ -63,7 +63,7 @@ pub struct Settings {
     pub adm_sub1: Option<String>,
     /// adm Endpoint URL
     pub adm_endpoint_url: String,
-    /// max tiles to accept from ADM (default: 2)
+    /// max number of tiles returned to clients (default: 2)
     pub adm_max_tiles: u8,
     /// number of tiles to query from ADM (default: 10)
     pub adm_query_tile_count: u8,

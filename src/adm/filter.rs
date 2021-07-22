@@ -15,6 +15,7 @@ use super::{
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
+    server::location::LocationResult,
     tags::Tags,
     web::middleware::sentry as l_sentry,
 };
@@ -219,6 +220,7 @@ impl AdmFilter {
     pub fn filter_and_process(
         &self,
         mut tile: AdmTile,
+        location: &LocationResult,
         tags: &mut Tags,
         metrics: &Metrics,
     ) -> Option<Tile> {
@@ -234,6 +236,22 @@ impl AdmFilter {
                     .unwrap_or(&none);
                 // if the filter doesn't have anything defined, try using what's in the default.
                 // Sadly, `vec.or()` doesn't exist, so do this a bit "long hand"
+                let include_regions = if filter.include_regions.is_empty() {
+                    default
+                } else {
+                    filter
+                };
+                if !include_regions
+                    .include_regions
+                    .contains(&location.country())
+                {
+                    trace!(
+                        "Rejecting tile: region {:?} not included",
+                        location.country()
+                    );
+                    return None;
+                }
+
                 let adv_filter = if filter.advertiser_hosts.is_empty() {
                     default
                 } else {
