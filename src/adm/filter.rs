@@ -4,6 +4,7 @@ use std::{
     iter::FromIterator,
 };
 
+use actix_http::http::Uri;
 use lazy_static::lazy_static;
 use url::Url;
 
@@ -284,6 +285,17 @@ impl AdmFilter {
                     self.report(&e, tags);
                     return None;
                 }
+
+                if let Err(e) = tile.image_url.parse::<Uri>() {
+                    trace!("Rejecting tile: bad img: {:?}", e);
+                    metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
+                    self.report(
+                        &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
+                        tags,
+                    );
+                    return None;
+                }
+
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
                 // `default`.
