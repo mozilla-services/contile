@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use actix_web::{error::ErrorInternalServerError, web::Data, Error, HttpRequest};
 use cadence::{
-    BufferedUdpMetricSink, Counted, Metric, NopMetricSink, QueuingMetricSink, StatsdClient, Timed,
+    BufferedUdpMetricSink, Counted, CountedExt, Metric, NopMetricSink, QueuingMetricSink, StatsdClient, Timed,
 };
 
 use crate::error::{HandlerError, HandlerErrorKind};
