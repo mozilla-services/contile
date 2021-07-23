@@ -11,6 +11,7 @@ use crate::{
     adm::AdmFilter,
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
+    server::img_storage::StoreImage,
     settings::Settings,
     web::{dockerflow, handlers, middleware},
 };
@@ -38,6 +39,7 @@ pub struct ServerState {
     pub mmdb: location::Location,
     pub settings: Settings,
     pub filter: AdmFilter,
+    pub img_store: Option<StoreImage>,
 }
 
 impl std::fmt::Debug for ServerState {
@@ -92,16 +94,19 @@ impl Server {
         let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         let metrics = metrics_from_opts(&settings)?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
+        let req = reqwest::Client::builder()
+            .user_agent(REQWEST_USER_AGENT)
+            .build()?;
+        let img_store = StoreImage::create(&settings, &req).await?;
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
-            reqwest_client: reqwest::Client::builder()
-                .user_agent(REQWEST_USER_AGENT)
-                .build()?,
+            reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             mmdb: (&settings).into(),
             settings: settings.clone(),
             filter,
+            img_store,
         };
 
         tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics);

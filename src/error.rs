@@ -51,6 +51,10 @@ pub enum HandlerErrorKind {
     #[error("Invalid {} Host: {:?}", _0, _1)]
     InvalidHost(&'static str, String),
 
+    /// A tile image is invalid
+    #[error("Invalid Image: {:?}", _0)]
+    BadImage(&'static str),
+
     /// A tile was from an unrecognized host
     #[error("Unexpected {} Host: {:?}", _0, _1)]
     UnexpectedHost(&'static str, String),
@@ -87,7 +91,10 @@ impl HandlerErrorKind {
         match self {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
             HandlerErrorKind::AdmServerError() => StatusCode::SERVICE_UNAVAILABLE,
-            HandlerErrorKind::BadAdmResponse(_) => StatusCode::BAD_GATEWAY,
+            HandlerErrorKind::BadAdmResponse(_)
+            | HandlerErrorKind::InvalidHost(_, _)
+            | HandlerErrorKind::UnexpectedHost(_, _)
+            | HandlerErrorKind::BadImage(_) => StatusCode::BAD_GATEWAY,
             &HandlerErrorKind::InvalidUA() => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -107,6 +114,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::UnexpectedHost(_, _) => 602,
             HandlerErrorKind::MissingHost(_, _) => 603,
             HandlerErrorKind::UnexpectedAdvertiser(_) => 604,
+            HandlerErrorKind::BadImage(_) => 605,
             HandlerErrorKind::InvalidUA() => 700,
         }
     }
