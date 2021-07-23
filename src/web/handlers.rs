@@ -1,14 +1,27 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
+use rand::{thread_rng, Rng};
 
 use crate::{
     adm,
     error::{HandlerError, HandlerErrorKind},
     metrics::Metrics,
     server::{cache, location::LocationResult, ServerState},
+    settings::Settings,
     tags::Tags,
     web::{middleware::sentry as l_sentry, DeviceInfo},
 };
+
+/// Calculate the ttl from the settings by taking the tiles_ttl
+/// and calculating a jitter that is no more than 50% of the total TTL.
+/// It is recommended that "jitter" be 10%.
+pub fn add_jitter(settings: &Settings) -> u32 {
+    let mut rng = thread_rng();
+    let ftl = settings.tiles_ttl as f32;
+    let offset = ftl * (std::cmp::min(settings.jitter, 50) as f32 * 0.01);
+    let jit = rng.gen_range(0.0 - offset..offset);
+    (ftl + jit) as u32
+}
 
 /// Handler for `.../v1/tiles` endpoint
 ///
@@ -67,7 +80,7 @@ pub async fn get_tiles(
 
     match result {
         Ok(response) => {
-            let tiles = cache::Tiles::new(response, state.settings.tiles_ttl)?;
+            let tiles = cache::Tiles::new(response, add_jitter(&state.settings))?;
             trace!(
                 "get_tiles: cache miss{}: {:?}",
                 if expired { " (expired)" } else { "" },
