@@ -97,14 +97,11 @@ pub async fn get_tiles(
     }
 }
 
-fn content_response(content: &cache::TilesContent, metrics: &Metrics) -> HttpResponse {
+fn content_response(content: &cache::TilesContent, _metrics: &Metrics) -> HttpResponse {
     match content {
         cache::TilesContent::Json(json) => HttpResponse::Ok()
             .content_type("application/json")
             .body(json),
-        cache::TilesContent::Empty => {
-            metrics.incr("tiles.empty");
-            HttpResponse::NoContent().finish()
-        }
+        cache::TilesContent::Empty => HttpResponse::NoContent().finish(),
     }
 }
