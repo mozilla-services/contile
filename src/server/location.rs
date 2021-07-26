@@ -7,6 +7,7 @@ use actix_http::{http::HeaderValue, RequestHead};
 use config::ConfigError;
 use maxminddb::{self, geoip2::City, MaxMindDBError};
 use serde::{self, Serialize};
+use serde_json::json;
 
 use crate::{
     error::{HandlerErrorKind, HandlerResult},
@@ -114,6 +115,10 @@ impl LocationResult {
             }
         }
         loc
+    }
+
+    pub fn as_string(&self) -> String {
+        json!(self).to_string()
     }
 }
 
