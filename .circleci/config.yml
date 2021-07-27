@@ -206,7 +206,7 @@ jobs:
          name: Run Integration tests
          command: |
            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-           docker-compose --use-aliases -f docker-compose.yml run client
+           docker-compose -f docker-compose.yml run --use-aliases client
 
 workflows:
   version: 2
