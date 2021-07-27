@@ -10,7 +10,7 @@ services:
     volumes:
       - ./tools/volumes/partner:/tmp/partner
   contile:
-    image: contile
+    image: app:build
     #build: ./
     container_name: contile
     depends_on:
