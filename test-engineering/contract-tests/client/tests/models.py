@@ -2,9 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 
 class Header(BaseModel):
@@ -22,13 +22,14 @@ class Request(BaseModel):
     headers: List[Header] = []
 
 
-class Tile(BaseModel):
+class Tile(BaseModel, extra=Extra.allow):
     """Class that holds information about a Tile returned by Contile."""
 
     id: int
     name: str
     click_url: str
     image_url: str
+    image_size: Optional[int]
     impression_url: str
     url: str
     position: int
