@@ -4,7 +4,7 @@
 
 from typing import Any, List, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Extra
 
 
 class Header(BaseModel):
@@ -22,7 +22,7 @@ class Request(BaseModel):
     headers: List[Header] = []
 
 
-class Tile(BaseModel):
+class Tile(BaseModel, extra=Extra.allow):
     """Class that holds information about a Tile returned by Contile."""
 
     id: int
