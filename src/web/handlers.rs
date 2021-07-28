@@ -58,7 +58,7 @@ pub async fn get_tiles(
             if !expired {
                 trace!("get_tiles: cache hit: {:?}", audience_key);
                 metrics.incr("tiles_cache.hit");
-                return Ok(content_response(&tiles.content, &metrics));
+                return Ok(content_response(&tiles.content));
             }
         }
     }
@@ -88,7 +88,7 @@ pub async fn get_tiles(
             );
             metrics.incr("tiles_cache.miss");
             state.tiles_cache.insert(audience_key, tiles.clone());
-            Ok(content_response(&tiles.content, &metrics))
+            Ok(content_response(&tiles.content))
         }
         Err(e) => {
             match e.kind() {
@@ -110,7 +110,7 @@ pub async fn get_tiles(
     }
 }
 
-fn content_response(content: &cache::TilesContent, _metrics: &Metrics) -> HttpResponse {
+fn content_response(content: &cache::TilesContent) -> HttpResponse {
     match content {
         cache::TilesContent::Json(json) => HttpResponse::Ok()
             .content_type("application/json")

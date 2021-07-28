@@ -180,8 +180,6 @@ pub async fn get_tiles(
     };
     if response.tiles.is_empty() {
         warn!("adm::get_tiles empty response {}", adm_url);
-        tags.add_extra("location", &location.as_string());
-        tags.add_extra("device_info", &device_info.to_string());
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
@@ -198,8 +196,6 @@ pub async fn get_tiles(
 
     if filtered.is_empty() {
         warn!("adm::get_tiles no valid tiles {}", adm_url);
-        tags.add_extra("location", &location.as_string());
-        tags.add_extra("device_info", &device_info.to_string());
         metrics.incr_with_tags("filter.adm.all_filtered", Some(tags));
     }
     let mut tiles: Vec<Tile> = Vec::new();

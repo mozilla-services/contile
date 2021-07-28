@@ -50,12 +50,6 @@ pub struct DeviceInfo {
     pub os_family: OsFamily,
 }
 
-impl ToString for DeviceInfo {
-    fn to_string(&self) -> String {
-        format!("{:?}", self)
-    }
-}
-
 /// Parse a User-Agent header into a simplified `DeviceInfo`
 pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();
