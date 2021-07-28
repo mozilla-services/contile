@@ -102,7 +102,10 @@ pub async fn get_tiles(
                     tags.add_tag("level", "warning");
                     l_sentry::report(&tags, sentry::event_from_error(&e));
                     warn!("ADM Server error: {:?}", e);
-                    Ok(HttpResponse::NoContent().finish())
+                    // Break this on purpose to verify that the automated
+                    // integration tests can detect bugs in Contile and that
+                    // failures provide actionable error messages! 🐒
+                    Ok(HttpResponse::Ok().finish())
                 }
                 _ => Err(e),
             }
