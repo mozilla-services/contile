@@ -30,6 +30,9 @@ services:
       RUST_LOG: main,contile=INFO
     volumes:
       - ./tools/volumes/contile:/tmp/contile
+    ## Report your IP address, then try running Contile
+    #entrypoint: >
+    #  /bin/sh -c "hostname -I && bin/contile"
   client:
     image: mozilla/contile-integration-tests-client
     #build: client
@@ -44,5 +47,7 @@ services:
       SCENARIOS_FILE: /tmp/client/scenarios.yml
     volumes:
       - ./tools/volumes/client:/tmp/client
+    #entrypoint: >
+    #  /bin/sh -c "apt update -y && apt install knot-dnsutils -y && hostname -I && kdig contile +short && kdig localhost +short"
     command: >
       "-vv"

@@ -1,9 +1,11 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-///
-use std::io::Cursor;
-use std::time::Duration;
+use std::{
+    collections::hash_map::DefaultHasher,
+    env,
+    hash::{Hash, Hasher},
+    io::Cursor,
+    time::Duration,
+};
 
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
@@ -149,6 +151,13 @@ impl StoreImage {
         settings: &StorageSettings,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
+        if env::var("SERVICE_ACCOUNT").is_err()
+            && env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err()
+        {
+            trace!("No auth credentials set. Not storing...");
+            return Ok(None);
+        }
+
         // https://cloud.google.com/storage/docs/naming-buckets
         // don't try to open an empty bucket
         let empty = ["", "none"];
