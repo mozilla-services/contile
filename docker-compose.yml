@@ -1,17 +1,17 @@
 version: "3"
 services:
   partner:
-    image: mozilla/contile-integration-tests-partner
-    #build: partner
+    image: mozilla/contile-integration-tests-partner:21.2.0
     container_name: partner
     environment:
       PORT: 5000
       RESPONSES_FILE: /tmp/partner/responses.yml
+    expose:
+      - "5000"
     volumes:
       - ./tools/volumes/partner:/tmp/partner
   contile:
-    image: contile
-    #build: ./
+    image: app:build
     container_name: contile
     depends_on:
       - partner
@@ -28,11 +28,12 @@ services:
       CONTILE_HUMAN_LOGS: 1
       CONTILE_PORT: 8000
       RUST_LOG: main,contile=INFO
+    expose:
+      - "8000"
     volumes:
       - ./tools/volumes/contile:/tmp/contile
   client:
-    image: mozilla/contile-integration-tests-client
-    #build: client
+    image: mozilla/contile-integration-tests-client:21.2.0
     container_name: client
     depends_on:
       - partner
