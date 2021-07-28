@@ -81,6 +81,8 @@ pub struct Settings {
     // OBSOLETE:
     pub sub1: Option<String>,
     pub partner_id: Option<String>,
+    /// Percentage of overall time for fetch "jitter".
+    pub jitter: u8,
 }
 
 impl Default for Settings {
@@ -115,6 +117,8 @@ impl Default for Settings {
             adm_ignore_advertisers: None,
             sub1: Some("demofeed".to_owned()),
             partner_id: Some("123456789".to_owned()),
+            // +/- 10% of time for jitter.
+            jitter: 10,
         }
     }
 }
