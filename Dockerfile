@@ -3,7 +3,8 @@
 # Change this to be your application's name
 ARG APPNAME=contile
 
-FROM rust:1.52.1 as builder
+# make sure that the build and run environments are the same version
+FROM rust:1.53-slim-buster as builder
 ARG APPNAME
 ADD . /app
 WORKDIR /app
@@ -12,6 +13,7 @@ WORKDIR /app
 # ARG RUST_TOOLCHAIN=nightly
 RUN \
     apt-get -qq update && \
+    apt-get install libssl-dev pkg-config -y && \
     \
     rustup default ${RUST_TOOLCHAIN} && \
     cargo --version && \
@@ -21,16 +23,16 @@ RUN \
     cp /app/target/release/${APPNAME} /app/bin
 
 
-FROM debian:stretch-slim
+FROM debian:buster-slim
 ARG APPNAME
 
-# FROM debian:stretch  # for debugging docker build
+# FROM debian:buster  # for debugging docker build
 RUN \
     groupadd --gid 10001 app && \
     useradd --uid 10001 --gid 10001 --home /app --create-home app && \
     \
     apt-get -qq update && \
-    apt-get -qq install -y libssl-dev ca-certificates && \
+    apt-get -qq install -y libssl-dev pkg-config ca-certificates && \
     rm -rf /var/lib/apt/lists
 
 COPY --from=builder /app/bin /app/bin
