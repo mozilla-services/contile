@@ -207,7 +207,7 @@ jobs:
          command: |
            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
            docker-compose --version
-           docker-compose -f docker-compose.yml run --use-aliases --rm client
+           docker-compose -f docker-compose.yml up --abort-on-container-exit
 
 workflows:
   version: 2
