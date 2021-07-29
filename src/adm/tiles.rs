@@ -180,6 +180,7 @@ pub async fn get_tiles(
     };
     if response.tiles.is_empty() {
         warn!("adm::get_tiles empty response {}", adm_url);
+        metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
     let filtered: Vec<Tile> = response
@@ -193,6 +194,10 @@ pub async fn get_tiles(
         .take(settings.adm_max_tiles as usize)
         .collect();
 
+    if filtered.is_empty() {
+        warn!("adm::get_tiles no valid tiles {}", adm_url);
+        metrics.incr_with_tags("filter.adm.all_filtered", Some(tags));
+    }
     let mut tiles: Vec<Tile> = Vec::new();
     for mut tile in filtered {
         if let Some(storage) = image_store {
