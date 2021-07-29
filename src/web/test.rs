@@ -373,7 +373,7 @@ async fn basic_default() {
     assert_eq!(tiles.len(), 2);
     assert!(!tiles
         .iter()
-        .any(|tile| tile["name"].as_str().unwrap() == "Los Pollos Hermanos" ));
+        .any(|tile| tile["name"].as_str().unwrap() == "Los Pollos Hermanos"));
 }
 
 #[actix_rt::test]
