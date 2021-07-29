@@ -66,7 +66,6 @@ macro_rules! init_app {
 }
 
 struct MockAdm {
-    pub server: dev::Server,
     pub endpoint_url: String,
     pub request_rx: mpsc::UnboundedReceiver<String>,
 }
@@ -111,8 +110,8 @@ fn init_mock_adm(response: String) -> MockAdm {
         .bind(("127.0.0.1", 0))
         .expect("Couldn't bind mock_adm");
     let addr = server.addrs().pop().expect("No mock_adm addr");
+    server.run();
     MockAdm {
-        server: server.run(),
         endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         request_rx,
     }
@@ -372,11 +371,9 @@ async fn basic_default() {
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     // remember, we cap at `settings.adm_max_tiles` (currently 2)
     assert_eq!(tiles.len(), 2);
-    let names: Vec<&str> = tiles
+    assert!(!tiles
         .iter()
-        .map(|tile| tile["name"].as_str().unwrap())
-        .collect();
-    assert!(!names.contains(&"Los Pollos Hermanos"));
+        .any(|tile| tile["name"].as_str().unwrap() == "Los Pollos Hermanos" ));
 }
 
 #[actix_rt::test]
