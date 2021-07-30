@@ -347,7 +347,7 @@ impl StoreImage {
                     return Err(err);
                 }
             };
-            self.meta(&image, fmt)?
+            self.meta(image, fmt)?
         };
         if self.settings.metrics.symmetric && image_metrics.width != image_metrics.height {
             let mut tags = Tags::default();

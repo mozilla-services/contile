@@ -94,7 +94,7 @@ impl AdmFilter {
             Err(e) => {
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", &url);
+                tags.add_extra("url", url);
                 tags.add_extra("parse_error", &e.to_string());
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
@@ -126,7 +126,7 @@ impl AdmFilter {
             Err(e) => {
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", &url);
+                tags.add_extra("url", url);
 
                 tags.add_extra("parse_error", &e.to_string());
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
@@ -142,7 +142,7 @@ impl AdmFilter {
             trace!("bad url: url={:?}", url.to_string());
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
-            tags.add_extra("url", &url);
+            tags.add_extra("url", url);
 
             tags.add_extra("reason", "bad host");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
@@ -152,10 +152,10 @@ impl AdmFilter {
                 trace!("missing param: key={:?} url={:?}", &key, url.to_string());
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", &url);
+                tags.add_extra("url", url);
 
                 tags.add_extra("reason", "missing required query param");
-                tags.add_extra("param", &key);
+                tags.add_extra("param", key);
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
         }
@@ -164,7 +164,7 @@ impl AdmFilter {
                 trace!("invalid param key={:?} url={:?}", &key, url.to_string());
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", &url);
+                tags.add_extra("url", url);
 
                 tags.add_extra("reason", "invalid query param");
                 tags.add_extra("param", &key);
@@ -190,7 +190,7 @@ impl AdmFilter {
             Err(e) => {
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", &url);
+                tags.add_extra("url", url);
                 tags.add_extra("parse_error", &e.to_string());
                 return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
             }
@@ -204,7 +204,7 @@ impl AdmFilter {
             trace!("missing param key=id url={:?}", url.to_string());
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
-            tags.add_extra("url", &url);
+            tags.add_extra("url", url);
             tags.add_extra("reason", "invalid query param");
             tags.add_extra("param", "id");
             return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
