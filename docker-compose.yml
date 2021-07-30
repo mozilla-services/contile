@@ -11,6 +11,10 @@ services:
     volumes:
       - ./tools/volumes/partner:/tmp/partner
   contile:
+    ## If Contile cannot run, or fails early, this image will close and
+    ## the `client` will not be able to connect. You can sometimes
+    ## debug this by running
+    ## `docker-compose -f docker-compose.yml run --rm contile`
     image: app:build
     container_name: contile
     depends_on:
@@ -32,6 +36,13 @@ services:
       - "8000"
     volumes:
       - ./tools/volumes/contile:/tmp/contile
+    ## Override the entrypoint to report the IP address, then try
+    ## running Contile this can be useful to debug internal
+    ## networking issues as well as externally connect to contile.
+    ## (We use `hostname` here because the system doesn't include
+    ## many IP reporting functions.)
+    #entrypoint: >
+    #  /bin/sh -c "hostname -I && bin/contile"
   client:
     image: mozilla/contile-integration-tests-client:21.2.0
     container_name: client
@@ -45,5 +56,11 @@ services:
       SCENARIOS_FILE: /tmp/client/scenarios.yml
     volumes:
       - ./tools/volumes/client:/tmp/client
+    ## This pulls in knot-dnsutils because it's the only dnsutil
+    ## package that is available for the host docker image. This line can
+    ## be useful if the tests fail due to connection errors. See also
+    ## the note inside the `contile` service above.
+    #entrypoint: >
+    #  /bin/sh -c "apt update -y && apt install knot-dnsutils -y && hostname -I && kdig contile +short && kdig localhost +short"
     command: >
       "-vv"
