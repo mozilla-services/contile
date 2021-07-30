@@ -86,4 +86,9 @@ def test_read_tilesp_validate_sub2(client, sub2):
     )
 
     assert response.status_code == 400
-    assert "tiles" not in response.json()
+
+    response_content = response.json()
+    assert "tiles" not in response_content
+    assert "status" in response_content
+    assert "count" in response_content
+    assert "response" in response_content

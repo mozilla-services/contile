@@ -10,8 +10,9 @@ import pathlib
 import sys
 
 import yaml
-from fastapi import FastAPI, Query, Response, status
+from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from models import ResponseFromFile, Tiles
 
@@ -33,6 +34,31 @@ responses_from_file = {
 }
 
 app = FastAPI()
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> Response:
+    """Custom validation exception handler that returns a 400 Bad Request.
+
+    This is required to match the partner API implementation.
+    """
+    body_from_API_spec = {
+        "status": {"code": "103", "text": "Invalid input"},
+        "count": "0",
+        "response": "1",
+    }
+
+    # Include the example response body from the API spec in the response in
+    # case contile is processing that information internally. Return the actual
+    # validation error from FastAPI under the key "test".
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content=jsonable_encoder(
+            {"test": {"detail": exc.errors(), "body": exc.body}, **body_from_API_spec}
+        ),
+    )
 
 
 @app.get("/")
