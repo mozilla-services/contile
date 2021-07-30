@@ -249,6 +249,7 @@ impl AdmFilter {
                         "Rejecting tile: region {:?} not included",
                         location.country()
                     );
+                    metrics.incr_with_tags("filter.adm.err.invalid_location", Some(tags));
                     return None;
                 }
 
