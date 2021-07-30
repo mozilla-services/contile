@@ -60,7 +60,7 @@ pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
         // XXX: Tags::from_head already adds this
         err.tags.add_extra("ua", ua);
         err.tags
-            .add_extra("name", &wresult.name.to_lowercase().as_str());
+            .add_extra("name", wresult.name.to_lowercase().as_str());
         return Err(err);
     }
 

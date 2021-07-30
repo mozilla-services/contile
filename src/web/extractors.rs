@@ -38,7 +38,7 @@ impl FromRequest for DeviceInfo {
                 .unwrap_or(&EMPTY_HEADER)
                 .to_str()
                 .unwrap_or_default();
-            Ok(get_device_info(&ua)?)
+            Ok(get_device_info(ua)?)
         }
         .boxed_local()
     }
