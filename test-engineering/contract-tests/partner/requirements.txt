@@ -8,7 +8,7 @@ asgiref==3.3.4
     # via uvicorn
 click==8.0.1
     # via uvicorn
-fastapi==0.67.0
+fastapi==0.68.0
     # via -r requirements.in
 gunicorn==20.1.0
     # via -r requirements.in
