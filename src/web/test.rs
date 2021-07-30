@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix_cors::Cors;
 use actix_web::{
-    dev, http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
+    http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
     HttpRequest, HttpResponse, HttpServer,
 };
 use futures::{channel::mpsc, StreamExt};
