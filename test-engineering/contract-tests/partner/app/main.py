@@ -75,7 +75,9 @@ async def read_tilesp(
     response: Response,
     partner: str = Query(..., example="demofeed"),
     sub1: str = Query(..., example="123456789"),
-    sub2: str = Query(..., example="placement1"),
+    sub2: str = Query(
+        ..., example="placement1", max_length=128, regex="^[a-zA-Z0-9]+$"
+    ),
     country_code: str = Query(..., alias="country-code", example="US"),
     region_code: str = Query(..., alias="region-code", example="NY"),
     form_factor: str = Query(..., alias="form-factor", example="desktop"),
