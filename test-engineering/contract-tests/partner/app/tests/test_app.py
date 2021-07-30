@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import pytest
+
 
 def test_read_root(client, version):
     response = client.get("/")
@@ -51,3 +53,42 @@ def test_read_tilesp(client):
             },
         ]
     }
+
+
+@pytest.mark.parametrize(
+    "sub2",
+    [
+        "invalid-param",
+        "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+        "🛒📈🤖",
+    ],
+    ids=["hyphen_in_value", "exceeds_max_characters", "emoji"],
+)
+def test_read_tilesp_validate_sub2(client, sub2):
+    """Test that only alphanumeric characters and maximum 128 characters are
+    accepted as values for the sub2 query parameter.
+
+    See https://github.com/mozilla-services/contile-integration-tests/issues/38
+    """
+    response = client.get(
+        "/tilesp",
+        params={
+            "partner": "demofeed",
+            "sub1": "123456789",
+            "sub2": sub2,
+            "country-code": "US",
+            "region-code": "NY",
+            "form-factor": "desktop",
+            "os-family": "macos",
+            "v": "1.0",
+            "results": "2",
+        },
+    )
+
+    assert response.status_code == 400
+
+    response_content = response.json()
+    assert "tiles" not in response_content
+    assert "status" in response_content
+    assert "count" in response_content
+    assert "response" in response_content
