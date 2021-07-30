@@ -1,11 +1,5 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
-use std::{
-    collections::hash_map::DefaultHasher,
-    env,
-    hash::{Hash, Hasher},
-    io::Cursor,
-    time::Duration,
-};
+use std::{env, io::Cursor, time::Duration};
 
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
@@ -286,9 +280,7 @@ impl StoreImage {
 
     /// Generate a unique hash based on the content of the image
     pub fn as_hash(&self, source: &Bytes) -> String {
-        let mut hasher = DefaultHasher::new();
-        source.hash(&mut hasher);
-        base64::encode_config(hasher.finish().to_ne_bytes(), base64::URL_SAFE_NO_PAD)
+        base64::encode_config(blake3::hash(source).as_bytes(), base64::URL_SAFE_NO_PAD)
     }
 
     /// Fetch the bytes for an image based on a URI
