@@ -99,10 +99,19 @@ def test_read_tilesp_validate_sub2(client, sub2):
     [
         "invalid-param",
         "us",
+        "11",
+        "1U",
         "USAC",
         "🛒📈🤖",
     ],
-    ids=["hyphen_in_value", "all lowercase", "exceeds_max_characters", "emoji"],
+    ids=[
+        "hyphen_in_value",
+        "all_lowercase",
+        "numeric",
+        "alpha_numeric",
+        "exceeds_max_characters",
+        "emoji",
+    ],
 )
 def test_read_tilesp_validate_country_code(client, country_code):
     """Test that only two uppercase characters are
