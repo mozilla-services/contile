@@ -280,11 +280,13 @@ dependencies = [
 [[package]]
 name = "actix-web-location"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e8f1c2eb0c3e890517d7407609c5cab09a42e5d03a8dec09c82e6ab72cb3d3c"
 dependencies = [
  "actix-web",
  "anyhow",
  "async-trait",
- "cadence 0.25.0",
+ "cadence",
  "futures",
  "lazy_static",
  "maxminddb 0.20.0",
@@ -509,15 +511,6 @@ dependencies = [
 
 [[package]]
 name = "cadence"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "847f3952612c1559b60fe3a4de76b5c0c7745c5f3214a80b29e7aa844fee06d3"
-dependencies = [
- "crossbeam-channel",
-]
-
-[[package]]
-name = "cadence"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7685b737fff763407351ce3a0d18c980a68e154b36f2d0b0fafebbac47de032"
@@ -619,7 +612,7 @@ dependencies = [
  "backtrace",
  "base64 0.13.0",
  "bytes 1.0.1",
- "cadence 0.26.0",
+ "cadence",
  "chrono",
  "cloud-storage",
  "config",
