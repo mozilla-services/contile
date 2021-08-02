@@ -92,3 +92,42 @@ def test_read_tilesp_validate_sub2(client, sub2):
     assert "status" in response_content
     assert "count" in response_content
     assert "response" in response_content
+
+
+@pytest.mark.parametrize(
+    "country_code",
+    [
+        "invalid-param",
+        "us",
+        "USAC",
+        "🛒📈🤖",
+    ],
+    ids=["hyphen_in_value", "all lowercase", "exceeds_max_characters", "emoji"],
+)
+def test_read_tilesp_validate_country_code(client, country_code):
+    """Test that only two uppercase characters are
+    accepted as values for the country code query parameter.
+    See https://github.com/mozilla-services/contile-integration-tests/issues/39
+    """
+    response = client.get(
+        "/tilesp",
+        params={
+            "partner": "demofeed",
+            "sub1": "123456789",
+            "sub2": "sub2",
+            "country-code": country_code,
+            "region-code": "NY",
+            "form-factor": "desktop",
+            "os-family": "macos",
+            "v": "1.0",
+            "results": "2",
+        },
+    )
+
+    assert response.status_code == 400
+
+    response_content = response.json()
+    assert "tiles" not in response_content
+    assert "status" in response_content
+    assert "count" in response_content
+    assert "response" in response_content
