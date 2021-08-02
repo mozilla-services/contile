@@ -235,7 +235,6 @@ mod tests {
     fn test_tags() {
         use actix_web::dev::RequestHead;
         use actix_web::http::{header, uri::Uri};
-        use std::collections::HashMap;
 
         let mut rh = RequestHead::default();
         let settings = Settings::default();
@@ -250,13 +249,11 @@ mod tests {
 
         let tags = Tags::from_head(&rh, &settings);
 
-        let mut result = HashMap::<String, String>::new();
-        result.insert("ua.os.ver".to_owned(), "NT 10.0".to_owned());
-        result.insert("ua.os.family".to_owned(), "Windows".to_owned());
-        result.insert("ua.browser.ver".to_owned(), "72.0".to_owned());
-        result.insert("uri.method".to_owned(), "GET".to_owned());
-
-        assert_eq!(tags.tags, result)
+        assert_eq!(tags.tags.get("ua.os.ver"), Some(&"NT 10.0".to_owned()));
+        assert_eq!(tags.tags.get("ua.os.family"), Some(&"Windows".to_owned()));
+        assert_eq!(tags.tags.get("ua.browser.ver"), Some(&"72.0".to_owned()));
+        assert_eq!(tags.tags.get("uri.method"), Some(&"GET".to_owned()));
+        assert!(tags.tags.get("srv.hostname").is_some())
     }
 
     #[test]

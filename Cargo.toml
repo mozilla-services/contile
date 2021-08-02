@@ -30,12 +30,13 @@ cloud-storage = "0.6" # 0.7+ includes request 0.11, tokio 1.4
 config = "0.11"
 dashmap = "4.0.2"
 futures = "0.3"
+gethostname = "0.2.1"
 hex = "0.4"
 hostname = "0.3"
 image = "0.23"
 lazy_static = "1.4"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
-maxminddb = "0.17"
+maxminddb = "0.21"
 rand ="0.8"
 regex = "1.4"
 reqwest = { version = "0.10", features = ["json"] } # 0.11+ conflicts with actix & tokio. Block until actix-web 4+?

@@ -126,6 +126,13 @@ impl Tags {
                 insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
                 insert_if_not_empty("ua.os.ver", &ua_result.os_version.to_owned(), &mut tags);
                 insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
+                insert_if_not_empty(
+                    "srv.hostname",
+                    &gethostname::gethostname()
+                        .into_string()
+                        .unwrap_or_else(|_| "Unkwnown".to_owned()),
+                    &mut tags,
+                );
                 extra.insert("ua".to_owned(), uas.to_string());
             }
         }
