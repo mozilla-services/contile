@@ -131,9 +131,19 @@ pub async fn get_tiles(
             ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
             ("country-code", &location.country()),
             ("region-code", &location.region()),
-            // ("dma-code", location.dma),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
+            (
+                "dma-code",
+                {
+                    if let Some(dma) = location.dma {
+                        dma.to_string()
+                    } else {
+                        "".to_owned()
+                    }
+                }
+                .as_str(),
+            ),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
