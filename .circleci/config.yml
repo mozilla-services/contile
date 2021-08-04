@@ -111,7 +111,6 @@ jobs:
     steps:
       - checkout
       - setup-rust
-      - write-version
       - cargo-build
       - run-tests
 
@@ -138,6 +137,7 @@ jobs:
               fi
       #- save-sccache-cache
       - checkout
+      - write-version
       - run:
           name: Build Docker image
           command: docker build -t app:build .
@@ -235,6 +235,7 @@ workflows:
           requires:
             - build
             - test
+            - contile-integration-tests
           filters:
             tags:
               only: /.*/
