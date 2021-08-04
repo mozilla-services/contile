@@ -30,7 +30,13 @@ def test_contile(contile_host: str, steps: List[Step]):
 
         r = requests.request(method, url, headers=headers)
 
-        assert r.status_code == step.response.status_code
+        error_message = (
+            f"Expected status code {step.response.status_code}, "
+            f"but the status code in the response from Contile is {r.status_code}. "
+            f"The response content is '{r.text}'."
+        )
+
+        assert r.status_code == step.response.status_code, error_message
 
         if r.status_code == 200:
             # If the response status code is 200 OK, load the response content
