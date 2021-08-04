@@ -31,8 +31,8 @@ def test_contile(contile_host: str, steps: List[Step]):
         r = requests.request(method, url, headers=headers)
 
         error_message = (
-            f"Expected status code {step.response.status_code}, "
-            f"but the status code in the response from Contile is {r.status_code}. "
+            f"Expected status code {step.response.status_code},\n"
+            f"but the status code in the response from Contile is {r.status_code}.\n"
             f"The response content is '{r.text}'."
         )
 
