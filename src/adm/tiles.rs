@@ -127,7 +127,10 @@ pub async fn get_tiles(
     let (region_code, dma_code) = if location.country().to_lowercase() == "us" {
         (
             location.region(),
-            location.dma.map(|v| v.to_string()).unwrap_or_else(|| "".to_owned()),
+            location
+                .dma
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "".to_owned()),
         )
     } else {
         ("".to_owned(), "".to_owned())
