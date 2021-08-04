@@ -46,11 +46,19 @@ pub async fn get_tiles(
         // tags.clone().commit(&mut request.extensions_mut());
     }
 
+    // Only set the region if the country is US
+    // see "Instant Find | API Response Caching" in the 7_jul_21 spec.
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
-        region_code: location.region(),
+        region_code: if &location.region().to_lowercase() == "us" {
+            Some(location.region())
+        } else {
+            None
+        },
+        dma_code: location.dma,
         form_factor: device_info.form_factor,
     };
+
     let mut expired = false;
     if !settings.test_mode {
         if let Some(tiles) = state.tiles_cache.get(&audience_key) {

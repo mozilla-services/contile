@@ -124,26 +124,24 @@ pub async fn get_tiles(
 ) -> Result<TileResponse, HandlerError> {
     let settings = &state.settings;
     let image_store = &state.img_store;
+    let (region_code, dma_code) = if location.country().to_lowercase() == "us" {
+        (
+            location.region(),
+            location.dma.map(|v| v.to_string()).unwrap_or_else(|| "".to_owned()),
+        )
+    } else {
+        ("".to_owned(), "".to_owned())
+    };
     let adm_url = Url::parse_with_params(
         &state.adm_endpoint_url,
         &[
             ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
             ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
             ("country-code", &location.country()),
-            ("region-code", &location.region()),
+            ("region-code", region_code.as_str()),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
-            (
-                "dma-code",
-                {
-                    if let Some(dma) = location.dma {
-                        dma.to_string()
-                    } else {
-                        "".to_owned()
-                    }
-                }
-                .as_str(),
-            ),
+            ("dma-code", dma_code.as_str()),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
