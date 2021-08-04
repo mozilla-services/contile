@@ -67,15 +67,20 @@ pub struct StorageSettings {
 impl From<&Settings> for StorageSettings {
     fn from(settings: &Settings) -> Self {
         lazy_static! {
-            static ref INVALID: Regex = Regex::new("[^0-9A-Za-z_]").unwrap();
+            /// https://cloud.google.com/storage/docs/naming-buckets#requirements
+            /// Ignoring buckets with . in them because of domain verification requirements
+            static ref VALID: Regex = Regex::new("^[0-9a-z][0-9a-z_-]{1,61}[0-9a-z]$").unwrap();
         }
         if settings.storage.is_empty() {
             return Self::default();
         }
         let storage_settings: StorageSettings =
             serde_json::from_str(&settings.storage).expect("Invalid storage settings");
-        if INVALID.is_match(&storage_settings.bucket_name) {
-            panic!("Invalid storage settings: invalid bucket name")
+        if !VALID.is_match(&storage_settings.bucket_name) {
+            panic!(
+                "Invalid storage settings: invalid bucket name '{}'",
+                &storage_settings.bucket_name
+            )
         }
         storage_settings
     }
