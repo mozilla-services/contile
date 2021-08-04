@@ -179,6 +179,12 @@ impl Metrics {
                     tagged = tagged.with_tag(key, val.as_ref());
                 }
             }
+            // mix in the metric only tags.
+            for key in mtags.metric.keys().clone() {
+                if let Some(val) = mtags.metric.get(key) {
+                    tagged = tagged.with_tag(key, val.as_ref())
+                }
+            }
             // Include any "hard coded" tags.
             // incr = incr.with_tag("version", env!("CARGO_PKG_VERSION"));
             match tagged.try_send() {
@@ -253,7 +259,6 @@ mod tests {
         assert_eq!(tags.tags.get("ua.os.family"), Some(&"Windows".to_owned()));
         assert_eq!(tags.tags.get("ua.browser.ver"), Some(&"72.0".to_owned()));
         assert_eq!(tags.tags.get("uri.method"), Some(&"GET".to_owned()));
-        assert!(tags.tags.get("srv.hostname").is_some())
     }
 
     #[test]

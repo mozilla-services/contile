@@ -78,8 +78,12 @@ pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str) {
 /// `extra` are not searchable, but may not be sent to [crate::metrics::Metrics].
 #[derive(Clone, Debug)]
 pub struct Tags {
+    // All tags (both metric and sentry)
     pub tags: HashMap<String, String>,
+    // Sentry only "extra" data.
     pub extra: HashMap<String, String>,
+    // metric only supplemental tags.
+    pub metric: HashMap<String, String>,
 }
 
 impl Default for Tags {
@@ -87,6 +91,7 @@ impl Default for Tags {
         Tags {
             tags: HashMap::new(),
             extra: HashMap::new(),
+            metric: HashMap::new(),
         }
     }
 }
@@ -126,13 +131,6 @@ impl Tags {
                 insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
                 insert_if_not_empty("ua.os.ver", &ua_result.os_version.to_owned(), &mut tags);
                 insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
-                insert_if_not_empty(
-                    "srv.hostname",
-                    &gethostname::gethostname()
-                        .into_string()
-                        .unwrap_or_else(|_| "Unkwnown".to_owned()),
-                    &mut tags,
-                );
                 extra.insert("ua".to_owned(), uas.to_string());
             }
         }
@@ -149,7 +147,7 @@ impl Tags {
         // `uri.path` causes too much cardinality for influx but keep it in
         // extra for sentry
         extra.insert("uri.path".to_owned(), req_head.uri.to_string());
-        Tags { tags, extra }
+        Tags { tags, extra, metric: HashMap::new() }
     }
 }
 
@@ -173,6 +171,7 @@ impl Tags {
         Self {
             tags: HashMap::new(),
             extra,
+            metric: HashMap::new(),
         }
     }
 }
@@ -196,6 +195,7 @@ impl Tags {
         Tags {
             tags,
             extra: HashMap::new(),
+            metric: HashMap::new(),
         }
     }
 
@@ -220,6 +220,16 @@ impl Tags {
         }
     }
 
+    /// Add an element to the "extra" data.
+    ///
+    /// Extra data is non-key storage used by sentry. It is not
+    /// distributed to metrics.
+    pub fn add_metric(&mut self, key: &str, value: &str) {
+        if !value.is_empty() {
+            self.metric.insert(key.to_owned(), value.to_owned());
+        }
+    }
+
     /// Get a tag value.
     pub fn get(&self, label: &str) -> String {
         let none = "None".to_owned();
@@ -232,6 +242,7 @@ impl Tags {
     pub fn extend(&mut self, tags: Self) {
         self.tags.extend(tags.tags);
         self.extra.extend(tags.extra);
+        self.metric.extend(tags.metric);
     }
 
     /// Convert tag hash to a Binary Tree map (used by cadence and sentry)
