@@ -37,6 +37,16 @@ pub async fn get_tiles(
     trace!("get_tiles");
     metrics.incr("tiles.get");
 
+    if !state
+        .filter
+        .all_include_regions
+        .contains(&location.country())
+    {
+        trace!("get_tiles: country not included: {:?}", location.country());
+        // Nothing to serve
+        return Ok(HttpResponse::NoContent().finish());
+    }
+
     let settings = &state.settings;
     let mut tags = Tags::default();
     {
