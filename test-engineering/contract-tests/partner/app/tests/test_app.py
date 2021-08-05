@@ -122,8 +122,10 @@ def test_read_tilesp_validate_sub2(client, sub2):
     ],
 )
 def test_read_tilesp_accepted_country_code(client, country_code):
-    """Test that the countries contile has been rolled out to returns correct
-    response and tiles
+    """Test that the API endpoint accepts countries Contile has been rolled out
+    to for the country-code query parameter.
+
+    See https://github.com/mozilla-services/contile-integration-tests/issues/39
     """
     response = client.get(
         "/tilesp",
@@ -183,8 +185,9 @@ def test_read_tilesp_accepted_country_code(client, country_code):
     ],
 )
 def test_read_tilesp_validate_country_code(client, country_code):
-    """Test that only two uppercase characters are
-    accepted as values for the country code query parameter.
+    """Test that only two uppercase characters are accepted as values for the
+    country-code query parameter.
+    
     See https://github.com/mozilla-services/contile-integration-tests/issues/39
     """
     response = client.get(
