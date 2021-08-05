@@ -78,7 +78,9 @@ async def read_tilesp(
     sub2: str = Query(
         ..., example="placement1", max_length=128, regex="^[a-zA-Z0-9]+$"
     ),
-    country_code: str = Query(..., alias="country-code", example="US"),
+    country_code: str = Query(
+        ..., alias="country-code", example="US", length=2, regex="^[A-Z]{2}$"
+    ),
     region_code: str = Query(..., alias="region-code", example="NY"),
     form_factor: str = Query(..., alias="form-factor", example="desktop"),
     os_family: str = Query(..., alias="os-family", example="macos"),
