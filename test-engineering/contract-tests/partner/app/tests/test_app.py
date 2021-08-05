@@ -212,3 +212,34 @@ def test_read_tilesp_validate_country_code(client, country_code):
     assert "status" in response_content
     assert "count" in response_content
     assert "response" in response_content
+
+
+def test_read_tilesp_validate_unwanted_params(client):
+    """Test that only alphanumeric characters and maximum 128 characters are
+    accepted as values for the sub2 query parameter.
+
+    See https://github.com/mozilla-services/contile-integration-tests/issues/41
+    """
+    response = client.get(
+        "/tilesp",
+        params={
+            "partner": "demofeed",
+            "sub1": "123456789",
+            "sub2": "sub2",
+            "country-code": "US",
+            "region-code": "NY",
+            "form-factor": "desktop",
+            "os-family": "macos",
+            "v": "1.0",
+            "results": "2",
+            "unwanted": "unwanted",
+        },
+    )
+
+    assert response.status_code == 422
+
+    response_content = response.json()
+    assert "tiles" not in response_content
+    assert "status" in response_content
+    assert "count" in response_content
+    assert "response" in response_content

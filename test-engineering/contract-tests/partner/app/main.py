@@ -87,6 +87,7 @@ async def read_tilesp(
     v: str = Query(..., example="1.0"),
     out: str = Query("json", example="json"),
     results: int = Query(1, example=2),
+    unwanted: str = Query("unwanted", example="unwanted"),
 ):
     """Endpoint for requests from Contile."""
     # Read response information from the response.yml file
