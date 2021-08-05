@@ -61,6 +61,8 @@ pub struct StorageSettings {
     metrics: ImageMetricSettings,
     /// Max request time (in seconds)
     request_timeout: u64,
+    /// Whether to attempt to create the cloud storage bucket
+    create_bucket: bool,
 }
 
 /// Instantiate from [Settings]
@@ -96,6 +98,7 @@ impl Default for StorageSettings {
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
             request_timeout: 3,
+            create_bucket: false,
         }
     }
 }
@@ -166,6 +169,15 @@ impl StoreImage {
             trace!("No bucket set. Not storing...");
             return Ok(None);
         }
+
+        if !settings.create_bucket {
+            return Ok(Some(Self {
+                // bucket: Some(bucket),
+                settings: settings.clone(),
+                req: client.clone(),
+            }));
+        }
+
         // It's better if the bucket already exists.
         // Creating the bucket requires "Storage Object Creator" account permissions,
         // which can be a bit tricky to configure correctly.
