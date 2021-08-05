@@ -1,3 +1,13 @@
+<a name="1.1.1"></a>
+## 1.1.1 (2021-08-05)
+
+
+#### Features
+
+*   don't create the cloud storage bucket by default (#244) ([b25c995e](https://github.com/mozilla-services/contile/commit/b25c995e72989b5cf8627fa195a019a542e0e259), closes [#243](https://github.com/mozilla-services/contile/issues/243))
+
+
+
 <a name="1.1.0"></a>
 ## 1.1.0 (2021-08-05)
 
