@@ -58,7 +58,7 @@ pub async fn get_tiles(
             if !expired {
                 trace!("get_tiles: cache hit: {:?}", audience_key);
                 metrics.incr("tiles_cache.hit");
-                return Ok(content_response(&tiles.content, &metrics));
+                return Ok(content_response(&tiles.content));
             }
         }
     }
@@ -88,7 +88,7 @@ pub async fn get_tiles(
             );
             metrics.incr("tiles_cache.miss");
             state.tiles_cache.insert(audience_key, tiles.clone());
-            Ok(content_response(&tiles.content, &metrics))
+            Ok(content_response(&tiles.content))
         }
         Err(e) => {
             match e.kind() {
@@ -97,8 +97,8 @@ pub async fn get_tiles(
                     metrics.incr_with_tags("tiles.invalid", Some(&tags));
                     // Report directly to sentry
                     // (This is starting to become a pattern. 🤔)
-                    let mut tags = Tags::from_head(request.head(), &settings);
-                    tags.add_extra("err", &es);
+                    let mut tags = Tags::from_head(request.head(), settings);
+                    tags.add_extra("err", es);
                     tags.add_tag("level", "warning");
                     l_sentry::report(&tags, sentry::event_from_error(&e));
                     warn!("ADM Server error: {:?}", e);
@@ -113,14 +113,11 @@ pub async fn get_tiles(
     }
 }
 
-fn content_response(content: &cache::TilesContent, metrics: &Metrics) -> HttpResponse {
+fn content_response(content: &cache::TilesContent) -> HttpResponse {
     match content {
         cache::TilesContent::Json(json) => HttpResponse::Ok()
             .content_type("application/json")
             .body(json),
-        cache::TilesContent::Empty => {
-            metrics.incr("tiles.empty");
-            HttpResponse::NoContent().finish()
-        }
+        cache::TilesContent::Empty => HttpResponse::NoContent().finish(),
     }
 }

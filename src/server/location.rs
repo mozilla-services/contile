@@ -334,7 +334,7 @@ impl Location {
         match self.iploc.clone().unwrap().lookup::<City<'_>>(ip_addr) {
             Ok(location) => {
                 if let Some(names) = location.city.and_then(|c| c.names) {
-                    result.city = get_preferred_language_element(&preferred_languages, &names)
+                    result.city = get_preferred_language_element(preferred_languages, &names)
                 } else {
                     metrics.incr_with_tags("location.unknown.city", Some(&tags));
                 };
@@ -472,7 +472,7 @@ pub mod test {
         let hv = "US, USCA";
         test_head.headers_mut().append(
             HeaderName::from_static(test_header),
-            HeaderValue::from_static(&hv),
+            HeaderValue::from_static(hv),
         );
 
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
@@ -502,7 +502,7 @@ pub mod test {
         let hv = ", ";
         test_head.headers_mut().append(
             HeaderName::from_static(GOOG_LOC_HEADER),
-            HeaderValue::from_static(&hv),
+            HeaderValue::from_static(hv),
         );
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
         assert!(loc.region() == "");

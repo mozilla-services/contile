@@ -1,11 +1,5 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
-use std::{
-    collections::hash_map::DefaultHasher,
-    env,
-    hash::{Hash, Hasher},
-    io::Cursor,
-    time::Duration,
-};
+use std::{env, io::Cursor, time::Duration};
 
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
@@ -73,15 +67,20 @@ pub struct StorageSettings {
 impl From<&Settings> for StorageSettings {
     fn from(settings: &Settings) -> Self {
         lazy_static! {
-            static ref INVALID: Regex = Regex::new("[^0-9A-Za-z_]").unwrap();
+            /// https://cloud.google.com/storage/docs/naming-buckets#requirements
+            /// Ignoring buckets with . in them because of domain verification requirements
+            static ref VALID: Regex = Regex::new("^[0-9a-z][0-9a-z_-]{1,61}[0-9a-z]$").unwrap();
         }
         if settings.storage.is_empty() {
             return Self::default();
         }
         let storage_settings: StorageSettings =
             serde_json::from_str(&settings.storage).expect("Invalid storage settings");
-        if INVALID.is_match(&storage_settings.bucket_name) {
-            panic!("Invalid storage settings: invalid bucket name")
+        if !VALID.is_match(&storage_settings.bucket_name) {
+            panic!(
+                "Invalid storage settings: invalid bucket name '{}'",
+                &storage_settings.bucket_name
+            )
         }
         storage_settings
     }
@@ -286,9 +285,7 @@ impl StoreImage {
 
     /// Generate a unique hash based on the content of the image
     pub fn as_hash(&self, source: &Bytes) -> String {
-        let mut hasher = DefaultHasher::new();
-        source.hash(&mut hasher);
-        base64::encode_config(hasher.finish().to_ne_bytes(), base64::URL_SAFE_NO_PAD)
+        base64::encode_config(blake3::hash(source).as_bytes(), base64::URL_SAFE_NO_PAD)
     }
 
     /// Fetch the bytes for an image based on a URI
@@ -355,7 +352,7 @@ impl StoreImage {
                     return Err(err);
                 }
             };
-            self.meta(&image, fmt)?
+            self.meta(image, fmt)?
         };
         if self.settings.metrics.symmetric && image_metrics.width != image_metrics.height {
             let mut tags = Tags::default();
