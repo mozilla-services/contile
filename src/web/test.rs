@@ -117,7 +117,7 @@ fn init_mock_adm(response: String) -> MockAdm {
     }
 }
 
-fn adm_settings() -> AdmSettings {
+pub fn adm_settings() -> AdmSettings {
     let adm_settings = json!({
         "Acme": {
             "advertiser_hosts": ["www.acme.biz"],
