@@ -187,7 +187,7 @@ def test_read_tilesp_accepted_country_code(client, country_code):
 def test_read_tilesp_validate_country_code(client, country_code):
     """Test that only two uppercase characters are accepted as values for the
     country-code query parameter.
-    
+
     See https://github.com/mozilla-services/contile-integration-tests/issues/39
     """
     response = client.get(
