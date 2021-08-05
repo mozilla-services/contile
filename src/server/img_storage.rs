@@ -58,8 +58,6 @@ pub struct StorageSettings {
     metrics: ImageMetricSettings,
     /// Max request time (in seconds)
     request_timeout: u64,
-    /// Whether to attempt to create the cloud storage bucket
-    create_bucket: bool,
 }
 
 /// Instantiate from [Settings]
@@ -95,7 +93,6 @@ impl Default for StorageSettings {
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
             request_timeout: 3,
-            create_bucket: false,
         }
     }
 }
