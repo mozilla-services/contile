@@ -45,7 +45,8 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) click_hosts: Vec<Vec<String>>,
     /// valid position for the tile
     pub(crate) position: Option<u8>,
-    /// Optional set of valid regions for the tile (e.g ["en", "en-US/TX"])
+    /// Optional set of valid countries for the tile (e.g ["US", "GB"])
+    /// TODO: could support country + subdivision, e.g. "USOK"
     #[serde(default)]
     pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
@@ -174,8 +175,13 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .adm_ignore_advertisers
             .clone()
             .unwrap_or_else(|| "[]".to_owned());
+        let mut all_include_regions = HashSet::new();
         for (adv, setting) in AdmSettings::from(settings) {
             trace!("Processing records for {:?}", &adv);
+            // DEFAULT included but sans special processing -- close enough
+            for country in &setting.include_regions {
+                all_include_regions.insert(country.clone());
+            }
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
@@ -186,6 +192,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         Ok(AdmFilter {
             filter_set: filter_map,
             ignore_list,
+            all_include_regions,
         })
     }
 }
@@ -194,7 +201,10 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
 mod tests {
     use std::env;
 
+    use serde_json::json;
+
     use super::*;
+    use crate::web::test::adm_settings;
 
     #[test]
     pub fn test_obsolete_settings() {
@@ -238,5 +248,24 @@ mod tests {
         let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
         let result = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
         assert!(result.ignore_list == result_list);
+    }
+
+    #[test]
+    pub fn all_include_regions() {
+        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
+        let mut adm_settings = adm_settings();
+        adm_settings
+            .get_mut("Dunder Mifflin")
+            .expect("No Dunder Mifflin tile")
+            .include_regions = vec!["MX".to_owned()];
+        settings.adm_settings = json!(adm_settings).to_string();
+        let filter = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
+        assert!(
+            filter.all_include_regions
+                == vec!["US", "MX"]
+                    .into_iter()
+                    .map(ToOwned::to_owned)
+                    .collect()
+        );
     }
 }
