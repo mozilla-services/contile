@@ -16,6 +16,7 @@ use crate::tags::Tags;
 
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct ImageMetricSettings {
     /// maximum length of the image
     max_size: u64,
@@ -30,7 +31,7 @@ pub struct ImageMetricSettings {
 impl Default for ImageMetricSettings {
     fn default() -> Self {
         Self {
-            max_size: 100_000,
+            max_size: 1_600_000,
             max_height: 256,
             max_width: 256,
             min_height: 96,
