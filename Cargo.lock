@@ -612,7 +612,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "contile"
-version = "0.4.1"
+version = "1.1.0"
 dependencies = [
  "actix-cors",
  "actix-http",

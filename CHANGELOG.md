@@ -1,3 +1,22 @@
+<a name="1.1.0"></a>
+## 1.1.0 (2021-08-05)
+
+
+#### Bug Fixes
+
+*   Write version.json before docker build ([32818038](https://github.com/mozilla-services/contile/commit/32818038757b2dcf90a73c1858fed31e33299cb3))
+*   Allow '-' in bucket name ([ce70f9fc](https://github.com/mozilla-services/contile/commit/ce70f9fce54f91d016bdbc82613dab91c34a8f1d))
+
+#### Test
+
+*   block deploy CI job on integration-tests (#239) ([3fed603d](https://github.com/mozilla-services/contile/commit/3fed603d7a598745619a5a083e876041ec66f1ea), closes [#238](https://github.com/mozilla-services/contile/issues/238))
+
+#### Features
+
+*   optimize handling of not included countries (#240) ([76b0fe02](https://github.com/mozilla-services/contile/commit/76b0fe022fdf7081d48ff882c213fd473007d901), closes [#226](https://github.com/mozilla-services/contile/issues/226))
+
+
+
 <a name="0.4.1"></a>
 ## 0.4.1 (2021-07-21)
 
