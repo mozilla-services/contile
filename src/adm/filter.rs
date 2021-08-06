@@ -41,8 +41,13 @@ lazy_static! {
 /// own values.
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
+    /// Filter settings by Advertiser name
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
+    /// Ignored (not included but also not reported to Sentry) Advertiser names
     pub ignore_list: HashSet<String>,
+    /// All countries set for inclusion in at least one of the
+    /// [crate::adm::AdmAdvertiserFilterSettings]
+    pub all_include_regions: HashSet<String>,
 }
 
 /// Extract the host from Url
