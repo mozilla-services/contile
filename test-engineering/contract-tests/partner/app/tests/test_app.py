@@ -214,9 +214,9 @@ def test_read_tilesp_validate_country_code(client, country_code):
     assert "response" in response_content
 
 
-def test_read_tilesp_validate_unwanted_params(client):
-    """Test that only alphanumeric characters and maximum 128 characters are
-    accepted as values for the sub2 query parameter.
+def test_read_tilesp_validate_unknown_params(client):
+    """Test that the API endpoint returns an error for any parameter other than
+    the accepted query parameters.
 
     See https://github.com/mozilla-services/contile-integration-tests/issues/41
     """
@@ -232,14 +232,12 @@ def test_read_tilesp_validate_unwanted_params(client):
             "os-family": "macos",
             "v": "1.0",
             "results": "2",
-            "unwanted": "unwanted",
+            "unknown": "unknown",
         },
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 400
 
     response_content = response.json()
     assert "tiles" not in response_content
-    assert "status" in response_content
-    assert "count" in response_content
-    assert "response" in response_content
+    assert response_content == {"unaccepted query parameter": ["unknown"]}

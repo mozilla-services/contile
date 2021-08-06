@@ -70,8 +70,23 @@ async def read_root():
     return {"message": message}
 
 
+ACCEPTED_QUERY_PARAMS = [
+    "partner",
+    "sub1",
+    "sub2",
+    "country-code",
+    "region-code",
+    "form-factor",
+    "os-family",
+    "v",
+    "out",
+    "results",
+]
+
+
 @app.get("/tilesp", response_model=Tiles, status_code=200)
 async def read_tilesp(
+    request: Request,
     response: Response,
     partner: str = Query(..., example="demofeed"),
     sub1: str = Query(..., example="123456789"),
@@ -87,9 +102,23 @@ async def read_tilesp(
     v: str = Query(..., example="1.0"),
     out: str = Query("json", example="json"),
     results: int = Query(1, example=2),
-    unwanted: str = Query("unwanted", example="unwanted"),
 ):
     """Endpoint for requests from Contile."""
+    unknown_params = []
+    for param in request.query_params:
+        if param not in ACCEPTED_QUERY_PARAMS:
+            unknown_params.append(param)
+
+    if unknown_params:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"unaccepted query parameter": unknown_params},
+        )
+    logger.error(
+        "received unexpected query parameters from Contile: %s",
+        unknown_params,
+    )
+
     # Read response information from the response.yml file
     response_from_file = responses_from_file[form_factor][os_family]
 
