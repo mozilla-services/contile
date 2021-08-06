@@ -97,33 +97,25 @@ def test_read_tilesp_validate_sub2(client, sub2):
 @pytest.mark.parametrize(
     "country_code",
     [
-        "CA",
-        "DE",
-        "GB",
-        "FR",
-        "AU",
-        "IT",
-        "MX",
-        "IN",
-        "BR",
-        "ES",
+        "invalid-param",
+        "us",
+        "11",
+        "1U",
+        "USAC",
+        "🛒📈🤖",
     ],
     ids=[
-        "Canada",
-        "Germany",
-        "UK",
-        "France",
-        "Australia",
-        "Italy",
-        "Mexico",
-        "India",
-        "Brazil",
-        "Spain",
+        "hyphen_in_value",
+        "all_lowercase",
+        "numeric",
+        "alpha_numeric",
+        "exceeds_max_characters",
+        "emoji",
     ],
 )
-def test_read_tilesp_accepted_country_code(client, country_code):
-    """Test that the API endpoint accepts countries Contile has been rolled out
-    to for the country-code query parameter.
+def test_read_tilesp_validate_country_code(client, country_code):
+    """Test that only two uppercase characters are accepted as values for the
+    country-code query parameter.
 
     See https://github.com/mozilla-services/contile-integration-tests/issues/39
     """
@@ -135,6 +127,51 @@ def test_read_tilesp_accepted_country_code(client, country_code):
             "sub2": "sub2",
             "country-code": country_code,
             "region-code": "NY",
+            "form-factor": "desktop",
+            "os-family": "macos",
+            "v": "1.0",
+            "results": "2",
+        },
+    )
+
+    assert response.status_code == 400
+
+    response_content = response.json()
+    assert "tiles" not in response_content
+    assert "status" in response_content
+    assert "count" in response_content
+    assert "response" in response_content
+
+
+@pytest.mark.parametrize(
+    "country_code, region_code",
+    [
+        ("CA", "BC"),
+        ("DE", "BE"),
+        ("GB", "SCT"),
+        ("FR", "BRE"),
+        ("AU", "WA"),
+        ("IT", "52"),
+        ("MX", "CHH"),
+        ("IN", "PB"),
+        ("BR", "RJ"),
+        ("ES", "M"),
+    ],
+)
+def test_read_tilesp_accepted_country_region_code(client, country_code, region_code):
+    """Test that the API endpoint accepts region codes from countries Contile
+    has been rolled out to for the region-code query parameter.
+
+    See https://github.com/mozilla-services/contile-integration-tests/issues/40
+    """
+    response = client.get(
+        "/tilesp",
+        params={
+            "partner": "demofeed",
+            "sub1": "123456789",
+            "sub2": "sub2",
+            "country-code": country_code,
+            "region-code": region_code,
             "form-factor": "desktop",
             "os-family": "macos",
             "v": "1.0",
@@ -166,29 +203,25 @@ def test_read_tilesp_accepted_country_code(client, country_code):
 
 
 @pytest.mark.parametrize(
-    "country_code",
+    "region_code",
     [
-        "invalid-param",
-        "us",
-        "11",
-        "1U",
-        "USAC",
+        "US-AZ",
+        "12AS",
+        "ny",
         "🛒📈🤖",
     ],
     ids=[
         "hyphen_in_value",
-        "all_lowercase",
-        "numeric",
-        "alpha_numeric",
         "exceeds_max_characters",
+        "all_lower_cases",
         "emoji",
     ],
 )
-def test_read_tilesp_validate_country_code(client, country_code):
-    """Test that only two uppercase characters are accepted as values for the
-    country-code query parameter.
+def test_read_tilesp_validate_region_code(client, region_code):
+    """Test only alphanumeric characters and maximum 3 characters are accepted
+    as values for the region_code query parameter.
 
-    See https://github.com/mozilla-services/contile-integration-tests/issues/39
+    See https://github.com/mozilla-services/contile-integration-tests/issues/40
     """
     response = client.get(
         "/tilesp",
@@ -196,8 +229,8 @@ def test_read_tilesp_validate_country_code(client, country_code):
             "partner": "demofeed",
             "sub1": "123456789",
             "sub2": "sub2",
-            "country-code": country_code,
-            "region-code": "NY",
+            "country-code": "US",
+            "region-code": region_code,
             "form-factor": "desktop",
             "os-family": "macos",
             "v": "1.0",
