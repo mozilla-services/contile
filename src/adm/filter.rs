@@ -18,6 +18,7 @@ use crate::{
     server::location::LocationResult,
     tags::Tags,
     web::middleware::sentry as l_sentry,
+    web::DeviceInfo,
 };
 
 lazy_static! {
@@ -48,6 +49,9 @@ pub struct AdmFilter {
     /// All countries set for inclusion in at least one of the
     /// [crate::adm::AdmAdvertiserFilterSettings]
     pub all_include_regions: HashSet<String>,
+    /// Temporary list of advertisers with legacy images built into firefox
+    /// for pre 91 tile support.
+    pub legacy_list: HashSet<String>,
 }
 
 /// Extract the host from Url
@@ -226,6 +230,7 @@ impl AdmFilter {
         &self,
         mut tile: AdmTile,
         location: &LocationResult,
+        device_info: &DeviceInfo,
         tags: &mut Tags,
         metrics: &Metrics,
     ) -> Option<Tile> {
@@ -255,6 +260,15 @@ impl AdmFilter {
                         location.country()
                     );
                     metrics.incr_with_tags("filter.adm.err.invalid_location", Some(tags));
+                    return None;
+                }
+
+                if device_info.ff_version < 91 && !self.legacy_list.contains(&tile.name.to_lowercase()) {
+                    trace!(
+                        "Rejecting tile: Not a legacy advertiser {:?}",
+                        &tile.name
+                    );
+                    metrics.incr_with_tags("filter.adm.err.non_legacy", Some(tags));
                     return None;
                 }
 

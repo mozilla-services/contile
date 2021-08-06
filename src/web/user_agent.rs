@@ -1,6 +1,7 @@
 //! Simple UserAgent parser/stripper
 
 use std::fmt;
+use std::str::FromStr;
 
 use woothee::parser::Parser;
 
@@ -48,6 +49,8 @@ impl fmt::Display for OsFamily {
 pub struct DeviceInfo {
     pub form_factor: FormFactor,
     pub os_family: OsFamily,
+    // We only care about major versions.
+    pub ff_version: u32,
 }
 
 /// Parse a User-Agent header into a simplified `DeviceInfo`
@@ -81,9 +84,12 @@ pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
         "smartphone" => FormFactor::Phone,
         _ => FormFactor::Other,
     };
+
+    let ff_version = u32::from_str(wresult.version.split('.').collect::<Vec<&str>>()[0]).unwrap_or_default();
     Ok(DeviceInfo {
         form_factor,
         os_family,
+        ff_version,
     })
 }
 
@@ -94,12 +100,13 @@ mod tests {
     use super::{get_device_info, DeviceInfo, FormFactor, OsFamily};
 
     macro_rules! assert_get_device_info {
-        ($value:expr, $os_family:expr, $form_factor:expr) => {
+        ($value:expr, $os_family:expr, $form_factor:expr, $ff_version:expr) => {
             assert_eq!(
                 get_device_info($value).expect("Error"),
                 DeviceInfo {
                     os_family: $os_family,
-                    form_factor: $form_factor
+                    form_factor: $form_factor,
+                    ff_version: $ff_version,
                 }
             );
         };
@@ -110,7 +117,8 @@ mod tests {
         assert_get_device_info!(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 11.2; rv:85.0) Gecko/20100101 Firefox/85.0",
             OsFamily::MacOs,
-            FormFactor::Desktop
+            FormFactor::Desktop,
+            85
         );
     }
 
@@ -119,7 +127,8 @@ mod tests {
         assert_get_device_info!(
             "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0",
             OsFamily::Windows,
-            FormFactor::Desktop
+            FormFactor::Desktop,
+            61
         );
     }
 
@@ -128,7 +137,9 @@ mod tests {
         assert_get_device_info!(
             "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:82.0.1) Gecko/20100101 Firefox/82.0.1",
             OsFamily::Linux,
-            FormFactor::Desktop
+            FormFactor::Desktop,
+            82
+
         );
     }
 
@@ -137,7 +148,8 @@ mod tests {
         assert_get_device_info!(
             "Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/85.0",
             OsFamily::Android,
-            FormFactor::Phone
+            FormFactor::Phone,
+            85
         );
     }
 
@@ -146,12 +158,14 @@ mod tests {
         assert_get_device_info!(
             "Mozilla/5.0 (iPad; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
             OsFamily::IOs,
-            FormFactor::Tablet
+            FormFactor::Tablet,
+            600
         );
         assert_get_device_info!(
             "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
             OsFamily::IOs,
-            FormFactor::Phone
+            FormFactor::Phone,
+            600
         );
     }
 
