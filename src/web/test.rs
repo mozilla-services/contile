@@ -27,7 +27,10 @@ use crate::{
 };
 
 const MOCK_RESPONSE1: &str = include_str!("mock_adm_response1.json");
-const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0";
+const UA_91: &str =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/91.0";
+const UA_90: &str =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/90.0";
 
 /// customizing the settings
 fn get_test_settings() -> Settings {
@@ -167,7 +170,7 @@ async fn basic() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -189,6 +192,46 @@ async fn basic() {
         let tile = tile.as_object().expect("!tile.is_object()");
         assert!(tile["url"].is_string());
         assert!(tile.get("advertiser_url").is_none());
+    }
+}
+
+#[actix_rt::test]
+async fn basic_old_ua() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let valid = ["acme", "los pollos hermanos"];
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: json!(adm_settings()).to_string(),
+        adm_has_legacy_image: Some(json!(valid).to_string()),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_90)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert!(tiles.len() > 1);
+    for tile in tiles {
+        let tile = tile.as_object().expect("!tile.is_object()");
+        assert!(tile["url"].is_string());
+        assert!(tile.get("advertiser_url").is_none());
+        assert!(valid.contains(&tile["name"].as_str().unwrap().to_lowercase().as_str()));
     }
 }
 
@@ -223,7 +266,7 @@ async fn basic_bad_reply() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -275,7 +318,7 @@ async fn basic_all_bad_reply() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
@@ -308,7 +351,7 @@ async fn basic_filtered() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -352,7 +395,7 @@ async fn basic_default() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -388,7 +431,7 @@ async fn fallback_country() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
@@ -410,7 +453,7 @@ async fn maxmind_lookup() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .header("X-Forwarded-For", TEST_ADDR)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
@@ -433,7 +476,7 @@ async fn empty_tiles() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
@@ -441,7 +484,7 @@ async fn empty_tiles() {
     // Ensure same result from cache
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
@@ -466,7 +509,7 @@ async fn include_regions() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA)
+        .header(header::USER_AGENT, UA_91)
         .to_request();
     let resp = test::call_service(&mut app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);

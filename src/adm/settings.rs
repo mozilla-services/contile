@@ -174,8 +174,13 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         let ignore_list = settings
             .adm_ignore_advertisers
             .clone()
-            .unwrap_or_else(|| "[]".to_owned()).to_lowercase();
-        let legacy_list = settings.adm_has_legacy_image.clone().unwrap_or_else(||"[]".to_owned()).to_lowercase();
+            .unwrap_or_else(|| "[]".to_owned())
+            .to_lowercase();
+        let legacy_list = settings
+            .adm_has_legacy_image
+            .clone()
+            .unwrap_or_else(|| "[]".to_owned())
+            .to_lowercase();
         let mut all_include_regions = HashSet::new();
         for (adv, setting) in AdmSettings::from(settings) {
             trace!("Processing records for {:?}", &adv);
@@ -186,12 +191,10 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
-        let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list)
-            .map_err(|e| {
-                HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
-            })?;
-        let legacy_list:HashSet<String> = serde_json::from_str(&legacy_list)
-        .map_err( |e |{
+        let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
+            HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
+        })?;
+        let legacy_list: HashSet<String> = serde_json::from_str(&legacy_list).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Legacy list specification: {:?}", e))
         })?;
         Ok(AdmFilter {

@@ -85,7 +85,8 @@ pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
         _ => FormFactor::Other,
     };
 
-    let ff_version = u32::from_str(wresult.version.split('.').collect::<Vec<&str>>()[0]).unwrap_or_default();
+    let ff_version =
+        u32::from_str(wresult.version.split('.').collect::<Vec<&str>>()[0]).unwrap_or_default();
     Ok(DeviceInfo {
         form_factor,
         os_family,
@@ -139,7 +140,6 @@ mod tests {
             OsFamily::Linux,
             FormFactor::Desktop,
             82
-
         );
     }
 
@@ -159,13 +159,13 @@ mod tests {
             "Mozilla/5.0 (iPad; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
             OsFamily::IOs,
             FormFactor::Tablet,
-            600
+            1
         );
         assert_get_device_info!(
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/2.0 Mobile/12F69 Safari/600.1.4",
             OsFamily::IOs,
             FormFactor::Phone,
-            600
+            2
         );
     }
 

@@ -118,7 +118,7 @@ impl Default for Settings {
             adm_settings: "".to_owned(),
             adm_ignore_advertisers: None,
             adm_has_legacy_image: Some(
-                r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned()
+                r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
             ),
             sub1: Some("demofeed".to_owned()),
             partner_id: Some("123456789".to_owned()),

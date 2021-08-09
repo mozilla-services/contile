@@ -263,11 +263,10 @@ impl AdmFilter {
                     return None;
                 }
 
-                if device_info.ff_version < 91 && !self.legacy_list.contains(&tile.name.to_lowercase()) {
-                    trace!(
-                        "Rejecting tile: Not a legacy advertiser {:?}",
-                        &tile.name
-                    );
+                if device_info.ff_version < 91
+                    && !self.legacy_list.contains(&tile.name.to_lowercase())
+                {
+                    trace!("Rejecting tile: Not a legacy advertiser {:?}", &tile.name);
                     metrics.incr_with_tags("filter.adm.err.non_legacy", Some(tags));
                     return None;
                 }
