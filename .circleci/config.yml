@@ -238,7 +238,7 @@ workflows:
           requires:
             - build
             - test
-            - contile-integration-tests
+            # - contile-integration-tests 
           filters:
             tags:
               only: /.*/
