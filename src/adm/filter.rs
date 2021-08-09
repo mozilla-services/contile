@@ -18,7 +18,7 @@ use crate::{
     server::location::LocationResult,
     tags::Tags,
     web::middleware::sentry as l_sentry,
-    web::DeviceInfo,
+    web::{DeviceInfo, OsFamily},
 };
 
 lazy_static! {
@@ -262,9 +262,13 @@ impl AdmFilter {
                     metrics.incr_with_tags("filter.adm.err.invalid_location", Some(tags));
                     return None;
                 }
+                // match to the version that we switched over from built in image management
+                // to CDN image fetch. Note: iOS does not use the standard firefox version number
 
-                if device_info.ff_version < 91
-                    && !self.legacy_list.contains(&tile.name.to_lowercase())
+                if device_info.os_family == OsFamily::IOs && device_info.ff_version < 36
+                    || device_info.os_family != OsFamily::IOs
+                        && device_info.ff_version < 91
+                        && !self.legacy_list.contains(&tile.name.to_lowercase())
                 {
                     trace!("Rejecting tile: Not a legacy advertiser {:?}", &tile.name);
                     metrics.incr_with_tags("filter.adm.err.non_legacy", Some(tags));
