@@ -53,6 +53,13 @@ pub struct DeviceInfo {
     pub ff_version: u32,
 }
 
+impl DeviceInfo {
+    pub fn legacy_only(&self) -> bool {
+        self.os_family == OsFamily::IOs && self.ff_version < 36
+            || self.os_family != OsFamily::IOs && self.ff_version < 91
+    }
+}
+
 /// Parse a User-Agent header into a simplified `DeviceInfo`
 pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
     let wresult = Parser::new().parse(ua).unwrap_or_default();

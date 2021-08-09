@@ -60,6 +60,7 @@ pub async fn get_tiles(
         country_code: location.country(),
         region_code: location.region(),
         form_factor: device_info.form_factor,
+        legacy_only: device_info.legacy_only(),
     };
     let mut expired = false;
     if !settings.test_mode {
