@@ -27,7 +27,7 @@ pub struct AudienceKey {
 
 #[derive(Debug, Clone)]
 pub struct TilesCache {
-    inner: Arc<DashMap<AudienceKey, Tiles>>,
+    inner: Arc<DashMap<AudienceKey, TilesState>>,
 }
 
 impl TilesCache {
@@ -50,10 +50,32 @@ impl TilesCache {
 }
 
 impl Deref for TilesCache {
-    type Target = Arc<DashMap<AudienceKey, Tiles>>;
+    type Target = Arc<DashMap<AudienceKey, TilesState>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+#[derive(Clone, Debug)]
+/// Wrapper around Tiles with additional state about any outstanding partner
+/// requests
+pub enum TilesState {
+    /// A task is currently populating this entry (via [crate::adm::get_tiles])
+    Populating,
+    /// Tiles that haven't expired (or been identified as expired) yet
+    Fresh { tiles: Tiles },
+    /// A task is currently refreshing this expired entry (via
+    /// [crate::adm::get_tiles])
+    Refreshing { tiles: Tiles },
+}
+
+impl TilesState {
+    fn size(&self) -> usize {
+        match self {
+            TilesState::Populating { .. } => 0,
+            TilesState::Fresh { tiles } | TilesState::Refreshing { tiles } => tiles.content.size(),
+        }
     }
 }
 
@@ -77,7 +99,7 @@ impl Tiles {
         })
     }
 
-    fn empty(ttl: u32) -> Self {
+    pub fn empty(ttl: u32) -> Self {
         Self {
             content: TilesContent::Empty,
             expiry: SystemTime::now() + Duration::from_secs(ttl as u64),
@@ -109,14 +131,10 @@ async fn tiles_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
     // calculate the size and GC (for seldomly used Tiles) while we're at it
     let mut cache_count = 0;
     let mut cache_size = 0;
-    cache.retain(|_, tiles| {
-        if !tiles.expired() {
-            cache_count += 1;
-            cache_size += tiles.content.size();
-            return true;
-        }
-        false
-    });
+    for refm in cache.iter() {
+        cache_count += 1;
+        cache_size += refm.value().size();
+    }
 
     metrics.count("tiles_cache.count", cache_count);
     metrics.count("tiles_cache.size", cache_size as i64);
