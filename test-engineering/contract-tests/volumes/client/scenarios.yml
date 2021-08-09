@@ -9,7 +9,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: windows and form-factor: desktop
             - name: User-Agent
-              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/10.0'
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
         response:
           status_code: 200
           content:
@@ -37,7 +37,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: windows and form-factor: desktop
             - name: User-Agent
-              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/10.0'
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
         response:
           status_code: 200
           content:
@@ -69,7 +69,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: macos and form-factor: desktop
             - name: User-Agent
-              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/10.0'
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'
         response:
           status_code: 200
           content:
@@ -101,7 +101,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: linux and form-factor: desktop
             - name: User-Agent
-              value: 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) Gecko/20100101 Firefox/10.0'
+              value: 'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/91.0'
         response:
           status_code: 200
           content:
@@ -133,7 +133,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: android and form-factor: phone
             - name: User-Agent
-              value: 'Mozilla/5.0 (Android; Mobile; rv:40.0) Gecko/40.0 Firefox/40.0'
+              value: 'Mozilla/5.0 (Android 11; Mobile; rv:92.0) Gecko/92.0 Firefox/92.0'
         response:
           status_code: 500 # Internal Server Error
           content: 520
@@ -148,7 +148,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: ios and form-factor: tablet
             - name: User-Agent
-              value: 'Mozilla/5.0 (iPad; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4'
+              value: 'Mozilla/5.0 (iPad; CPU iPhone OS 11_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0 Mobile/15E148 Safari/605.1.15'
         response:
           status_code: 204 # No Content
           content: ''
@@ -163,7 +163,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: ios and form-factor: phone
             - name: User-Agent
-              value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4'
+              value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0 Mobile/15E148 Safari/605.1.15'
         response:
           status_code: 503 # Service Unavailable
           content: 522
@@ -178,7 +178,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: macos and form-factor: desktop
             - name: User-Agent
-              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15'
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11.5; rv:90.0) Gecko/20100101 Firefox/91.0'
         response:
           status_code: 403 # Forbidden
           content: 700
