@@ -6,7 +6,11 @@ use crate::{
     adm,
     error::{HandlerError, HandlerErrorKind},
     metrics::Metrics,
-    server::{cache, location::LocationResult, ServerState},
+    server::{
+        cache::{self, Tiles, TilesState},
+        location::LocationResult,
+        ServerState,
+    },
     settings::Settings,
     tags::Tags,
     web::{middleware::sentry as l_sentry, DeviceInfo},
@@ -60,18 +64,63 @@ pub async fn get_tiles(
         country_code: location.country(),
         region_code: location.region(),
         form_factor: device_info.form_factor,
+        legacy_only: device_info.legacy_only(),
     };
+
     let mut expired = false;
     if !settings.test_mode {
-        if let Some(tiles) = state.tiles_cache.get(&audience_key) {
-            expired = tiles.expired();
-            if !expired {
-                trace!("get_tiles: cache hit: {:?}", audience_key);
-                metrics.incr("tiles_cache.hit");
-                return Ok(content_response(&tiles.content));
+        // First make a cheap read from the cache
+        if let Some(tiles_state) = state.tiles_cache.get(&audience_key) {
+            match &*tiles_state {
+                TilesState::Populating => {
+                    // Another task is currently populating this entry and will
+                    // complete shortly. 503 until then instead of queueing
+                    // more redundant requests
+                    trace!("get_tiles: Another task Populating");
+                    metrics.incr("tiles_cache.miss.populating");
+                    return Ok(HttpResponse::ServiceUnavailable().finish());
+                }
+                TilesState::Fresh { tiles } => {
+                    expired = tiles.expired();
+                    if !expired {
+                        trace!("get_tiles: cache hit: {:?}", audience_key);
+                        metrics.incr("tiles_cache.hit");
+                        return Ok(content_response(&tiles.content));
+                    }
+                    // Needs refreshing
+                }
+                TilesState::Refreshing { tiles } => {
+                    // Another task is currently refreshing this entry, just
+                    // return the stale Tiles until it's completed
+                    trace!(
+                        "get_tiles: cache hit (expired, Refreshing): {:?}",
+                        audience_key
+                    );
+                    metrics.incr("tiles_cache.hit.refreshing");
+                    return Ok(content_response(&tiles.content));
+                }
             }
         }
     }
+
+    // Alter the cache separately from the read above: writes are more
+    // expensive and these alterations occur infrequently
+    if expired {
+        // The cache entry's expired and we're about to refresh it
+        trace!("get_tiles: Fresh now expired, Refreshing");
+        state
+            .tiles_cache
+            .alter(&audience_key, |_, tiles_state| match tiles_state {
+                TilesState::Fresh { tiles } if tiles.expired() => TilesState::Refreshing { tiles },
+                _ => tiles_state,
+            });
+    } else {
+        // We'll populate this cache entry for probably the first time
+        trace!("get_tiles: Populating");
+        state
+            .tiles_cache
+            .insert(audience_key.clone(), TilesState::Populating);
+    };
 
     let result = adm::get_tiles(
         &state,
@@ -88,36 +137,75 @@ pub async fn get_tiles(
     )
     .await;
 
-    match result {
-        Ok(response) => {
-            let tiles = cache::Tiles::new(response, add_jitter(&state.settings))?;
-            trace!(
-                "get_tiles: cache miss{}: {:?}",
-                if expired { " (expired)" } else { "" },
-                &audience_key
-            );
-            metrics.incr("tiles_cache.miss");
-            state.tiles_cache.insert(audience_key, tiles.clone());
-            Ok(content_response(&tiles.content))
-        }
-        Err(e) => {
-            match e.kind() {
-                HandlerErrorKind::BadAdmResponse(es) => {
-                    warn!("Bad response from ADM: {:?}", e);
-                    metrics.incr_with_tags("tiles.invalid", Some(&tags));
-                    // Report directly to sentry
-                    // (This is starting to become a pattern. 🤔)
-                    let mut tags = Tags::from_head(request.head(), settings);
-                    tags.add_extra("err", es);
-                    tags.add_tag("level", "warning");
-                    l_sentry::report(&tags, sentry::event_from_error(&e));
-                    warn!("ADM Server error: {:?}", e);
-                    Ok(HttpResponse::NoContent().finish())
+    let handle_result = || {
+        match result {
+            Ok(response) => {
+                let tiles = cache::Tiles::new(response, add_jitter(&state.settings))?;
+                trace!(
+                    "get_tiles: cache miss{}: {:?}",
+                    if expired { " (expired)" } else { "" },
+                    &audience_key
+                );
+                metrics.incr("tiles_cache.miss");
+                state.tiles_cache.insert(
+                    audience_key.clone(),
+                    TilesState::Fresh {
+                        tiles: tiles.clone(),
+                    },
+                );
+                Ok(content_response(&tiles.content))
+            }
+            Err(e) => {
+                // Add some kind of stats to Retrieving or RetrievingFirst?
+                // do we need a kill switch if we're restricting like this already?
+                match e.kind() {
+                    HandlerErrorKind::BadAdmResponse(es) => {
+                        warn!("Bad response from ADM: {:?}", e);
+                        metrics.incr_with_tags("tiles.invalid", Some(&tags));
+                        state.tiles_cache.insert(
+                            audience_key.clone(),
+                            TilesState::Fresh {
+                                tiles: Tiles::empty(add_jitter(&state.settings)),
+                            },
+                        );
+                        // Report directly to sentry
+                        // (This is starting to become a pattern. 🤔)
+                        let mut tags = Tags::from_head(request.head(), settings);
+                        tags.add_extra("err", es);
+                        tags.add_tag("level", "warning");
+                        l_sentry::report(&tags, sentry::event_from_error(&e));
+                        warn!("ADM Server error: {:?}", e);
+                        Ok(HttpResponse::NoContent().finish())
+                    }
+                    _ => Err(e),
                 }
-                _ => Err(e),
             }
         }
+    };
+
+    let result = handle_result();
+    // Cleanup the TilesState on errors
+    // TODO: potential panics are not currently cleaned up
+    if result.is_err() {
+        if expired {
+            // Back to Fresh (though the tiles are expired): so a later request
+            // will retry refreshing again
+            state
+                .tiles_cache
+                .alter(&audience_key, |_, tiles_state| match tiles_state {
+                    TilesState::Refreshing { tiles } => TilesState::Fresh { tiles },
+                    _ => tiles_state,
+                });
+        } else {
+            // Clear the entry: a later request will retry populating again
+            state
+                .tiles_cache
+                .remove_if(&audience_key, |_, tiles_state| {
+                    matches!(tiles_state, TilesState::Populating)
+                });
+        }
     }
+    result
 }
 
 fn content_response(content: &cache::TilesContent) -> HttpResponse {
