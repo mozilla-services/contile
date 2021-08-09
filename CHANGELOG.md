@@ -27,6 +27,22 @@
 
 
 
+<a name="1.0.0"></a>
+## 1.0.0 (2021-08-02)
+
+
+#### Features
+
+*   Switch hasher to blake3 (#229) ([aab13283](https://github.com/mozilla-services/contile/commit/aab132833e8416662f8039eb4cfcd5e28ca697d4), closes [#228](https://github.com/mozilla-services/contile/issues/228))
+*   record metric for empty ADM responses (#223) ([13ee0874](https://github.com/mozilla-services/contile/commit/13ee08745487a5fa53b2a64e7042c1b6dd501cf6), closes [#222](https://github.com/mozilla-services/contile/issues/222))
+*   Send image URLs to CDN. (#212) ([1e3c08c0](https://github.com/mozilla-services/contile/commit/1e3c08c007ed68fb8f860156b84346bc19bb0bd7), closes [#167](https://github.com/mozilla-services/contile/issues/167))
+
+#### Chore
+
+*   Update code for newest rust 1.54 (#231) ([f063e818](https://github.com/mozilla-services/contile/commit/f063e8183731b2e9ec60dc6e619aa34afec9611b))
+
+
+
 <a name="0.4.1"></a>
 ## 0.4.1 (2021-07-21)
 
