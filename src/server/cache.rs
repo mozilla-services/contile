@@ -21,6 +21,8 @@ pub struct AudienceKey {
     pub region_code: String,
     /// The form-factor (e.g. desktop, phone) of the device
     pub form_factor: FormFactor,
+    /// Only serve legacy
+    pub legacy_only: bool,
 }
 
 #[derive(Debug, Clone)]

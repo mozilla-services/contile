@@ -77,6 +77,8 @@ pub struct Settings {
     pub adm_settings: String,
     /// A JSON list of advertisers to ignore, specified by the Advertiser name.
     pub adm_ignore_advertisers: Option<String>,
+    /// a JSON list of advertisers to allow for versions of firefox less than 91.
+    pub adm_has_legacy_image: Option<String>,
 
     // OBSOLETE:
     pub sub1: Option<String>,
@@ -115,6 +117,9 @@ impl Default for Settings {
             adm_timeout: 5,
             adm_settings: "".to_owned(),
             adm_ignore_advertisers: None,
+            adm_has_legacy_image: Some(
+                r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
+            ),
             sub1: Some("demofeed".to_owned()),
             partner_id: Some("123456789".to_owned()),
             // +/- 10% of time for jitter.
