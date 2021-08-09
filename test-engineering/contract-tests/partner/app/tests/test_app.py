@@ -162,6 +162,7 @@ def test_read_tilesp_accepted_country_region_code(client, country_code, region_c
     """Test that the API endpoint accepts region codes from countries Contile
     has been rolled out to for the region-code query parameter.
 
+    See https://github.com/mozilla-services/contile-integration-tests/issues/39
     See https://github.com/mozilla-services/contile-integration-tests/issues/40
     """
     response = client.get(
