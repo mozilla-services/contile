@@ -226,12 +226,16 @@ async fn basic_old_ua() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    assert!(tiles.len() > 1);
+    assert!(tiles.len() == 2);
+    let mut previous: String = "".to_owned();
     for tile in tiles {
         let tile = tile.as_object().expect("!tile.is_object()");
         assert!(tile["url"].is_string());
         assert!(tile.get("advertiser_url").is_none());
-        assert!(valid.contains(&tile["name"].as_str().unwrap().to_lowercase().as_str()));
+        let this = tile["name"].as_str().unwrap().to_lowercase();
+        assert!(this != previous);
+        assert!(valid.contains(&this.as_str()));
+        previous = this;
     }
 }
 
