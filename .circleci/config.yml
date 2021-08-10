@@ -230,15 +230,15 @@ workflows:
               only: /.*/
           requires:
             - build
-      # - contile-integration-tests:
-      #    name: contile-integration-tests
-      #    requires:
-      #    - build
+      - contile-integration-tests:
+          name: contile-integration-tests
+          requires:
+          - build
       - deploy:
           requires:
             - build
             - test
-            # - contile-integration-tests
+            - contile-integration-tests
           filters:
             tags:
               only: /.*/
