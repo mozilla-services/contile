@@ -35,7 +35,8 @@ responses_from_file = {
 
 app = FastAPI()
 
-
+# This is only included for client errors such as invalid query parameter values
+# or unknown query parameters.
 BODY_FROM_API_SPEC = {
     "status": {"code": "103", "text": "Invalid input"},
     "count": "0",
