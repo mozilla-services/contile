@@ -1,3 +1,13 @@
+<a name="1.2.1"></a>
+## 1.2.1 (2021-08-10)
+
+
+#### Test
+
+*   Re-enable automated integration tests (#255) ([fcae97d7](https://github.com/mozilla-services/contile/commit/fcae97d7d9e721994b997d89d8c0b72a906c7272))
+
+
+
 <a name="1.2.0"></a>
 ## 1.2.0 (2021-08-10)
 
