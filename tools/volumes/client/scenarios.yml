@@ -178,7 +178,7 @@ scenarios:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: macos and form-factor: desktop
             - name: User-Agent
-              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11.5; rv:90.0) Gecko/20100101 Firefox/91.0'
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15'
         response:
           status_code: 403 # Forbidden
           content: 700
