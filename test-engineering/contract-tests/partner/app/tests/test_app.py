@@ -214,7 +214,7 @@ def test_read_tilesp_validate_country_code(client, country_code):
     assert "response" in response_content
 
 
-def test_read_tilesp_validate_unknown_query_params(client):
+def test_read_tilesp_error_for_unknown_query_params(client):
     """Test that the API endpoint returns an error for any parameter other than
     the accepted query parameters.
 
