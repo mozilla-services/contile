@@ -19,6 +19,7 @@ use crate::{
 pub mod cache;
 pub mod img_storage;
 pub mod location;
+pub mod remote_cache;
 
 /// Arbitrary initial cache size based on the expected mean, feel free to
 /// adjust
@@ -97,7 +98,7 @@ impl Server {
         let req = reqwest::Client::builder()
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
-        let img_store = StoreImage::create(&settings, &req).await?;
+        let img_store = StoreImage::connect(&settings, &req).await?;
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),

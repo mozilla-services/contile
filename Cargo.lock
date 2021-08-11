@@ -557,8 +557,6 @@ dependencies = [
 [[package]]
 name = "cloud-storage"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38a80e16e48e19ebaa0186530f7f31bb4cd6b9e3e0bbf55272845b05aac8825f"
 dependencies = [
  "base64 0.12.3",
  "bytes 0.5.6",
@@ -581,6 +579,16 @@ name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
+
+[[package]]
+name = "combine"
+version = "4.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2d47c1b11006b87e492b53b313bb699ce60e16613c4dddaa91f8f7c220ab2fa"
+dependencies = [
+ "bytes 1.0.1",
+ "memchr",
+]
 
 [[package]]
 name = "config"
@@ -636,6 +644,7 @@ dependencies = [
  "log",
  "maxminddb",
  "rand 0.8.4",
+ "redis",
  "regex",
  "reqwest",
  "sentry",
@@ -852,6 +861,12 @@ name = "dotenv"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
+name = "dtoa"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
 
 [[package]]
 name = "either"
@@ -2015,6 +2030,21 @@ dependencies = [
  "crossbeam-utils",
  "lazy_static",
  "num_cpus",
+]
+
+[[package]]
+name = "redis"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bbc1838d8d0b423f325d6fac80c5f19109c7d16c8c37c584893dc17cf71c63d"
+dependencies = [
+ "async-trait",
+ "combine",
+ "dtoa",
+ "itoa",
+ "percent-encoding",
+ "sha1",
+ "url",
 ]
 
 [[package]]

@@ -1,0 +1,40 @@
+[package]
+name = "cloud-storage"
+version = "0.6.2"
+authors = ["Luuk Wester <luuk.wester@gmail.com>"]
+edition = "2018"
+description = "A crate for uploading files to Google cloud storage, and for generating download urls."
+license = "MIT"
+repository = "https://github.com/ThouCheese/cloud-storage-rs"
+documentation = "https://docs.rs/cloud-storage"
+keywords = ["google", "cloud", "storage"]
+readme = "README.md"
+categories = ["api-bindings", "web-programming"]
+# maintenance = { status = "actively-developed" }
+
+[features]
+default = ["native-tls"]
+
+sync = ["reqwest/blocking"]
+native-tls = ["reqwest/default-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+trust-dns = ["reqwest/trust-dns"]
+
+[dependencies]
+reqwest =          { version = "0.10", default-features = false, features = ["json", "stream"] }
+percent-encoding = { version = "2",    default-features = false }
+jsonwebtoken =     { version = "7",    default-features = false }
+serde =            { version = "1",    default-features = false, features = ["derive"] }
+serde_json =       { version = "1",    default-features = false }
+base64 =           { version = "0.12", default-features = false }
+lazy_static =      { version = "1",    default-features = false }
+dotenv =           { version = "0.15", default-features = false }
+openssl =          { version = "0.10", default-features = false }
+chrono =           { version = "0.4",  default-features = false, features = ["serde"] }
+hex =              { version = "0.4",  default-features = false, features = ["alloc"] }
+tokio =            { version = "0.2",  default-features = false, features = ["macros", "rt-threaded"] }
+futures =          { version = "0.3",  default_features = false }
+bytes =            { version = "0.5",  default_features = false }
+
+[package.metadata.docs.rs]
+features = ["sync"]

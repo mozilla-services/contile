@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
 use crate::settings::Settings;
 use crate::tags::Tags;
+use crate::server::remote_cache::RemoteCache;
 
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -106,13 +107,15 @@ pub struct StoreImage {
     // bucket: Option<cloud_storage::Bucket>,
     settings: StorageSettings,
     req: reqwest::Client,
+    cache: RemoteCache,
 }
 
-impl Default for StoreImage {
-    fn default() -> Self {
+impl From<&Settings> for StoreImage {
+    fn from(settings: &Settings) -> Self {
         Self {
-            settings: StorageSettings::default(),
+            settings: settings.into(),
             req: reqwest::Client::new(),
+            cache: RemoteCache::new(settings).unwrap()
         }
     }
 }
@@ -134,19 +137,14 @@ pub struct ImageMetrics {
 
 /// Store a given image into Google Storage
 impl StoreImage {
-    /// Connect and optionally create a new Google Storage bucket based off [Settings]
-    pub async fn create(
+    /// Connect to a Google Storage bucket based off [Settings]
+    pub async fn connect(
         settings: &Settings,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
-        let sset = StorageSettings::from(settings);
-        Self::check_bucket(&sset, client).await
-    }
 
-    pub async fn check_bucket(
-        settings: &StorageSettings,
-        client: &reqwest::Client,
-    ) -> HandlerResult<Option<Self>> {
+        let sset = StorageSettings::from(settings);
+
         if env::var("SERVICE_ACCOUNT").is_err()
             && env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err()
         {
@@ -157,8 +155,8 @@ impl StoreImage {
         // https://cloud.google.com/storage/docs/naming-buckets
         // don't try to open an empty bucket
         let empty = ["", "none"];
-        if empty.contains(&settings.bucket_name.to_lowercase().as_str())
-            || empty.contains(&settings.project_name.to_lowercase().as_str())
+        if empty.contains(&sset.bucket_name.to_lowercase().as_str())
+            || empty.contains(&sset.project_name.to_lowercase().as_str())
         {
             trace!("No bucket set. Not storing...");
             return Ok(None);
@@ -174,7 +172,7 @@ impl StoreImage {
         //
 
         // verify that the bucket can be read
-        let _content = Bucket::read(&settings.bucket_name)
+        let _content = Bucket::read(&sset.bucket_name)
             .await
             .map_err(|e| HandlerError::internal(&format!("Could not read bucket {:?}", e)))?;
 
@@ -182,8 +180,9 @@ impl StoreImage {
 
         Ok(Some(Self {
             // bucket: Some(bucket),
-            settings: settings.clone(),
+            settings: sset.clone(),
             req: client.clone(),
+            cache: RemoteCache::new(settings)?,
         }))
     }
 
@@ -349,11 +348,14 @@ impl StoreImage {
         }
 
         // store new data to the googles
-        match cloud_storage::Object::create(
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.append("if-generation-match", reqwest::header::HeaderValue::from_str("0").unwrap());
+        match cloud_storage::Object::create_with_headers(
             &self.settings.bucket_name,
             image.to_vec(),
             &image_path,
             content_type,
+            Some(headers),
         )
         .await
         {
@@ -386,6 +388,8 @@ impl StoreImage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
 
     use crate::settings::test_settings;
     use actix_http::http::Uri;
@@ -395,7 +399,7 @@ mod tests {
         // sometimes the IDE doesn't include the host env vars.
         // this lets you set them proactively.
 
-        // std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS","/home/jrconlin/.ssh/keys/sync-spanner-dev.json");
+        std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS","/home/jrconlin/.ssh/keys/sync-spanner-dev.json");
     }
 
     fn test_storage_settings() -> StorageSettings {
@@ -444,6 +448,7 @@ mod tests {
 
         assert!(store_set.project_name == *"project");
         assert!(store_set.bucket_name == *"bucket");
+
     }
 
     #[tokio::test]
@@ -454,14 +459,40 @@ mod tests {
         }
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
-        let test_settings = test_storage_settings();
+        let mut test_settings = test_settings();
+        test_settings.storage = json!(test_storage_settings()).to_string();
+
         let client = reqwest::Client::new();
-        let bucket = StoreImage::check_bucket(&test_settings, &client)
+        let bucket = StoreImage::connect(&test_settings, &client)
             .await
             .unwrap()
             .unwrap();
         let target = src_img.parse::<Uri>().unwrap();
+        let start = std::time::Instant::now();
         bucket.store(&target).await.expect("Store failed");
+        dbg!(std::time::Instant::now() - start);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_image_proc2() -> Result<(), ()> {
+        if std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err() {
+            print!("Skipping test: No credentials found.");
+            return Ok(());
+        }
+        let src_img = "https://evilonastick.com/test/128px.jpg";
+
+        let mut test_settings = test_settings();
+        test_settings.storage = json!(test_storage_settings()).to_string();
+        let client = reqwest::Client::new();
+        let bucket = StoreImage::connect(&test_settings, &client)
+            .await
+            .unwrap()
+            .unwrap();
+        let target = src_img.parse::<Uri>().unwrap();
+        let start = std::time::Instant::now();
+        bucket.store(&target).await.expect("Store failed");
+        dbg!(std::time::Instant::now() - start);
         Ok(())
     }
 
@@ -470,11 +501,9 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 96);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let test_settings = test_storage_settings();
-        let bucket = StoreImage {
-            settings: test_settings,
-            req: reqwest::Client::new(),
-        };
+        let mut test_settings = test_settings();
+        test_settings.storage = json!(test_storage_settings()).to_string();
+        let bucket: StoreImage = StoreImage::from(&test_settings);
 
         let result = bucket
             .validate(&test_uri, &test_valid_image, "image/jpg")
@@ -491,10 +520,10 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 100);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let bucket = StoreImage {
-            settings: test_storage_settings(),
-            req: reqwest::Client::new(),
-        };
+        let mut test_settings = test_settings();
+        test_settings.storage = json!(test_storage_settings()).to_string();
+
+        let bucket = StoreImage::from(&test_settings);
 
         assert!(bucket
             .validate(&test_uri, &test_valid_image, "image/jpg")

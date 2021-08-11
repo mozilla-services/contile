@@ -79,12 +79,14 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
+    /// Percentage of overall time for fetch "jitter".
+    pub jitter: u8,
+    /// URL to redis server
+    pub redis_server: String,
 
     // OBSOLETE:
     pub sub1: Option<String>,
     pub partner_id: Option<String>,
-    /// Percentage of overall time for fetch "jitter".
-    pub jitter: u8,
 }
 
 impl Default for Settings {
@@ -120,10 +122,11 @@ impl Default for Settings {
             adm_has_legacy_image: Some(
                 r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
             ),
-            sub1: Some("demofeed".to_owned()),
-            partner_id: Some("123456789".to_owned()),
             // +/- 10% of time for jitter.
             jitter: 10,
+            redis_server: "redis://127.0.0.1:6379".to_owned(),
+            sub1: Some("demofeed".to_owned()),
+            partner_id: Some("123456789".to_owned()),
         }
     }
 }
