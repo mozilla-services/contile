@@ -60,8 +60,10 @@ impl Token {
             exp,
             iat: now,
         };
-        let mut header = jsonwebtoken::Header::default();
-        header.alg = jsonwebtoken::Algorithm::RS256;
+        let header = jsonwebtoken::Header{
+            alg: jsonwebtoken::Algorithm::RS256,
+            ..Default::default()
+        };
         let private_key_bytes = crate::SERVICE_ACCOUNT.private_key.as_bytes();
         let private_key = jsonwebtoken::EncodingKey::from_rsa_pem(private_key_bytes)?;
         let jwt = jsonwebtoken::encode(&header, &claims, &private_key)?;

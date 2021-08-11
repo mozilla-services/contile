@@ -197,8 +197,8 @@ impl Object {
         let url = &format!(
             "{}/{}/o?uploadType=media&name={}",
             BASE_URL,
-            percent_encode(&bucket),
-            percent_encode(&filename),
+            percent_encode(bucket),
+            percent_encode(filename),
         );
         let mut headers = crate::get_headers().await?;
         if let Some(add_ins) = additional_headers {
@@ -220,7 +220,6 @@ impl Object {
             Err(Error::new(&response.text().await?))
         }
     }
-
 
     /// Create a new object.
     /// Upload a file as that is loaded in memory to google cloud storage, where it will be
@@ -297,8 +296,8 @@ impl Object {
         let url = &format!(
             "{}/{}/o?uploadType=media&name={}",
             BASE_URL,
-            percent_encode(&bucket),
-            percent_encode(&filename),
+            percent_encode(bucket),
+            percent_encode(filename),
         );
         let mut headers = crate::get_headers().await?;
         headers.insert(CONTENT_TYPE, mime_type.parse()?);
@@ -709,8 +708,8 @@ impl Object {
         let url = format!(
             "{}/b/{}/o/{}/compose",
             crate::BASE_URL,
-            percent_encode(&bucket),
-            percent_encode(&destination_object)
+            percent_encode(bucket),
+            percent_encode(destination_object)
         );
         let result: GoogleResponse<Self> = reqwest::Client::new()
             .post(&url)
@@ -761,8 +760,8 @@ impl Object {
             base = crate::BASE_URL,
             sBucket = percent_encode(&self.bucket),
             sObject = percent_encode(&self.name),
-            dBucket = percent_encode(&destination_bucket),
-            dObject = percent_encode(&path),
+            dBucket = percent_encode(destination_bucket),
+            dObject = percent_encode(path),
         );
         let mut headers = crate::get_headers().await?;
         headers.insert(CONTENT_LENGTH, "0".parse()?);
@@ -886,12 +885,7 @@ impl Object {
         duration: u32,
         opts: crate::DownloadOptions,
     ) -> crate::Result<String> {
-        self.sign(
-            &self.name,
-            duration,
-            "GET",
-            opts.content_disposition,
-        )
+        self.sign(&self.name, duration, "GET", opts.content_disposition)
     }
 
     // /// Creates a [Signed Url](https://cloud.google.com/storage/docs/access-control/signed-urls)
@@ -920,9 +914,8 @@ impl Object {
         }
 
         // 0 Sort and construct the canonical headers
-        let mut headers = vec![];
-        headers.push(("host".to_string(), "storage.googleapis.com".to_string()));
-        headers.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(&k2));
+        let mut headers = vec![("host".to_string(), "storage.googleapis.com".to_string())];
+        headers.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
         let canonical_headers: String = headers
             .iter()
             .map(|(k, v)| format!("{}:{}", k.to_lowercase(), v.to_lowercase()))
@@ -1185,7 +1178,7 @@ mod tests {
 
         let mut result = Object::download_streamed(&bucket.name, "test-download").await?;
         let mut data = Vec::new();
-        for part in result.next().await {
+        if let Some(part) = result.next().await {
             data.extend(part?);
         }
         // let data = data.next().await.flat_map(|part| part.into_iter()).collect();
@@ -1318,7 +1311,7 @@ mod tests {
         ];
         for name in &complicated_names {
             let _obj = Object::create(&bucket.name, vec![0, 1], name, "text/plain").await?;
-            let obj = Object::read(&bucket.name, &name).await.unwrap();
+            let obj = Object::read(&bucket.name, name).await.unwrap();
             let url = obj.download_url(100)?;
             let download = reqwest::Client::new().head(&url).send().await?;
             assert_eq!(download.status().as_u16(), 200);
@@ -1472,12 +1465,12 @@ mod tests {
                 kind: "storage#composeRequest".to_string(),
                 source_objects: vec![
                     SourceObject {
-                        name: obj1.name.clone(),
+                        name: obj1.name,
                         generation: None,
                         object_preconditions: None,
                     },
                     SourceObject {
-                        name: obj2.name.clone(),
+                        name: obj2.name,
                         generation: None,
                         object_preconditions: None,
                     },
@@ -1525,7 +1518,7 @@ mod tests {
             ];
             for name in &complicated_names {
                 let _obj = Object::create_sync(&bucket.name, vec![0, 1], name, "text/plain")?;
-                let obj = Object::read_sync(&bucket.name, &name).unwrap();
+                let obj = Object::read_sync(&bucket.name, name).unwrap();
                 let url = obj.download_url(100)?;
                 let client = reqwest::blocking::Client::new();
                 let download = client.head(&url).send()?;

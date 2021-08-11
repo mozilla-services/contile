@@ -4,16 +4,17 @@ use std::{env, io::Cursor, time::Duration};
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
 use actix_web::web::Bytes;
-use cloud_storage::{Bucket, Object};
+use cloud_storage::Bucket;
 use image::{io::Reader as ImageReader, ImageFormat};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
+use crate::server::remote_cache::{CacheState, CacheValue, RemoteImageCache};
 use crate::settings::Settings;
 use crate::tags::Tags;
-use crate::server::remote_cache::RemoteCache;
 
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -107,7 +108,7 @@ pub struct StoreImage {
     // bucket: Option<cloud_storage::Bucket>,
     settings: StorageSettings,
     req: reqwest::Client,
-    cache: RemoteCache,
+    cache: RemoteImageCache,
 }
 
 impl From<&Settings> for StoreImage {
@@ -115,16 +116,15 @@ impl From<&Settings> for StoreImage {
         Self {
             settings: settings.into(),
             req: reqwest::Client::new(),
-            cache: RemoteCache::new(settings).unwrap()
+            cache: RemoteImageCache::new(settings).unwrap(),
         }
     }
 }
 
 /// Stored image information, suitable for determining the URL to present to the CDN
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoredImage {
-    pub url: uri::Uri,
-    pub object: Object,
+    pub url: String,
     pub image_metrics: ImageMetrics,
 }
 
@@ -142,7 +142,6 @@ impl StoreImage {
         settings: &Settings,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
-
         let sset = StorageSettings::from(settings);
 
         if env::var("SERVICE_ACCOUNT").is_err()
@@ -182,7 +181,7 @@ impl StoreImage {
             // bucket: Some(bucket),
             settings: sset.clone(),
             req: client.clone(),
-            cache: RemoteCache::new(settings)?,
+            cache: RemoteImageCache::new(settings)?,
         }))
     }
 
@@ -335,21 +334,58 @@ impl StoreImage {
             }
         );
 
+        dbg!(&image_path);
+
+        if let Some(v) = self.cache.clone().get(&image_path)? {
+            match v.state {
+                CacheState::Available => {
+                    return serde_json::from_str(&v.data.unwrap()).map_err(|e| {
+                        HandlerError::internal(&format!(
+                            "Could not deser cached image data {:?}",
+                            e
+                        ))
+                    })
+                }
+                CacheState::Pending => {
+                    return Err(HandlerErrorKind::BadImage("Pending availability").into())
+                }
+            }
+        }
+
+        // First thing, raise a block.
+        self.cache.clone().put(
+            &image_path,
+            CacheValue {
+                state: CacheState::Pending,
+                data: None,
+            },
+        )?;
+
         // check to see if image has already been stored.
         if let Ok(exists) =
             cloud_storage::Object::read(&self.settings.bucket_name, &image_path).await
         {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
-            return Ok(StoredImage {
-                url: format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
-                object: exists,
+            let stored_image = StoredImage {
+                url: format!("{}/{}", &self.settings.cdn_host, &image_path),
                 image_metrics,
-            });
+            };
+            self.cache.clone().put(
+                &image_path,
+                CacheValue {
+                    state: CacheState::Available,
+                    data: Some(json!(stored_image).to_string()),
+                },
+            )?;
+            return Ok(stored_image);
         }
 
         // store new data to the googles
         let mut headers = reqwest::header::HeaderMap::new();
-        headers.append("if-generation-match", reqwest::header::HeaderValue::from_str("0").unwrap());
+        headers.append(
+            "if-generation-match",
+            reqwest::header::HeaderValue::from_str("0").unwrap(),
+        );
         match cloud_storage::Object::create_with_headers(
             &self.settings.bucket_name,
             image.to_vec(),
@@ -368,11 +404,15 @@ impl StoreImage {
                 })?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
-                Ok(StoredImage {
-                    url: url.parse()?,
-                    object,
-                    image_metrics,
-                })
+                let stored_image = StoredImage { url, image_metrics };
+                self.cache.clone().put(
+                    &image_path,
+                    CacheValue {
+                        state: CacheState::Available,
+                        data: Some(json!(stored_image).to_string()),
+                    },
+                )?;
+                Ok(stored_image)
             }
             Err(cloud_storage::Error::Google(ger)) => {
                 Err(HandlerErrorKind::Internal(format!("Could not create object {:?}", ger)).into())
@@ -390,7 +430,6 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-
     use crate::settings::test_settings;
     use actix_http::http::Uri;
     use rand::Rng;
@@ -399,7 +438,10 @@ mod tests {
         // sometimes the IDE doesn't include the host env vars.
         // this lets you set them proactively.
 
-        std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS","/home/jrconlin/.ssh/keys/sync-spanner-dev.json");
+        std::env::set_var(
+            "GOOGLE_APPLICATION_CREDENTIALS",
+            "/home/jrconlin/.ssh/keys/sync-spanner-dev.json",
+        );
     }
 
     fn test_storage_settings() -> StorageSettings {
@@ -448,7 +490,6 @@ mod tests {
 
         assert!(store_set.project_name == *"project");
         assert!(store_set.bucket_name == *"bucket");
-
     }
 
     #[tokio::test]

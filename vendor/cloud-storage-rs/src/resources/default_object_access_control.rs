@@ -347,10 +347,12 @@ mod tests {
     #[tokio::test]
     async fn read() -> Result<(), Box<dyn std::error::Error>> {
         let bucket = crate::read_test_bucket().await;
+        /*
         NewDefaultObjectAccessControl {
             entity: Entity::AllUsers,
             role: Role::Reader,
         };
+        */
         DefaultObjectAccessControl::read(&bucket.name, &Entity::AllUsers).await?;
         Ok(())
     }
