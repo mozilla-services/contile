@@ -6,7 +6,7 @@ services:
     container_name: partner
     environment:
       PORT: 5000
-      RESPONSES_FILE: /tmp/partner/responses.yml
+      RESPONSES_DIR: /tmp/partner/
     volumes:
       - ./volumes/partner:/tmp/partner
   contile:
