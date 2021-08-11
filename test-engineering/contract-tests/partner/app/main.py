@@ -105,7 +105,7 @@ async def read_tilesp(
     # region_code parameter follows ISO-3166-2 standard and validations
     # https://en.wikipedia.org/wiki/ISO_3166-2
     region_code: str = Query(
-        ..., alias="region-code", example="NY", regex="^[A-Z0-9]{1,3}$"
+        ..., alias="region-code", example="NY", regex="^([A-Z0-9]{1,3})?$"
     ),
     form_factor: str = Query(..., alias="form-factor", example="desktop"),
     os_family: str = Query(..., alias="os-family", example="macos"),
