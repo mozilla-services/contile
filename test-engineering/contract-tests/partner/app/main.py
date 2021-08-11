@@ -35,6 +35,14 @@ responses_from_file = {
 
 app = FastAPI()
 
+# This is only included for client errors such as invalid query parameter values
+# or unknown query parameters.
+BODY_FROM_API_SPEC = {
+    "status": {"code": "103", "text": "Invalid input"},
+    "count": "0",
+    "response": "1",
+}
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
@@ -44,11 +52,6 @@ async def validation_exception_handler(
 
     This is required to match the partner API implementation.
     """
-    body_from_API_spec = {
-        "status": {"code": "103", "text": "Invalid input"},
-        "count": "0",
-        "response": "1",
-    }
 
     # Include the example response body from the API spec in the response in
     # case contile is processing that information internally. Return the actual
@@ -56,7 +59,7 @@ async def validation_exception_handler(
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content=jsonable_encoder(
-            {"test": {"detail": exc.errors(), "body": exc.body}, **body_from_API_spec}
+            {"test": {"detail": exc.errors(), "body": exc.body}, **BODY_FROM_API_SPEC}
         ),
     )
 
@@ -70,8 +73,24 @@ async def read_root():
     return {"message": message}
 
 
+# Make sure to update this when query parameters for `read_tilesp` change
+ACCEPTED_QUERY_PARAMS = [
+    "partner",
+    "sub1",
+    "sub2",
+    "country-code",
+    "region-code",
+    "form-factor",
+    "os-family",
+    "v",
+    "out",
+    "results",
+]
+
+
 @app.get("/tilesp", response_model=Tiles, status_code=200)
 async def read_tilesp(
+    request: Request,
     response: Response,
     partner: str = Query(..., example="demofeed"),
     sub1: str = Query(..., example="123456789"),
@@ -95,6 +114,25 @@ async def read_tilesp(
     results: int = Query(1, example=2),
 ):
     """Endpoint for requests from Contile."""
+    unknown_query_params = [
+        param for param in request.query_params if param not in ACCEPTED_QUERY_PARAMS
+    ]
+
+    if unknown_query_params:
+        logger.error(
+            "received unexpected query parameters from Contile: %s",
+            unknown_query_params,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=jsonable_encoder(
+                {
+                    "test": {"unexpected query parameter": unknown_query_params},
+                    **BODY_FROM_API_SPEC,
+                }
+            ),
+        )
+
     # Read response information from the response.yml file
     response_from_file = responses_from_file[form_factor][os_family]
 
