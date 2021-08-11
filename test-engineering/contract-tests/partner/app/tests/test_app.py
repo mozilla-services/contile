@@ -156,6 +156,7 @@ def test_read_tilesp_validate_country_code(client, country_code):
         ("IN", "PB"),
         ("BR", "RJ"),
         ("ES", "M"),
+        ("US", ""),
     ],
 )
 def test_read_tilesp_accepted_country_region_code(client, country_code, region_code):
