@@ -124,12 +124,24 @@ impl LocationResult {
         headers.get(GOOG_LOC_HEADER).is_some()
     }
 
-    pub fn region(&self) -> String {
-        self.subdivision.clone().unwrap_or_default()
+    pub fn region(&self) -> Option<String> {
+        if self.country() == "US" {
+            return Some(self.subdivision.clone().unwrap_or_default());
+        }
+        None
     }
 
     pub fn country(&self) -> String {
-        self.country.clone().unwrap_or_default()
+        self.country.clone().unwrap_or_default().to_uppercase()
+    }
+
+    pub fn dma(&self) -> String {
+        if self.country() == "US" {
+            return self.dma
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "".to_owned())
+        };
+        "".to_owned()
     }
 }
 
@@ -476,7 +488,7 @@ pub mod test {
         );
 
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
-        assert!(loc.region() == *"CA");
+        assert!(loc.region().unwrap() == *"CA");
         assert!(loc.country() == *"US");
         Ok(())
     }
@@ -505,7 +517,7 @@ pub mod test {
             HeaderValue::from_static(hv),
         );
         let loc = LocationResult::from_header(&test_head, &settings, &metrics);
-        assert!(loc.region() == "");
+        assert!(loc.region().unwrap() == "");
         assert!(loc.country() == "US");
         Ok(())
     }

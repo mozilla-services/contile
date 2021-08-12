@@ -55,7 +55,7 @@ pub async fn get_tiles(
     let mut tags = Tags::default();
     {
         tags.add_extra("country", &location.country());
-        tags.add_extra("region", &location.region());
+        tags.add_extra("region", &location.region().unwrap_or_default());
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
@@ -64,8 +64,8 @@ pub async fn get_tiles(
     // see "Instant Find | API Response Caching" in the 7_jul_21 spec.
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
-        region_code: if &location.region().to_lowercase() == "us" {
-            Some(location.region())
+        region_code: if &location.country() == "US" {
+            Some(location.region().unwrap_or_default())
         } else {
             None
         },
