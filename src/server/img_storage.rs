@@ -438,10 +438,12 @@ mod tests {
         // sometimes the IDE doesn't include the host env vars.
         // this lets you set them proactively.
 
+        /*
         std::env::set_var(
             "GOOGLE_APPLICATION_CREDENTIALS",
             "/home/jrconlin/.ssh/keys/sync-spanner-dev.json",
         );
+        // */
     }
 
     fn test_storage_settings() -> StorageSettings {
