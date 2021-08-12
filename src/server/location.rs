@@ -137,9 +137,10 @@ impl LocationResult {
 
     pub fn dma(&self) -> String {
         if self.country() == "US" {
-            return self.dma
+            return self
+                .dma
                 .map(|v| v.to_string())
-                .unwrap_or_else(|| "".to_owned())
+                .unwrap_or_else(|| "".to_owned());
         };
         "".to_owned()
     }
