@@ -80,6 +80,7 @@ ACCEPTED_QUERY_PARAMS = [
     "sub2",
     "country-code",
     "region-code",
+    "dma-code",
     "form-factor",
     "os-family",
     "v",
@@ -112,6 +113,10 @@ async def read_tilesp(
     v: str = Query(..., example="1.0"),
     out: str = Query("json", example="json"),
     results: int = Query(1, example=2),
+    # dma_code parameter represents a Designated Marketing Area code in the US.
+    # Make it optional until it's included in every request from Contile:
+    # https://github.com/mozilla-services/contile/pull/235
+    dma_code: str = Query("", alias="dma-code", example="532", regex="^([0-9]+)?$"),
 ):
     """Endpoint for requests from Contile."""
     unknown_query_params = [
