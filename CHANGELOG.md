@@ -1,3 +1,32 @@
+<a name="1.2.1"></a>
+## 1.2.1 (2021-08-10)
+
+
+#### Test
+
+*   Re-enable automated integration tests (#255) ([fcae97d7](https://github.com/mozilla-services/contile/commit/fcae97d7d9e721994b997d89d8c0b72a906c7272))
+
+
+
+<a name="1.2.0"></a>
+## 1.2.0 (2021-08-10)
+
+
+#### Chore
+
+*   cleanup bucket creation (#245) ([2a7bc7bb](https://github.com/mozilla-services/contile/commit/2a7bc7bb073636a8c3e5eca31bb983f5a3ba010a), closes [#245](https://github.com/mozilla-services/contile/issues/245))
+
+#### Features
+
+*   reduce redundant adM requests (#250) ([9e98c998](https://github.com/mozilla-services/contile/commit/9e98c998ec03dbf53e7fa5bce24905358cd8ef9d), closes [#248](https://github.com/mozilla-services/contile/issues/248))
+*   Add `adm_has_legacy_image` setting to filter <v91 tiles (#247) ([b87e9b4f](https://github.com/mozilla-services/contile/commit/b87e9b4f31b97e2049db7defb81745f0cefc10e0), closes [#246](https://github.com/mozilla-services/contile/issues/246))
+
+#### Test
+
+*   upgrade the Docker images for contile-integration-tests (#241) ([1c3ef82f](https://github.com/mozilla-services/contile/commit/1c3ef82f2def629fe9eedb1cfef5dd34b239dfc0))
+
+
+
 <a name="1.1.1"></a>
 ## 1.1.1 (2021-08-05)
 
