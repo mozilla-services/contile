@@ -4,8 +4,8 @@ pub mod extractors;
 pub mod handlers;
 pub mod middleware;
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 mod user_agent;
 
 pub use dockerflow::DOCKER_FLOW_ENDPOINTS;
-pub use user_agent::{DeviceInfo, FormFactor};
+pub use user_agent::{DeviceInfo, FormFactor, OsFamily};
