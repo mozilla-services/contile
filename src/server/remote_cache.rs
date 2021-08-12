@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use redis::Commands;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, json};
@@ -10,7 +12,7 @@ pub struct RemoteImageCache {
     client: redis::Client,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum CacheState {
     Pending,
     Available,
@@ -19,7 +21,18 @@ pub enum CacheState {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CacheValue {
     pub state: CacheState,
+    pub since: u64,
     pub data: Option<String>,
+}
+
+impl Default for CacheValue {
+    fn default() -> Self {
+        Self{
+            state: CacheState::Pending,
+            since: RemoteImageCache::now(),
+            data: None,
+        }
+    }
 }
 
 impl RemoteImageCache {
@@ -29,11 +42,16 @@ impl RemoteImageCache {
         Ok(Self { client })
     }
 
+    pub fn now() -> u64 {
+        SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_secs()
+    }
+
     pub fn put(self, key: &str, value: CacheValue) -> HandlerResult<()> {
         let mut conn = self
             .client
             .get_connection()
             .map_err(|e| HandlerError::internal(&e.to_string()))?;
+
         conn.set(key, json!(value).to_string())
             .map_err(|e| HandlerError::internal(&e.to_string()))?;
         Ok(())
@@ -54,12 +72,18 @@ impl RemoteImageCache {
         if result.is_empty() {
             return Ok(None);
         }
-        Ok(Some(from_str::<CacheValue>(&result).map_err(|e| {
+        let val = from_str::<CacheValue>(&result).map_err(|e| {
             HandlerError::internal(&format!(
                 "Could not deserialize shared cache entry: {} {:?}",
                 key, e
             ))
-        })?))
+        })?;
+        // time-out any stuck or pending calls.
+        if val.state == CacheState::Pending && Self::now() - val.since > 60 {
+            self.del(key)?;
+            return Ok(None);
+        }
+        Ok(Some(val))
     }
 
     pub fn del(self, key: &str) -> HandlerResult<()> {

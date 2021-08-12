@@ -355,10 +355,7 @@ impl StoreImage {
         // First thing, raise a block.
         self.cache.clone().put(
             &image_path,
-            CacheValue {
-                state: CacheState::Pending,
-                data: None,
-            },
+            CacheValue::default(),
         )?;
 
         // check to see if image has already been stored.
@@ -375,6 +372,7 @@ impl StoreImage {
                 CacheValue {
                     state: CacheState::Available,
                     data: Some(json!(stored_image).to_string()),
+                    ..Default::default()
                 },
             )?;
             return Ok(stored_image);
@@ -410,6 +408,7 @@ impl StoreImage {
                     CacheValue {
                         state: CacheState::Available,
                         data: Some(json!(stored_image).to_string()),
+                        ..Default::default()
                     },
                 )?;
                 Ok(stored_image)
