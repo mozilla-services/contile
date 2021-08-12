@@ -17,6 +17,9 @@ def test_read_root(client, version):
 
 
 def test_read_tilesp(client):
+    """Test that /tilesp API endpoint returns the expected response for the
+    example values for the required query parameters from the API specification.
+    """
     response = client.get(
         "/tilesp",
         params={
@@ -25,6 +28,7 @@ def test_read_tilesp(client):
             "sub2": "placement1",
             "country-code": "US",
             "region-code": "NY",
+            "dma-code": "532",
             "form-factor": "desktop",
             "os-family": "macos",
             "v": "1.0",
@@ -247,6 +251,62 @@ def test_read_tilesp_validate_region_code(client, region_code):
     assert "status" in response_content
     assert "count" in response_content
     assert "response" in response_content
+
+
+@pytest.mark.parametrize(
+    "dma_code",
+    [
+        "US-AZ",
+        "ny1",
+        "🛒📈🤖",
+    ],
+    ids=[
+        "hyphen_in_value",
+        "alpha_numeric",
+        "emoji",
+    ],
+)
+def test_read_tilesp_validate_dma_code(client, dma_code):
+    """Test that if provided the DMA code is submitted as an unsigned integer.
+
+    See https://github.com/mozilla-services/contile-integration-tests/issues/62
+    """
+    response = client.get(
+        "/tilesp",
+        params={
+            "partner": "demofeed",
+            "sub1": "123456789",
+            "sub2": "sub2",
+            "country-code": "US",
+            "region-code": "NY",
+            "dma-code": dma_code,
+            "form-factor": "desktop",
+            "os-family": "macos",
+            "v": "1.0",
+            "results": "2",
+        },
+    )
+
+    assert response.status_code == 400
+
+    response_content = response.json()
+    assert "tiles" not in response_content
+    assert "status" in response_content
+    assert "count" in response_content
+    assert "response" in response_content
+
+    fastapi_error = {
+        "body": None,
+        "detail": [
+            {
+                "ctx": {"pattern": "^([0-9]+)?$"},
+                "loc": ["query", "dma-code"],
+                "msg": 'string does not match regex "^([0-9]+)?$"',
+                "type": "value_error.str.regex",
+            }
+        ],
+    }
+    assert response_content["test"] == fastapi_error
 
 
 def test_read_tilesp_error_for_unknown_query_params(client):
