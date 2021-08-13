@@ -206,7 +206,7 @@ impl From<&Settings> for Option<Arc<maxminddb::Reader<Vec<u8>>>> {
             }
             return Some(Arc::new(
                 maxminddb::Reader::open_readfile(&path)
-                    .unwrap_or_else(|_| panic!("Could read mmdb file at {:?}", path)),
+                    .unwrap_or_else(|_| panic!("Could not read mmdb file at {:?}", path)),
             ));
         }
         None
