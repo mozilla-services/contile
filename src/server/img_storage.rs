@@ -353,10 +353,7 @@ impl StoreImage {
         }
 
         // First thing, raise a block.
-        self.cache.clone().put(
-            &image_path,
-            CacheValue::default(),
-        )?;
+        self.cache.clone().put(&image_path, CacheValue::default())?;
 
         // check to see if image has already been stored.
         if let Ok(exists) =
@@ -379,17 +376,11 @@ impl StoreImage {
         }
 
         // store new data to the googles
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.append(
-            "if-generation-match",
-            reqwest::header::HeaderValue::from_str("0").unwrap(),
-        );
-        match cloud_storage::Object::create_with_headers(
+        match cloud_storage::Object::create(
             &self.settings.bucket_name,
             image.to_vec(),
             &image_path,
             content_type,
-            Some(headers),
         )
         .await
         {

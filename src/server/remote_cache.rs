@@ -27,7 +27,7 @@ pub struct CacheValue {
 
 impl Default for CacheValue {
     fn default() -> Self {
-        Self{
+        Self {
             state: CacheState::Pending,
             since: RemoteImageCache::now(),
             data: None,
@@ -43,7 +43,10 @@ impl RemoteImageCache {
     }
 
     pub fn now() -> u64 {
-        SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_secs()
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
     }
 
     pub fn put(self, key: &str, value: CacheValue) -> HandlerResult<()> {
