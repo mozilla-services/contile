@@ -121,7 +121,7 @@ impl Default for StoreImage {
 #[derive(Debug)]
 pub struct StoredImage {
     pub url: uri::Uri,
-    pub object: Object,
+    pub object: Option<Object>,
     pub image_metrics: ImageMetrics,
 }
 
@@ -343,17 +343,18 @@ impl StoreImage {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
             return Ok(StoredImage {
                 url: format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
-                object: exists,
+                object: Some(exists),
                 image_metrics,
             });
         }
 
         // store new data to the googles
-        match cloud_storage::Object::create(
+        match cloud_storage::Object::create_with_params(
             &self.settings.bucket_name,
             image.to_vec(),
             &image_path,
             content_type,
+            Some(&[("ifGenerationMatch", "0")]),
         )
         .await
         {
@@ -368,12 +369,37 @@ impl StoreImage {
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
                 Ok(StoredImage {
                     url: url.parse()?,
-                    object,
+                    object: Some(object),
                     image_metrics,
                 })
             }
             Err(cloud_storage::Error::Google(ger)) => {
                 Err(HandlerErrorKind::Internal(format!("Could not create object {:?}", ger)).into())
+            }
+            Err(cloud_storage::Error::Other(json)) => {
+                // NOTE: cloud_storage doesn't parse the Google response
+                // correctly so they seem to come up as the Other variant
+                let body: serde_json::Value = serde_json::from_str(&json).map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Could not parse cloud_storage::Error::Other: ({:?}) {:?}",
+                        e, json
+                    ))
+                })?;
+                if body["error"]["code"].as_i64() == Some(412) {
+                    // 412 Precondition Failed: the image already exists, so we
+                    // can continue on
+                    trace!("Store Precondition Failed (412), image already exists, continuing");
+                    let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
+                    return Ok(StoredImage {
+                        url: url.parse()?,
+                        object: None,
+                        image_metrics,
+                    });
+                }
+                Err(
+                    HandlerErrorKind::Internal(format!("Could not create object {:?}", json))
+                        .into(),
+                )
             }
             Err(e) => {
                 // If the IamPolicy does not have "Storage Legacy Bucket Writer", you get 403

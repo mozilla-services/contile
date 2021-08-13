@@ -557,8 +557,7 @@ dependencies = [
 [[package]]
 name = "cloud-storage"
 version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38a80e16e48e19ebaa0186530f7f31bb4cd6b9e3e0bbf55272845b05aac8825f"
+source = "git+https://github.com/mozilla-services/cloud-storage-rs?branch=release/0.6.2-create_with_params#7ef63ee152f00b06e12479102fdf77acf19e36e0"
 dependencies = [
  "base64 0.12.3",
  "bytes 0.5.6",
@@ -612,7 +611,7 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "contile"
-version = "1.2.1"
+version = "1.1.1"
 dependencies = [
  "actix-cors",
  "actix-http",
@@ -1417,9 +1416,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.98"
+version = "0.2.99"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
+checksum = "a7f823d141fe0a24df1e23b4af4e3c7ba9e5966ec514ea068c93024aa7deb765"
 
 [[package]]
 name = "linked-hash-map"
@@ -1570,9 +1569,9 @@ dependencies = [
 
 [[package]]
 name = "native-tls"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8d96b2e1c8da3957d58100b09f102c6d9cfdfced01b7ec5a8974044bb09dbd4"
+checksum = "48ba9f7719b5a0f42f338907614285fb5fd70e53858141f69898a1fb7203b24d"
 dependencies = [
  "lazy_static",
  "libc",
