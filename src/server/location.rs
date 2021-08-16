@@ -135,14 +135,11 @@ impl LocationResult {
         self.country.clone().unwrap_or_default().to_uppercase()
     }
 
-    pub fn dma(&self) -> String {
+    pub fn dma(&self) -> Option<u16> {
         if self.country() == "US" {
-            return self
-                .dma
-                .map(|v| v.to_string())
-                .unwrap_or_else(|| "".to_owned());
+            return self.dma.map(Some).unwrap_or_else(|| None);
         };
-        "".to_owned()
+        None
     }
 }
 

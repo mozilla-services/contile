@@ -136,7 +136,13 @@ pub async fn get_tiles(
             ),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
-            ("dma-code", location.dma().as_str()),
+            (
+                "dma-code",
+                &location
+                    .dma()
+                    .map(|v| v.to_string())
+                    .unwrap_or_else(|| "".to_owned()),
+            ),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
