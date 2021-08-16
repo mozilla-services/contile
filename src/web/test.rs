@@ -5,6 +5,10 @@ use actix_web::{
     http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
     HttpRequest, HttpResponse, HttpServer,
 };
+use actix_web_location::{
+    providers::{FallbackProvider, MaxMindProvider},
+    Location, LocationConfig,
+};
 use futures::{channel::mpsc, StreamExt};
 use serde_json::{json, Value};
 use url::Url;
@@ -14,14 +18,7 @@ use crate::{
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
-    server::{
-        cache,
-        location::{
-            test::{MMDB_LOC, TEST_ADDR},
-            Location,
-        },
-        ServerState,
-    },
+    server::{cache, ServerState},
     settings::{test_settings, Settings},
     web::{dockerflow, handlers, middleware},
 };
@@ -31,12 +28,14 @@ const UA_91: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/91.0";
 const UA_90: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/90.0";
+const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
+const TEST_ADDR: &str = "216.160.83.56";
 
 /// customizing the settings
 fn get_test_settings() -> Settings {
     let treq = test::TestRequest::with_uri("/").to_http_request();
     Settings {
-        maxminddb_loc: Some(MMDB_LOC.to_owned()),
+        maxminddb_loc: Some(MMDB_LOC.into()),
         port: treq.uri().port_u16().unwrap_or(8080),
         host: treq.uri().host().unwrap_or("localhost").to_owned(),
         ..test_settings()
@@ -58,12 +57,23 @@ macro_rules! init_app {
                 adm_endpoint_url: $settings.adm_endpoint_url.clone(),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
-                mmdb: Location::from(&$settings),
                 settings: $settings.clone(),
                 filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
                 img_store: None,
             };
-            test::init_service(build_app!(state)).await
+
+            let mut location_config = LocationConfig::default();
+
+            if let Some(ref path) = $settings.maxminddb_loc {
+                location_config = location_config.with_provider(
+                    MaxMindProvider::from_path(path).expect("Could not read mmdb file"),
+                );
+            }
+            location_config = location_config.with_provider(FallbackProvider::new(
+                Location::build().country($settings.fallback_country),
+            ));
+
+            test::init_service(build_app!(state, location_config)).await
         }
     };
 }

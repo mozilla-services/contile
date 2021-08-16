@@ -1,5 +1,6 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web_location::Location;
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -8,7 +9,6 @@ use crate::{
     metrics::Metrics,
     server::{
         cache::{self, Tiles, TilesState},
-        location::LocationResult,
         ServerState,
     },
     settings::Settings,
@@ -32,7 +32,7 @@ pub fn add_jitter(settings: &Settings) -> u32 {
 /// Normalizes User Agent info and searches cache for possible tile suggestions.
 /// On a miss, it will attempt to fetch new tiles from ADM.
 pub async fn get_tiles(
-    location: LocationResult,
+    location: Location,
     device_info: DeviceInfo,
     metrics: Metrics,
     state: web::Data<ServerState>,

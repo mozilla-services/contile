@@ -278,6 +278,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-location"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e8f1c2eb0c3e890517d7407609c5cab09a42e5d03a8dec09c82e6ab72cb3d3c"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "cadence",
+ "futures",
+ "lazy_static",
+ "maxminddb 0.20.0",
+ "thiserror",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -306,6 +322,12 @@ checksum = "1e37cfd5e7657ada45f742d6e99ca5788580b5c529dc78faf11ece6dc702656f"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "anyhow"
+version = "1.0.42"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "595d3cfa7a60d4555cb5067b99f07142a08ea778de5cf993f7b75c7d8fabc486"
 
 [[package]]
 name = "arc-swap"
@@ -617,6 +639,7 @@ dependencies = [
  "actix-http",
  "actix-rt",
  "actix-web",
+ "actix-web-location",
  "backtrace",
  "base64 0.13.0",
  "blake3",
@@ -634,7 +657,7 @@ dependencies = [
  "image",
  "lazy_static",
  "log",
- "maxminddb",
+ "maxminddb 0.17.3",
  "rand 0.8.4",
  "regex",
  "reqwest",
@@ -1481,6 +1504,17 @@ name = "maxminddb"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a2af4902d7569c441449f2315cb83598917b13275209529103e10c238fcf3db"
+dependencies = [
+ "log",
+ "memchr",
+ "serde 1.0.127",
+]
+
+[[package]]
+name = "maxminddb"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "835288c768ea07fedcccf84f1c9a463fe7e36856b5868d5ea050f858e20b01b8"
 dependencies = [
  "log",
  "memchr",
