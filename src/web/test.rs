@@ -5,10 +5,6 @@ use actix_web::{
     http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
     HttpRequest, HttpResponse, HttpServer,
 };
-use actix_web_location::{
-    providers::{FallbackProvider, MaxMindProvider},
-    Location, LocationConfig,
-};
 use futures::{channel::mpsc, StreamExt};
 use serde_json::{json, Value};
 use url::Url;
@@ -18,7 +14,7 @@ use crate::{
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
-    server::{cache, ServerState},
+    server::{cache, location::location_config_from_settings, ServerState},
     settings::{test_settings, Settings},
     web::{dockerflow, handlers, middleware},
 };
@@ -52,8 +48,9 @@ macro_rules! init_app {
     ($settings:expr) => {
         async {
             crate::logging::init_logging(false).unwrap();
+            let metrics = Metrics::sink();
             let state = ServerState {
-                metrics: Box::new(Metrics::sink()),
+                metrics: Box::new(metrics.clone()),
                 adm_endpoint_url: $settings.adm_endpoint_url.clone(),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
@@ -61,17 +58,7 @@ macro_rules! init_app {
                 filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
                 img_store: None,
             };
-
-            let mut location_config = LocationConfig::default();
-
-            if let Some(ref path) = $settings.maxminddb_loc {
-                location_config = location_config.with_provider(
-                    MaxMindProvider::from_path(path).expect("Could not read mmdb file"),
-                );
-            }
-            location_config = location_config.with_provider(FallbackProvider::new(
-                Location::build().country($settings.fallback_country),
-            ));
+            let location_config = location_config_from_settings(&$settings, &metrics);
 
             test::init_service(build_app!(state, location_config)).await
         }
@@ -476,6 +463,31 @@ async fn maxmind_lookup() {
     let params = adm.params().await;
     assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
     assert_eq!(params.get("region-code"), Some(&"WA".to_owned()));
+}
+
+#[actix_rt::test]
+async fn location_test_header() {
+    let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: json!(adm_settings()).to_string(),
+        location_test_header: Some("x-test-location".to_owned()),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_91)
+        .header("X-Forwarded-For", TEST_ADDR)
+        .header("X-Test-Location", "US, CA")
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let params = adm.params().await;
+    assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
+    assert_eq!(params.get("region-code"), Some(&"CA".to_owned()));
 }
 
 #[actix_rt::test]

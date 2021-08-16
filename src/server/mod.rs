@@ -5,23 +5,20 @@ use actix_cors::Cors;
 use actix_web::{
     dev, http::StatusCode, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
 };
-use actix_web_location::{
-    providers::{FallbackProvider, MaxMindProvider},
-    Location, LocationConfig,
-};
 use cadence::StatsdClient;
 
 use crate::{
     adm::AdmFilter,
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
-    server::img_storage::StoreImage,
+    server::{img_storage::StoreImage, location::location_config_from_settings},
     settings::Settings,
     web::{dockerflow, handlers, middleware},
 };
 
 pub mod cache;
 pub mod img_storage;
+pub mod location;
 
 /// Arbitrary initial cache size based on the expected mean, feel free to
 /// adjust
@@ -104,18 +101,9 @@ impl Server {
             filter,
             img_store,
         };
+        let location_config = location_config_from_settings(&settings, &metrics);
 
         tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics.clone());
-
-        let mut location_config = LocationConfig::default().with_metrics(metrics);
-
-        if let Some(ref path) = settings.maxminddb_loc {
-            location_config = location_config
-                .with_provider(MaxMindProvider::from_path(path).expect("Could not read mmdb file"));
-        }
-        location_config = location_config.with_provider(FallbackProvider::new(
-            Location::build().country(settings.fallback_country),
-        ));
 
         let mut server = HttpServer::new(move || build_app!(state, location_config));
         if let Some(keep_alive) = settings.actix_keep_alive {

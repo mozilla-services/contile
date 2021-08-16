@@ -640,6 +640,7 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "actix-web-location",
+ "async-trait",
  "backtrace",
  "base64 0.13.0",
  "blake3",
