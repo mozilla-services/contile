@@ -1,5 +1,6 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web_location::Location;
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -8,7 +9,6 @@ use crate::{
     metrics::Metrics,
     server::{
         cache::{self, Tiles, TilesState},
-        location::LocationResult,
         ServerState,
     },
     settings::Settings,
@@ -32,7 +32,7 @@ pub fn add_jitter(settings: &Settings) -> u32 {
 /// Normalizes User Agent info and searches cache for possible tile suggestions.
 /// On a miss, it will attempt to fetch new tiles from ADM.
 pub async fn get_tiles(
-    location: LocationResult,
+    location: Location,
     device_info: DeviceInfo,
     metrics: Metrics,
     state: web::Data<ServerState>,
@@ -55,7 +55,7 @@ pub async fn get_tiles(
     let mut tags = Tags::default();
     {
         tags.add_extra("country", &location.country());
-        tags.add_extra("region", &location.region().unwrap_or_default());
+        tags.add_extra("region", &location.region());
         // Add/modify the existing request tags.
         // tags.clone().commit(&mut request.extensions_mut());
     }
@@ -65,7 +65,7 @@ pub async fn get_tiles(
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
         region_code: if &location.country() == "US" {
-            Some(location.filtered_region().unwrap_or_default())
+            Some(location.region())
         } else {
             None
         },

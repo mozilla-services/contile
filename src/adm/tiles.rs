@@ -1,6 +1,7 @@
 use std::{fmt::Debug, fs::File, io::BufReader, path::Path, time::Duration};
 
 use actix_http::http::header::{HeaderMap, HeaderValue};
+use actix_web_location::Location;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -8,7 +9,7 @@ use crate::{
     adm::DEFAULT,
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
-    server::{location::LocationResult, ServerState},
+    server::ServerState,
     settings::Settings,
     tags::Tags,
     web::DeviceInfo,
@@ -116,7 +117,7 @@ impl Tile {
 ///
 pub async fn get_tiles(
     state: &ServerState,
-    location: &LocationResult,
+    location: &Location,
     device_info: DeviceInfo,
     tags: &mut Tags,
     metrics: &Metrics,
@@ -129,19 +130,24 @@ pub async fn get_tiles(
         &[
             ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
             ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
-            ("country-code", &location.country()),
             (
-                "region-code",
-                location.region().unwrap_or_default().as_str(),
+                "country-code",
+                &(location
+                    .country
+                    .clone()
+                    .unwrap_or_else(|| settings.fallback_country.clone())),
             ),
+            ("region-code", &location.region()),
+            // ("dma-code", location.dma),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
             (
                 "dma-code",
-                &location
-                    .dma()
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "".to_owned()),
+                &if location.dma() > 0 {
+                    location.dma().to_string()
+                } else {
+                    "".to_owned()
+                },
             ),
             ("sub2", "newtab"),
             ("v", "1.0"),
