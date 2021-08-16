@@ -65,7 +65,7 @@ pub async fn get_tiles(
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
         region_code: if &location.country() == "US" {
-            Some(location.region().unwrap_or_default())
+            Some(location.filtered_region().unwrap_or_default())
         } else {
             None
         },

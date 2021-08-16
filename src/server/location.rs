@@ -124,6 +124,13 @@ impl LocationResult {
         headers.get(GOOG_LOC_HEADER).is_some()
     }
 
+    pub fn filtered_region(&self) -> Option<String> {
+        if self.country() == "US" {
+            return Some(self.subdivision.clone().unwrap_or_default());
+        }
+        None
+    }
+
     pub fn region(&self) -> Option<String> {
         if self.country() == "US" {
             return Some(self.subdivision.clone().unwrap_or_default());
