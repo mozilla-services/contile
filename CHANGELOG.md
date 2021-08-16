@@ -1,3 +1,77 @@
+<a name="1.2.1"></a>
+## 1.2.1 (2021-08-10)
+
+
+#### Test
+
+*   Re-enable automated integration tests (#255) ([fcae97d7](https://github.com/mozilla-services/contile/commit/fcae97d7d9e721994b997d89d8c0b72a906c7272))
+
+
+
+<a name="1.2.0"></a>
+## 1.2.0 (2021-08-10)
+
+
+#### Chore
+
+*   cleanup bucket creation (#245) ([2a7bc7bb](https://github.com/mozilla-services/contile/commit/2a7bc7bb073636a8c3e5eca31bb983f5a3ba010a), closes [#245](https://github.com/mozilla-services/contile/issues/245))
+
+#### Features
+
+*   reduce redundant adM requests (#250) ([9e98c998](https://github.com/mozilla-services/contile/commit/9e98c998ec03dbf53e7fa5bce24905358cd8ef9d), closes [#248](https://github.com/mozilla-services/contile/issues/248))
+*   Add `adm_has_legacy_image` setting to filter <v91 tiles (#247) ([b87e9b4f](https://github.com/mozilla-services/contile/commit/b87e9b4f31b97e2049db7defb81745f0cefc10e0), closes [#246](https://github.com/mozilla-services/contile/issues/246))
+
+#### Test
+
+*   upgrade the Docker images for contile-integration-tests (#241) ([1c3ef82f](https://github.com/mozilla-services/contile/commit/1c3ef82f2def629fe9eedb1cfef5dd34b239dfc0))
+
+
+
+<a name="1.1.1"></a>
+## 1.1.1 (2021-08-05)
+
+
+#### Features
+
+*   don't create the cloud storage bucket by default (#244) ([b25c995e](https://github.com/mozilla-services/contile/commit/b25c995e72989b5cf8627fa195a019a542e0e259), closes [#243](https://github.com/mozilla-services/contile/issues/243))
+
+
+
+<a name="1.1.0"></a>
+## 1.1.0 (2021-08-05)
+
+
+#### Bug Fixes
+
+*   Write version.json before docker build ([32818038](https://github.com/mozilla-services/contile/commit/32818038757b2dcf90a73c1858fed31e33299cb3))
+*   Allow '-' in bucket name ([ce70f9fc](https://github.com/mozilla-services/contile/commit/ce70f9fce54f91d016bdbc82613dab91c34a8f1d))
+
+#### Test
+
+*   block deploy CI job on integration-tests (#239) ([3fed603d](https://github.com/mozilla-services/contile/commit/3fed603d7a598745619a5a083e876041ec66f1ea), closes [#238](https://github.com/mozilla-services/contile/issues/238))
+
+#### Features
+
+*   optimize handling of not included countries (#240) ([76b0fe02](https://github.com/mozilla-services/contile/commit/76b0fe022fdf7081d48ff882c213fd473007d901), closes [#226](https://github.com/mozilla-services/contile/issues/226))
+
+
+
+<a name="1.0.0"></a>
+## 1.0.0 (2021-08-02)
+
+
+#### Features
+
+*   Switch hasher to blake3 (#229) ([aab13283](https://github.com/mozilla-services/contile/commit/aab132833e8416662f8039eb4cfcd5e28ca697d4), closes [#228](https://github.com/mozilla-services/contile/issues/228))
+*   record metric for empty ADM responses (#223) ([13ee0874](https://github.com/mozilla-services/contile/commit/13ee08745487a5fa53b2a64e7042c1b6dd501cf6), closes [#222](https://github.com/mozilla-services/contile/issues/222))
+*   Send image URLs to CDN. (#212) ([1e3c08c0](https://github.com/mozilla-services/contile/commit/1e3c08c007ed68fb8f860156b84346bc19bb0bd7), closes [#167](https://github.com/mozilla-services/contile/issues/167))
+
+#### Chore
+
+*   Update code for newest rust 1.54 (#231) ([f063e818](https://github.com/mozilla-services/contile/commit/f063e8183731b2e9ec60dc6e619aa34afec9611b))
+
+
+
 <a name="0.4.1"></a>
 ## 0.4.1 (2021-07-21)
 

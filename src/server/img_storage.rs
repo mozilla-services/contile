@@ -4,11 +4,7 @@ use std::{env, io::Cursor, time::Duration};
 use actix_http::http::HeaderValue;
 use actix_web::http::uri;
 use actix_web::web::Bytes;
-use chrono;
-use cloud_storage::{
-    bucket::{Binding, IamPolicy, IamRole, RetentionPolicy, StandardIamRole},
-    Bucket, Object,
-};
+use cloud_storage::{Bucket, Object};
 use image::{io::Reader as ImageReader, ImageFormat};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -20,6 +16,7 @@ use crate::tags::Tags;
 
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
 pub struct ImageMetricSettings {
     /// maximum length of the image
     max_size: u64,
@@ -34,7 +31,7 @@ pub struct ImageMetricSettings {
 impl Default for ImageMetricSettings {
     fn default() -> Self {
         Self {
-            max_size: 100_000,
+            max_size: 1_600_000,
             max_height: 256,
             max_width: 256,
             min_height: 96,
@@ -67,15 +64,20 @@ pub struct StorageSettings {
 impl From<&Settings> for StorageSettings {
     fn from(settings: &Settings) -> Self {
         lazy_static! {
-            static ref INVALID: Regex = Regex::new("[^0-9A-Za-z_]").unwrap();
+            /// https://cloud.google.com/storage/docs/naming-buckets#requirements
+            /// Ignoring buckets with . in them because of domain verification requirements
+            static ref VALID: Regex = Regex::new("^[0-9a-z][0-9a-z_-]{1,61}[0-9a-z]$").unwrap();
         }
         if settings.storage.is_empty() {
             return Self::default();
         }
         let storage_settings: StorageSettings =
             serde_json::from_str(&settings.storage).expect("Invalid storage settings");
-        if INVALID.is_match(&storage_settings.bucket_name) {
-            panic!("Invalid storage settings: invalid bucket name")
+        if !VALID.is_match(&storage_settings.bucket_name) {
+            panic!(
+                "Invalid storage settings: invalid bucket name '{}'",
+                &storage_settings.bucket_name
+            )
         }
         storage_settings
     }
@@ -119,7 +121,7 @@ impl Default for StoreImage {
 #[derive(Debug)]
 pub struct StoredImage {
     pub url: uri::Uri,
-    pub object: Object,
+    pub object: Option<Object>,
     pub image_metrics: ImageMetrics,
 }
 
@@ -138,10 +140,10 @@ impl StoreImage {
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
         let sset = StorageSettings::from(settings);
-        Self::build_bucket(&sset, client).await
+        Self::check_bucket(&sset, client).await
     }
 
-    pub async fn build_bucket(
+    pub async fn check_bucket(
         settings: &StorageSettings,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
@@ -161,87 +163,21 @@ impl StoreImage {
             trace!("No bucket set. Not storing...");
             return Ok(None);
         }
-        // It's better if the bucket already exists.
-        // Creating the bucket requires "Storage Object Creator" account permissions,
-        // which can be a bit tricky to configure correctly.
-        trace!("Try creating bucket...");
-        let bucket = match Bucket::create(&cloud_storage::NewBucket {
-            name: settings.bucket_name.clone(),
-            ..Default::default()
-        })
-        .await
-        {
-            Ok(mut v) => {
-                // Set the newly created buckets retention policy
-                v.retention_policy = Some(RetentionPolicy {
-                    retention_period: settings.bucket_ttl,
-                    effective_time: chrono::Utc::now(),
-                    is_locked: None,
-                });
-                v.update()
-                    .await
-                    .map_err(|e| HandlerError::internal(&e.to_string()))?;
-                v
-            }
-            Err(cloud_storage::Error::Google(ger)) => {
-                if ger.errors_has_reason(&cloud_storage::Reason::Conflict) {
-                    trace!("Already exists {:?}", &settings.bucket_name);
-                    // try fetching the existing bucket.
-                    let _content = Bucket::read(&settings.bucket_name).await.map_err(|e| {
-                        HandlerError::internal(&format!("Could not read bucket {:?}", e))
-                    })?;
-                    return Ok(Some(Self {
-                        // bucket: Some(_content),
-                        settings: settings.clone(),
-                        req: client.clone(),
-                    }));
-                } else {
-                    return Err(HandlerError::internal(&format!(
-                        "Bucket create error {:?}",
-                        ger
-                    )));
-                }
-            }
-            Err(e) => {
-                return Err(
-                    HandlerErrorKind::Internal(format!("Bucket create error: {:?}", e)).into(),
-                )
-            }
-        };
-        trace!("Trying to grant viewing to all");
-        // Set the permissions for the newly created bucket.
-        // grant allUsers view access
-        let all_binding = Binding {
-            role: IamRole::Standard(StandardIamRole::ObjectViewer),
-            members: vec!["allUsers".to_owned()],
-            condition: None,
-        };
-        let policy = IamPolicy {
-            bindings: vec![all_binding],
-            ..Default::default()
-        };
-        match bucket.set_iam_policy(&policy).await {
-            Ok(_) => {}
-            Err(cloud_storage::Error::Google(ger)) => {
-                if ger.errors_has_reason(&cloud_storage::Reason::Forbidden) {
-                    trace!("Can't set permission...");
-                } else {
-                    return Err(HandlerErrorKind::Internal(format!(
-                        "Could not add read policy {:?}",
-                        ger
-                    ))
-                    .into());
-                }
-            }
-            Err(e) => {
-                return Err(HandlerErrorKind::Internal(format!(
-                    "Could not add read policy {:?}",
-                    e
-                ))
-                .into())
-            }
-        };
-        // Yay! Bucket created.
+
+        // The image storage bucket should be created ahead of time.
+        // Bucket creation permissions would require "Storage Object Creator" account
+        // permissions, which can be tricky to set up.
+        //
+        // Once created, the bucket should be set with "AllViewers" with
+        // "allUsers" set to `ObjectViewer` to expose the contents of the bucket
+        // to public view.
+        //
+
+        // verify that the bucket can be read
+        let _content = Bucket::read(&settings.bucket_name)
+            .await
+            .map_err(|e| HandlerError::internal(&format!("Could not read bucket {:?}", e)))?;
+
         trace!("Bucket OK");
 
         Ok(Some(Self {
@@ -407,17 +343,18 @@ impl StoreImage {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
             return Ok(StoredImage {
                 url: format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
-                object: exists,
+                object: Some(exists),
                 image_metrics,
             });
         }
 
         // store new data to the googles
-        match cloud_storage::Object::create(
+        match cloud_storage::Object::create_with_params(
             &self.settings.bucket_name,
             image.to_vec(),
             &image_path,
             content_type,
+            Some(&[("ifGenerationMatch", "0")]),
         )
         .await
         {
@@ -432,12 +369,37 @@ impl StoreImage {
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
                 Ok(StoredImage {
                     url: url.parse()?,
-                    object,
+                    object: Some(object),
                     image_metrics,
                 })
             }
             Err(cloud_storage::Error::Google(ger)) => {
                 Err(HandlerErrorKind::Internal(format!("Could not create object {:?}", ger)).into())
+            }
+            Err(cloud_storage::Error::Other(json)) => {
+                // NOTE: cloud_storage doesn't parse the Google response
+                // correctly so they seem to come up as the Other variant
+                let body: serde_json::Value = serde_json::from_str(&json).map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Could not parse cloud_storage::Error::Other: ({:?}) {:?}",
+                        e, json
+                    ))
+                })?;
+                if body["error"]["code"].as_i64() == Some(412) {
+                    // 412 Precondition Failed: the image already exists, so we
+                    // can continue on
+                    trace!("Store Precondition Failed (412), image already exists, continuing");
+                    let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
+                    return Ok(StoredImage {
+                        url: url.parse()?,
+                        object: None,
+                        image_metrics,
+                    });
+                }
+                Err(
+                    HandlerErrorKind::Internal(format!("Could not create object {:?}", json))
+                        .into(),
+                )
             }
             Err(e) => {
                 // If the IamPolicy does not have "Storage Legacy Bucket Writer", you get 403
@@ -520,7 +482,7 @@ mod tests {
 
         let test_settings = test_storage_settings();
         let client = reqwest::Client::new();
-        let bucket = StoreImage::build_bucket(&test_settings, &client)
+        let bucket = StoreImage::check_bucket(&test_settings, &client)
             .await
             .unwrap()
             .unwrap();
