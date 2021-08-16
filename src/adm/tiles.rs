@@ -196,7 +196,7 @@ pub async fn get_tiles(
         .filter_map(|tile| {
             state
                 .filter
-                .filter_and_process(tile, location, tags, metrics)
+                .filter_and_process(tile, location, &device_info, tags, metrics)
         })
         .take(settings.adm_max_tiles as usize)
         .collect();

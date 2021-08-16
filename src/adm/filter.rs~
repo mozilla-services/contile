@@ -1,0 +1,171 @@
+use std::{collections::HashMap, fmt::Debug};
+
+use url::Url;
+
+use super::{AdmAdvertiserFilterSettings, AdmTile};
+use crate::{
+    error::{HandlerError, HandlerErrorKind, HandlerResult},
+    tags::Tags,
+    web::middleware::sentry as l_sentry,
+};
+
+/// The name of the "Default" node, which is used as a fall back if no data
+/// is defined for a given partner.
+pub(crate) const DEFAULT: &str = "DEFAULT";
+
+/// Filter criteria for ADM Tiles
+///
+/// Each "filter"  is a set of [crate::adm::AdmAdvertiserFilterSettings] that are
+/// specific to a given Advertiser name (the names are matched against
+/// the tiles fetch request)
+/// In addition there is a special `DEFAULT` value which is a filter
+/// that will be applied to all advertisers that do not supply their
+/// own values.
+#[derive(Default, Clone, Debug)]
+pub struct AdmFilter {
+    pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
+}
+
+/// Check that a given URL is valid according to it's corresponding filter
+fn check_url(
+    url: &str,
+    species: &'static str,
+    filter: &[String],
+    tags: &mut Tags,
+) -> HandlerResult<()> {
+    let parsed: Url = match url.parse() {
+        Ok(v) => v,
+        Err(e) => {
+            tags.add_tag("type", species);
+            tags.add_extra("parse_error", &e.to_string());
+            tags.add_extra("url", &url);
+            return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+        }
+    };
+    let host = match parsed.host() {
+        Some(v) => v.to_string(),
+        None => {
+            tags.add_tag("type", species);
+            tags.add_extra("url", &url);
+            return Err(HandlerErrorKind::MissingHost(species, parsed.to_string()).into());
+        }
+    };
+    if !filter.contains(&host) {
+        tags.add_tag("type", species);
+        tags.add_extra("url", &url);
+        return Err(HandlerErrorKind::UnexpectedHost(species, host).into());
+    }
+    Ok(())
+}
+
+/// Filter a given tile data set provided by ADM and validate the various elements
+impl AdmFilter {
+    /// Report the error directly to sentry
+    fn report(&self, error: &HandlerError, tags: &Tags) {
+        // dbg!(&error, &tags);
+        // TODO: if not error.is_reportable, just add to metrics.
+        l_sentry::report(tags, sentry::event_from_error(error));
+    }
+
+    /// Check the advertiser URL
+    fn check_advertiser(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        check_url(
+            &tile.advertiser_url,
+            "Advertiser",
+            &filter.advertiser_hosts,
+            tags,
+        )
+    }
+
+    /// Check the click URL
+    fn check_click(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        check_url(&tile.click_url, "Click", &filter.click_hosts, tags)
+    }
+
+    /// Check the impression URL to see if it's valid.
+    ///
+    /// This extends `filter_and_process`
+    fn check_impression(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        check_url(
+            &tile.impression_url,
+            "Impression",
+            &filter.impression_hosts,
+            tags,
+        )
+    }
+
+    /// Filter and process tiles from ADM:
+    ///
+    /// - Returns None for tiles that shouldn't be shown to the client
+    /// - Modifies tiles for output to the client (adding additional fields, etc.)
+    pub fn filter_and_process(&self, mut tile: AdmTile, tags: &mut Tags) -> Option<AdmTile> {
+        // Use strict matching for now, eventually, we may want to use backwards expanding domain
+        // searches, (.e.g "xyz.example.com" would match "example.com")
+        match self.filter_set.get(&tile.name.to_lowercase()) {
+            Some(filter) => {
+                // Apply any additional tile filtering here.
+                let none = AdmAdvertiserFilterSettings::default();
+                let default = self
+                    .filter_set
+                    .get(&DEFAULT.to_lowercase())
+                    .unwrap_or(&none);
+                // if the filter doesn't have anything defined, try using what's in the default.
+                // Sadly, `vec.or()` doesn't exist, so do this a bit "long hand"
+                let adv_filter = if filter.advertiser_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
+                let impression_filter = if filter.impression_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
+                let click_filter = if filter.click_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
+                if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
+                    self.report(&e, tags);
+                    return None;
+                }
+                if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
+                    self.report(&e, tags);
+                    return None;
+                }
+                if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
+                    self.report(&e, tags);
+                    return None;
+                }
+                // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
+                // defined. In either case `None` is a valid return, but we should favor `filter` over
+                // `default`.
+                tile.position = filter.position.or(default.position);
+                Some(tile)
+            }
+            None => {
+                self.report(
+                    &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
+                    tags,
+                );
+                None
+            }
+        }
+    }
+}
