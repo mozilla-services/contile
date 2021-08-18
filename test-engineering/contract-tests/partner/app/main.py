@@ -9,29 +9,27 @@ import os
 import pathlib
 import sys
 
-import yaml
 from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from models import ResponseFromFile, Tiles
+from models import Tiles
+from responses import LoaderConfig, load_responses
 
 logger = logging.getLogger("partner")
 
 version = f"{sys.version_info.major}.{sys.version_info.minor}"
 
-RESPONSES_FILE = os.environ["RESPONSES_FILE"]
+RESPONSES_DIR = pathlib.Path(os.environ["RESPONSES_DIR"])
 
-with pathlib.Path(RESPONSES_FILE).open() as f:
-    responses_yml = yaml.safe_load(f)
+scenarios_files = [p for p in RESPONSES_DIR.glob("**/*.yml")]
 
-responses_from_file = {
-    form_factor: {
-        os_family: ResponseFromFile(**response)
-        for os_family, response in os_families.items()
-    }
-    for form_factor, os_families in responses_yml.items()
-}
+if not scenarios_files:
+    raise RuntimeError(
+        f"RESPONSES_DIR '{RESPONSES_DIR}' does not contain any YML files"
+    )
+
+LOADER_CONFIG = LoaderConfig(RESPONSES_DIR)
 
 app = FastAPI()
 
@@ -119,6 +117,7 @@ async def read_tilesp(
     dma_code: str = Query("", alias="dma-code", example="532", regex="^([0-9]+)?$"),
 ):
     """Endpoint for requests from Contile."""
+
     unknown_query_params = [
         param for param in request.query_params if param not in ACCEPTED_QUERY_PARAMS
     ]
@@ -138,10 +137,16 @@ async def read_tilesp(
             ),
         )
 
-    # Read response information from the response.yml file
+    # Load responses from the responses.yml file for the given country_code and
+    # region_code. If that fails and the fallback behavior fails as well, this
+    # will raise an Exception resulting in a 500 Internal Server Error
+    responses_from_file = load_responses(
+        config=LOADER_CONFIG, country_code=country_code, region_code=region_code
+    )
+
+    # Read the response for the given form_factor and os_family
     response_from_file = responses_from_file[form_factor][os_family]
 
-    # Read response information from the file
     status_code = response_from_file.status_code
     content = response_from_file.content
     delay = response_from_file.delay
