@@ -244,7 +244,12 @@ mod test {
     fn test_filtered_dma() {
         let settings = test_settings();
 
-        assert_eq!(filtered_dma(&settings, &552), "".to_owned());
+        let x_list = settings
+            .excluded_dma
+            .clone()
+            .expect("No `exclude_dmas` found");
+        let blocked = x_list.first().expect("`exclude_dma` list empty");
+        assert_eq!(filtered_dma(&settings, blocked), "".to_owned());
         assert_eq!(filtered_dma(&settings, &0), "".to_owned());
         assert_eq!(filtered_dma(&settings, &200), "200".to_owned());
     }
