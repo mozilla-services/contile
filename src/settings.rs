@@ -112,7 +112,8 @@ impl Default for Settings {
             fallback_country: "US".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
-            exclude_dma: Some([552, 583, 789].to_vec()),
+            // exclude for: Glendive, MT(798); Alpena, MI(583); North Platte, NE (740)
+            exclude_dma: Some([798, 583, 740].to_vec()),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
