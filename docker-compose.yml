@@ -1,11 +1,11 @@
 version: "3"
 services:
   partner:
-    image: mozilla/contile-integration-tests-partner:21.4.0
+    image: mozilla/contile-integration-tests-partner:21.5.0
     container_name: partner
     environment:
       PORT: 5000
-      RESPONSES_FILE: /tmp/partner/responses.yml
+      RESPONSES_DIR: /tmp/partner/
     expose:
       - "5000"
     volumes:
@@ -44,7 +44,7 @@ services:
     #entrypoint: >
     #  /bin/sh -c "hostname -I && bin/contile"
   client:
-    image: mozilla/contile-integration-tests-client:21.4.0
+    image: mozilla/contile-integration-tests-client:21.5.0
     container_name: client
     depends_on:
       - partner
