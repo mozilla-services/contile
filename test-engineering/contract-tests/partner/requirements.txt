@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements.in
 #
-asgiref==3.3.4
+asgiref==3.4.1
     # via uvicorn
 click==8.0.1
     # via uvicorn
@@ -28,7 +28,7 @@ starlette==0.14.2
     # via fastapi
 typing-extensions==3.10.0.0
     # via pydantic
-uvicorn[standard]==0.14.0
+uvicorn[standard]==0.15.0
     # via -r requirements.in
 uvloop==0.15.2
     # via uvicorn
