@@ -115,7 +115,7 @@ impl Tile {
 
 pub fn filtered_dma(settings: &Settings, dma: &u16) -> String {
     if settings
-        .exclude_dma
+        .excluded_dma
         .clone()
         .unwrap_or_else(Vec::new)
         .contains(dma)
