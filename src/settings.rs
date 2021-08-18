@@ -81,6 +81,8 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
+    /// a JSON list of location DMAs to never return (population less than 15K)
+    pub exclude_dma: Option<Vec<u16>>,
 
     // OBSOLETE:
     pub sub1: Option<String>,
@@ -110,6 +112,7 @@ impl Default for Settings {
             fallback_country: "US".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
+            exclude_dma: Some([552, 583, 789].to_vec()),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,

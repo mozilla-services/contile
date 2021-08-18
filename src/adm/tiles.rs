@@ -113,6 +113,20 @@ impl Tile {
     }
 }
 
+pub fn filtered_dma(settings: &Settings, dma: &u16) -> String {
+    if settings
+        .exclude_dma
+        .clone()
+        .unwrap_or_else(Vec::new)
+        .contains(dma)
+        || dma == &0
+    {
+        "".to_owned()
+    } else {
+        dma.to_string()
+    }
+}
+
 /// Main handler for the User Agent HTTP request
 ///
 pub async fn get_tiles(
@@ -138,17 +152,9 @@ pub async fn get_tiles(
                     .unwrap_or_else(|| settings.fallback_country.clone())),
             ),
             ("region-code", &location.region()),
-            // ("dma-code", location.dma),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
-            (
-                "dma-code",
-                &if location.dma() > 0 {
-                    location.dma().to_string()
-                } else {
-                    "".to_owned()
-                },
-            ),
+            ("dma-code", &filtered_dma(settings, &location.dma())),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
@@ -227,4 +233,19 @@ pub async fn get_tiles(
         tiles.push(tile);
     }
     Ok(TileResponse { tiles })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::settings::test_settings;
+
+    #[test]
+    fn test_filtered_dma() {
+        let settings = test_settings();
+
+        assert_eq!(filtered_dma(&settings, &552), "".to_owned());
+        assert_eq!(filtered_dma(&settings, &0), "".to_owned());
+        assert_eq!(filtered_dma(&settings, &200), "200".to_owned());
+    }
 }
