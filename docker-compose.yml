@@ -5,7 +5,7 @@ services:
     container_name: partner
     environment:
       PORT: 5000
-      RESPONSES_FILE: /tmp/partner/responses.yml
+      RESPONSES_DIR: /tmp/partner/
     expose:
       - "5000"
     volumes:
