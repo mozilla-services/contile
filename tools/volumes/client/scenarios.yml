@@ -182,3 +182,41 @@ scenarios:
         response:
           status_code: 403 # Forbidden
           content: 700
+
+  - name: success_country_code_region_code
+    description: Test that Contile successfully returns tiles for a specific country and region.
+    steps:
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: macos and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "216.160.83.56/29"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: US and region-code: WA
+            - name: X-Forwarded-For
+              value: '216.160.83.62'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 22346
+                name: 'Example COM'
+                click_url: 'https://example.com/us_wa_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/us_wa_desktop_macos01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/us_wa_desktop_macos?id=0001'
+                url: 'https://www.example.com/us_wa_desktop_macos'
+                position: 1
+              - id: 56790
+                name: 'Example ORG'
+                click_url: 'https://example.org/us_wa_desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/us_wa_desktop_macos02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/us_wa_desktop_macos?id=0002'
+                url: 'https://www.example.org/us_wa_desktop_macos'
+                position: 1
