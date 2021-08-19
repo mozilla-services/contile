@@ -116,8 +116,8 @@ impl Tile {
 pub fn filtered_dma(settings: &Settings, dma: &u16) -> String {
     if settings
         .excluded_dma
-        .clone()
-        .unwrap_or_else(Vec::new)
+        .as_ref()
+        .unwrap_or(&vec![])
         .contains(dma)
         || dma == &0
     {
@@ -246,7 +246,7 @@ mod test {
 
         let x_list = settings
             .excluded_dma
-            .clone()
+            .as_ref()
             .expect("No `exclude_dmas` found");
         let blocked = x_list.first().expect("`exclude_dma` list empty");
         assert_eq!(filtered_dma(&settings, blocked), "".to_owned());
