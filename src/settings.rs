@@ -1,11 +1,13 @@
 //! Application settings objects and initialization
 
+use std::path::PathBuf;
+
 use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
 use crate::adm::AdmSettings;
-use crate::server::{img_storage::StorageSettings, location::Location, ServerState};
+use crate::server::{img_storage::StorageSettings, ServerState};
 
 static PREFIX: &str = "contile";
 
@@ -19,7 +21,7 @@ static DEFAULT_PORT: u16 = 8000;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
 pub struct Settings {
-    /// Enable verbos debugging output (default: false)
+    /// Enable verbose debugging output (default: false)
     pub debug: bool,
     /// Service port (default: 8000)
     pub port: u16,
@@ -38,7 +40,7 @@ pub struct Settings {
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
     /// path to MaxMind location database
-    pub maxminddb_loc: Option<String>,
+    pub maxminddb_loc: Option<PathBuf>,
     /// [StorageSettings] related to the google cloud storage
     pub storage: String,
     /// Run in "integration test mode"
@@ -79,7 +81,8 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
-
+    /// a JSON list of location DMAs to never return (population less than 15K)
+    pub exclude_dma: Option<String>,
     // OBSOLETE:
     pub sub1: Option<String>,
     pub partner_id: Option<String>,
@@ -108,6 +111,8 @@ impl Default for Settings {
             fallback_country: "US".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
+            // exclude for: Glendive, MT(798); Alpena, MI(583); North Platte, NE (740)
+            exclude_dma: Some("[798, 583, 740]".to_owned()),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
@@ -133,7 +138,14 @@ impl Settings {
         if self.adm_endpoint_url.is_empty() {
             return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
         }
-        self.fallback_country = Location::fix_fallback_country(&self.fallback_country)?;
+
+        if self.fallback_country.len() != 2 {
+            return Err(ConfigError::Message(
+                "Invalid fallback_country specified. Please use a string like \"US\"".to_owned(),
+            ));
+        }
+        self.fallback_country = self.fallback_country.to_uppercase();
+
         // preflight check the storage
         StorageSettings::from(&*self);
         AdmSettings::from(&mut *self);
@@ -217,4 +229,38 @@ impl<'a> From<&'a ServiceRequest> for &'a Settings {
 pub fn test_settings() -> Settings {
     Settings::with_env_and_config_file(&None, true)
         .expect("Could not get Settings in get_test_settings")
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{error::HandlerResult, settings::Settings};
+
+    #[actix_rt::test]
+    async fn test_fallback_loc() -> HandlerResult<()> {
+        // From a bad setting
+        let mut settings = Settings {
+            fallback_country: "USA".to_owned(),
+            adm_endpoint_url: "http://localhost:8080".to_owned(),
+            ..Default::default()
+        };
+        assert!(settings.verify_settings().is_err());
+        settings.fallback_country = "US,OK".to_owned();
+        assert!(settings.verify_settings().is_err());
+        settings.fallback_country = "US".to_owned();
+        assert!(settings.verify_settings().is_ok());
+        assert!(settings.fallback_country == "US");
+
+        // // From an empty Google LB header
+        // let metrics = Metrics::noop();
+        // let mut test_head = RequestHead::default();
+        // let hv = ", ";
+        // test_head.headers_mut().append(
+        //     HeaderName::from_static(GOOG_LOC_HEADER),
+        //     HeaderValue::from_static(&hv),
+        // );
+        // let loc = LocationResult::from_header(&test_head, &settings, &metrics);
+        // assert!(loc.region() == "");
+        // assert!(loc.country() == "US");
+        Ok(())
+    }
 }

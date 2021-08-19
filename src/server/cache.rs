@@ -18,7 +18,9 @@ pub struct AudienceKey {
     /// Country in ISO 3166-1 alpha-2 format
     pub country_code: String,
     /// Region/subdivision (e.g. a US state) in ISO 3166-2 format
-    pub region_code: String,
+    pub region_code: Option<String>,
+    /// The DMA code (u16)
+    pub dma_code: Option<u16>,
     /// The form-factor (e.g. desktop, phone) of the device
     pub form_factor: FormFactor,
     /// Only serve legacy

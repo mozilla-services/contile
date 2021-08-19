@@ -5,6 +5,10 @@ use actix_cors::Cors;
 use actix_web::{
     dev, http::StatusCode, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
 };
+use actix_web_location::{
+    providers::{FallbackProvider, MaxMindProvider},
+    Location, LocationConfig,
+};
 use cadence::StatsdClient;
 
 use crate::{
@@ -18,7 +22,6 @@ use crate::{
 
 pub mod cache;
 pub mod img_storage;
-pub mod location;
 
 /// Arbitrary initial cache size based on the expected mean, feel free to
 /// adjust
@@ -36,25 +39,19 @@ pub struct ServerState {
     pub adm_endpoint_url: String,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
-    pub mmdb: location::Location,
     pub settings: Settings,
     pub filter: AdmFilter,
     pub img_store: Option<StoreImage>,
+    pub excluded_dmas: Option<Vec<u16>>,
 }
 
 impl std::fmt::Debug for ServerState {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mmdb_status = if self.mmdb.is_available() {
-            "is set"
-        } else {
-            "is not set"
-        };
         fmt.debug_struct("ServerState")
             .field("metrics", &self.metrics)
             .field("adm_endpoint_url", &self.adm_endpoint_url)
             .field("reqwest_client", &self.reqwest_client)
             .field("tiles_cache", &self.tiles_cache)
-            .field("mmdb", &mmdb_status.to_owned())
             .finish()
     }
 }
@@ -65,9 +62,10 @@ pub struct Server;
 /// Simplified Actix app builder (used by both the app and unit test)
 #[macro_export]
 macro_rules! build_app {
-    ($state: expr) => {
+    ($state: expr, $location_config: expr) => {
         App::new()
-            .data($state)
+            .data($state.clone())
+            .data($location_config.clone())
             // Middleware is applied LIFO
             // These will wrap all outbound responses with matching status codes.
             .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, HandlerError::render_404))
@@ -98,20 +96,37 @@ impl Server {
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
         let img_store = StoreImage::create(&settings, &req).await?;
+        let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
+            serde_json::from_str(exclude_dmas).map_err(|e| {
+                HandlerError::internal(&format!("Invalid exclude_dma field: {:?}", e))
+            })?
+        } else {
+            None
+        };
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
             reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
-            mmdb: (&settings).into(),
             settings: settings.clone(),
             filter,
             img_store,
+            excluded_dmas,
         };
 
-        tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics);
+        tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics.clone());
 
-        let mut server = HttpServer::new(move || build_app!(state.clone()));
+        let mut location_config = LocationConfig::default().with_metrics(metrics);
+
+        if let Some(ref path) = settings.maxminddb_loc {
+            location_config = location_config
+                .with_provider(MaxMindProvider::from_path(path).expect("Could not read mmdb file"));
+        }
+        location_config = location_config.with_provider(FallbackProvider::new(
+            Location::build().country(settings.fallback_country),
+        ));
+
+        let mut server = HttpServer::new(move || build_app!(state, location_config));
         if let Some(keep_alive) = settings.actix_keep_alive {
             server = server.keep_alive(keep_alive as usize);
         }

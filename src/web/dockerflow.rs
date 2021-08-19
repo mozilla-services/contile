@@ -8,13 +8,11 @@
 use std::collections::HashMap;
 
 use actix_web::{dev::Payload, web, FromRequest, HttpRequest, HttpResponse};
+use actix_web_location::Location;
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{
-    error::HandlerError,
-    server::{location::LocationResult, ServerState},
-};
+use crate::{error::HandlerError, server::ServerState};
 
 /// Well Known DockerFlow commands for Ops callbacks
 pub const DOCKER_FLOW_ENDPOINTS: [&str; 4] = [
@@ -76,7 +74,7 @@ async fn test_error(
     error!("Test Error");
     let mut err = HandlerError::internal("Oh Noes!");
     if matches!(params.with_location, Some(true)) {
-        let location_info = match LocationResult::from_request(&req, &mut Payload::None).await {
+        let location_info = match Location::from_request(&req, &mut Payload::None).await {
             Ok(location) => format!("{:#?}", location),
             Err(loce) => loce.to_string(),
         };
