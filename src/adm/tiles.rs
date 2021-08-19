@@ -113,14 +113,8 @@ impl Tile {
     }
 }
 
-pub fn filtered_dma(settings: &Settings, dma: &u16) -> String {
-    if settings
-        .excluded_dma
-        .as_ref()
-        .unwrap_or(&vec![])
-        .contains(dma)
-        || dma == &0
-    {
+pub fn filtered_dma(exclude: &Option<Vec<u16>>, dma: &u16) -> String {
+    if exclude.as_ref().unwrap_or(&vec![]).contains(dma) || dma == &0 {
         "".to_owned()
     } else {
         dma.to_string()
@@ -154,7 +148,10 @@ pub async fn get_tiles(
             ("region-code", &location.region()),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
-            ("dma-code", &filtered_dma(settings, &location.dma())),
+            (
+                "dma-code",
+                &filtered_dma(&state.excluded_dmas, &location.dma()),
+            ),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
@@ -244,13 +241,13 @@ mod test {
     fn test_filtered_dma() {
         let settings = test_settings();
 
-        let x_list = settings
-            .excluded_dma
-            .as_ref()
-            .expect("No `exclude_dmas` found");
+        let excluded_dmas: Option<Vec<u16>> =
+            serde_json::from_str(&settings.exclude_dma.unwrap()).expect("No exclude_dmas");
+
+        let x_list = excluded_dmas.as_ref().expect("No `exclude_dmas` found");
         let blocked = x_list.first().expect("`exclude_dma` list empty");
-        assert_eq!(filtered_dma(&settings, blocked), "".to_owned());
-        assert_eq!(filtered_dma(&settings, &0), "".to_owned());
-        assert_eq!(filtered_dma(&settings, &200), "200".to_owned());
+        assert_eq!(filtered_dma(&excluded_dmas, blocked), "".to_owned());
+        assert_eq!(filtered_dma(&excluded_dmas, &0), "".to_owned());
+        assert_eq!(filtered_dma(&excluded_dmas, &200), "200".to_owned());
     }
 }

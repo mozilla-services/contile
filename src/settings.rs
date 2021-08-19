@@ -83,8 +83,6 @@ pub struct Settings {
     pub adm_has_legacy_image: Option<String>,
     /// a JSON list of location DMAs to never return (population less than 15K)
     pub exclude_dma: Option<String>,
-    pub excluded_dma: Option<Vec<u16>>,
-
     // OBSOLETE:
     pub sub1: Option<String>,
     pub partner_id: Option<String>,
@@ -115,7 +113,6 @@ impl Default for Settings {
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
             // exclude for: Glendive, MT(798); Alpena, MI(583); North Platte, NE (740)
             exclude_dma: Some("[798, 583, 740]".to_owned()),
-            excluded_dma: None,
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
@@ -185,11 +182,6 @@ impl Settings {
                 }
                 // Adjust the max values if required.
                 s.verify_settings()?;
-                // Convert the exclude_dma string to a vec.
-                if let Some(exclude_str) = &s.exclude_dma {
-                    s.excluded_dma = serde_json::from_str(exclude_str)
-                        .map_err(|e| ConfigError::Message(e.to_string()))?;
-                }
                 s
             }
             Err(e) => match e {
