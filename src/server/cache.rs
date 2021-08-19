@@ -9,7 +9,7 @@ use std::{
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
-use crate::{adm::TileResponse, error::HandlerError, metrics::Metrics, web::FormFactor};
+use crate::{adm::TileResponse, error::HandlerError, metrics::Metrics, web::{FormFactor, OsFamily}};
 
 /// AudienceKey is the primary key used to store and fetch tiles from the
 /// local cache.
@@ -23,6 +23,8 @@ pub struct AudienceKey {
     pub dma_code: Option<u16>,
     /// The form-factor (e.g. desktop, phone) of the device
     pub form_factor: FormFactor,
+    /// Platform OS
+    pub os_family: OsFamily,
     /// Only serve legacy
     pub legacy_only: bool,
 }
