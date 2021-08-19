@@ -279,9 +279,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web-location"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e8f1c2eb0c3e890517d7407609c5cab09a42e5d03a8dec09c82e6ab72cb3d3c"
+checksum = "9ec9c0d13dfbce2082942a07f2d024c6c7ce05ea5531410b926b63bd66f79e81"
 dependencies = [
  "actix-web",
  "anyhow",

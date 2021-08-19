@@ -113,6 +113,14 @@ impl Tile {
     }
 }
 
+pub fn filtered_dma(exclude: &Option<Vec<u16>>, dma: &u16) -> String {
+    if exclude.as_ref().unwrap_or(&vec![]).contains(dma) || dma == &0 {
+        "".to_owned()
+    } else {
+        dma.to_string()
+    }
+}
+
 /// Main handler for the User Agent HTTP request
 ///
 pub async fn get_tiles(
@@ -138,9 +146,12 @@ pub async fn get_tiles(
                     .unwrap_or_else(|| settings.fallback_country.clone())),
             ),
             ("region-code", &location.region()),
-            // ("dma-code", location.dma),
             ("form-factor", &device_info.form_factor.to_string()),
             ("os-family", &device_info.os_family.to_string()),
+            (
+                "dma-code",
+                &filtered_dma(&state.excluded_dmas, &location.dma()),
+            ),
             ("sub2", "newtab"),
             ("v", "1.0"),
             // XXX: some value for results seems required, it defaults to 0
@@ -219,4 +230,24 @@ pub async fn get_tiles(
         tiles.push(tile);
     }
     Ok(TileResponse { tiles })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::settings::test_settings;
+
+    #[test]
+    fn test_filtered_dma() {
+        let settings = test_settings();
+
+        let excluded_dmas: Option<Vec<u16>> =
+            serde_json::from_str(&settings.exclude_dma.unwrap()).expect("No exclude_dmas");
+
+        let x_list = excluded_dmas.as_ref().expect("No `exclude_dmas` found");
+        let blocked = x_list.first().expect("`exclude_dma` list empty");
+        assert_eq!(filtered_dma(&excluded_dmas, blocked), "".to_owned());
+        assert_eq!(filtered_dma(&excluded_dmas, &0), "".to_owned());
+        assert_eq!(filtered_dma(&excluded_dmas, &200), "200".to_owned());
+    }
 }

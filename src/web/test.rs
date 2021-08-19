@@ -52,6 +52,11 @@ macro_rules! init_app {
     ($settings:expr) => {
         async {
             crate::logging::init_logging(false).unwrap();
+            let excluded_dmas = if let Some(exclude_dmas) = &$settings.exclude_dma {
+                serde_json::from_str(exclude_dmas).expect("Invalid exclude_dma field")
+            } else {
+                None
+            };
             let state = ServerState {
                 metrics: Box::new(Metrics::sink()),
                 adm_endpoint_url: $settings.adm_endpoint_url.clone(),
@@ -60,6 +65,7 @@ macro_rules! init_app {
                 settings: $settings.clone(),
                 filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
                 img_store: None,
+                excluded_dmas,
             };
 
             let mut location_config = LocationConfig::default();
