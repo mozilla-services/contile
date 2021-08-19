@@ -81,7 +81,8 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
-
+    /// a JSON list of location DMAs to never return (population less than 15K)
+    pub exclude_dma: Option<String>,
     // OBSOLETE:
     pub sub1: Option<String>,
     pub partner_id: Option<String>,
@@ -110,6 +111,8 @@ impl Default for Settings {
             fallback_country: "US".to_owned(),
             documentation_url: "https://developer.mozilla.org/".to_owned(),
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
+            // exclude for: Glendive, MT(798); Alpena, MI(583); North Platte, NE (740)
+            exclude_dma: Some("[798, 583, 740]".to_owned()),
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,

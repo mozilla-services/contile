@@ -62,7 +62,12 @@ pub async fn get_tiles(
 
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
-        region_code: location.region(),
+        region_code: if location.region() != "" {
+            Some(location.region())
+        } else {
+            None
+        },
+        dma_code: location.dma,
         form_factor: device_info.form_factor,
         legacy_only: device_info.legacy_only(),
     };

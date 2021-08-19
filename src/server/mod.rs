@@ -39,6 +39,7 @@ pub struct ServerState {
     pub settings: Settings,
     pub filter: AdmFilter,
     pub img_store: Option<StoreImage>,
+    pub excluded_dmas: Option<Vec<u16>>,
 }
 
 impl std::fmt::Debug for ServerState {
@@ -92,6 +93,13 @@ impl Server {
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
         let img_store = StoreImage::create(&settings, &req).await?;
+        let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
+            serde_json::from_str(exclude_dmas).map_err(|e| {
+                HandlerError::internal(&format!("Invalid exclude_dma field: {:?}", e))
+            })?
+        } else {
+            None
+        };
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
             adm_endpoint_url: settings.adm_endpoint_url.clone(),
@@ -100,6 +108,7 @@ impl Server {
             settings: settings.clone(),
             filter,
             img_store,
+            excluded_dmas,
         };
         let location_config = location_config_from_settings(&settings, &metrics);
 
