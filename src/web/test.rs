@@ -494,6 +494,7 @@ async fn location_test_header() {
     let params = adm.params().await;
     assert_eq!(params.get("country-code"), Some(&"US".to_owned()));
     assert_eq!(params.get("region-code"), Some(&"CA".to_owned()));
+    assert_eq!(params.get("dma-code"), Some(&"".to_owned()));
 }
 
 #[actix_rt::test]
