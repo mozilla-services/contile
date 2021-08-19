@@ -22,6 +22,7 @@ services:
     links:
       - partner
     environment:
+      CONTILE_MAXMINDDB_LOC: /tmp/mmdb/GeoLite2-City-Test.mmdb
       CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp
       CONTILE_ADM_QUERY_TILE_COUNT: 2
       CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings.json
@@ -36,6 +37,7 @@ services:
       - "8000"
     volumes:
       - ./tools/volumes/contile:/tmp/contile
+      - ./mmdb:/tmp/mmdb
     ## Override the entrypoint to report the IP address, then try
     ## running Contile this can be useful to debug internal
     ## networking issues as well as externally connect to contile.
