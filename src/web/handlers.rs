@@ -69,6 +69,7 @@ pub async fn get_tiles(
         },
         dma_code: location.dma,
         form_factor: device_info.form_factor,
+        os_family: device_info.os_family,
         legacy_only: device_info.legacy_only(),
     };
 

@@ -30,6 +30,21 @@
         "include_regions": [],
         "position": 1
     },
+    "DunBroch": {
+        "advertiser_hosts": [
+            "www.dunbroch.co.uk"
+        ],
+        "click_hosts": [
+            "dunbroch.co.uk"
+        ],
+        "impression_hosts": [
+            "dunbroch.co.uk"
+        ],
+        "include_regions": [
+            "GB"
+        ],
+        "position": 2
+    },
     "DEFAULT": {
         "advertiser_hosts": [],
         "click_hosts": [

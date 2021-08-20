@@ -59,8 +59,8 @@ scenarios:
                 url: 'https://www.example.org/desktop_windows'
                 position: 1
 
-  - name: success_desktop_macos_cached_from_windows
-    description: Test that Contile successfully returns cached Windows tiles for macOS on Desktop.
+  - name: success_desktop_macos
+    description: Test that Contile successfully returns tiles for macOS on Desktop.
     steps:
       - request:
           method: GET
@@ -74,25 +74,25 @@ scenarios:
           status_code: 200
           content:
             tiles:
-              - id: 12345
+              - id: 12346
                 name: 'Example COM'
-                click_url: 'https://example.com/desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-                image_url: 'https://example.com/desktop_windows01.jpg'
+                click_url: 'https://example.com/desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/desktop_macos01.jpg'
                 image_size: null
-                impression_url: 'https://example.com/desktop_windows?id=0001'
-                url: 'https://www.example.com/desktop_windows'
+                impression_url: 'https://example.com/desktop_macos?id=0001'
+                url: 'https://www.example.com/desktop_macos'
                 position: 1
-              - id: 56789
+              - id: 56790
                 name: 'Example ORG'
-                click_url: 'https://example.org/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-                image_url: 'https://example.org/desktop_windows02.jpg'
+                click_url: 'https://example.org/desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/desktop_macos02.jpg'
                 image_size: null
-                impression_url: 'https://example.org/desktop_windows?id=0002'
-                url: 'https://www.example.org/desktop_windows'
+                impression_url: 'https://example.org/desktop_macos?id=0002'
+                url: 'https://www.example.org/desktop_macos'
                 position: 1
 
-  - name: success_desktop_linux_cached_from_windows
-    description: Test that Contile successfully returns cached Windows tiles for Linux on Desktop.
+  - name: success_desktop_linux
+    description: Test that Contile returns tiles for Linux on Desktop.
     steps:
       - request:
           method: GET
@@ -106,21 +106,21 @@ scenarios:
           status_code: 200
           content:
             tiles:
-              - id: 12345
+              - id: 12347
                 name: 'Example COM'
-                click_url: 'https://example.com/desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-                image_url: 'https://example.com/desktop_windows01.jpg'
+                click_url: 'https://example.com/desktop_linux?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/desktop_linux01.jpg'
                 image_size: null
-                impression_url: 'https://example.com/desktop_windows?id=0001'
-                url: 'https://www.example.com/desktop_windows'
+                impression_url: 'https://example.com/desktop_linux?id=0001'
+                url: 'https://www.example.com/desktop_linux'
                 position: 1
-              - id: 56789
+              - id: 56791
                 name: 'Example ORG'
-                click_url: 'https://example.org/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-                image_url: 'https://example.org/desktop_windows02.jpg'
+                click_url: 'https://example.org/desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/desktop_linux02.jpg'
                 image_size: null
-                impression_url: 'https://example.org/desktop_windows?id=0002'
-                url: 'https://www.example.org/desktop_windows'
+                impression_url: 'https://example.org/desktop_linux?id=0002'
+                url: 'https://www.example.org/desktop_linux'
                 position: 1
 
   - name: error_phone_android_reqwest_error
@@ -219,4 +219,78 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/us_wa_desktop_macos?id=0002'
                 url: 'https://www.example.org/us_wa_desktop_macos'
+                position: 1
+
+  - name: legacy_image_filter
+    description: >
+      Test that Contile successfully filters tiles based on whether there's an
+      image for the ad provider of a tile shipped with Firefox 90.
+    steps:
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: macos and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "81.2.69.192/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.204'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 41235
+                name: 'DunBroch'
+                click_url: 'https://dunbroch.co.uk/gb_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://dunbroch.co.uk/gb_desktop_macos01.jpg'
+                image_size: null
+                impression_url: 'https://dunbroch.co.uk/gb_desktop_macos?id=0001'
+                url: 'https://www.dunbroch.co.uk/gb_desktop_macos'
+                position: 2
+              - id: 32346
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_macos01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_macos?id=0001'
+                url: 'https://www.example.com/gb_desktop_macos'
+                position: 1
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: macos and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/90.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "81.2.69.192/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.192'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 32346
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_macos01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_macos?id=0001'
+                url: 'https://www.example.com/gb_desktop_macos'
+                position: 1
+              - id: 76790
+                name: 'Example ORG'
+                click_url: 'https://example.org/gb_desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/gb_desktop_macos02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/gb_desktop_macos?id=0002'
+                url: 'https://www.example.org/gb_desktop_macos'
                 position: 1

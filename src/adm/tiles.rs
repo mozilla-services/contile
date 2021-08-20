@@ -138,6 +138,7 @@ pub async fn get_tiles(
         &[
             ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
             ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
+            ("sub2", "newtab"),
             (
                 "country-code",
                 &(location
@@ -146,14 +147,14 @@ pub async fn get_tiles(
                     .unwrap_or_else(|| settings.fallback_country.clone())),
             ),
             ("region-code", &location.region()),
-            ("form-factor", &device_info.form_factor.to_string()),
-            ("os-family", &device_info.os_family.to_string()),
             (
                 "dma-code",
                 &filtered_dma(&state.excluded_dmas, &location.dma()),
             ),
-            ("sub2", "newtab"),
+            ("form-factor", &device_info.form_factor.to_string()),
+            ("os-family", &device_info.os_family.to_string()),
             ("v", "1.0"),
+            ("out", "json"), // not technically needed, but added for paranoid reasons.
             // XXX: some value for results seems required, it defaults to 0
             // when omitted (despite AdM claiming it would default to 1)
             ("results", &settings.adm_query_tile_count.to_string()),
