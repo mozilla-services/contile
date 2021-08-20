@@ -9,7 +9,12 @@ use std::{
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
-use crate::{adm::TileResponse, error::HandlerError, metrics::Metrics, web::{FormFactor, OsFamily}};
+use crate::{
+    adm::TileResponse,
+    error::HandlerError,
+    metrics::Metrics,
+    web::{FormFactor, OsFamily},
+};
 
 /// AudienceKey is the primary key used to store and fetch tiles from the
 /// local cache.
