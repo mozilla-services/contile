@@ -194,17 +194,23 @@ scenarios:
             # The following value will result in os-family: android and form-factor: tablet
             - name: User-Agent
               value: 'Mozilla/5.0 (Android; Tablet; rv:40.0) Gecko/40.0 Firefox/40.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation '216.160.83.56/29'
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: US and region-code: WA
+            - name: X-Forwarded-For
+              value: '216.160.83.62'
         response:
           status_code: 200
           content:
             tiles:
-              - id: 22346
+              - id: 12349
                 name: 'Example COM'
-                click_url: 'https://example.com/desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-                image_url: 'https://example.com/desktop_android01.jpg'
+                click_url: 'https://example.com/us_wa_desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/us_wa_desktop_android01.jpg'
                 image_size: null
-                impression_url: 'https://example.com/desktop_android?id=0001'
-                url: 'https://www.example.com/desktop_android'
+                impression_url: 'https://example.com/us_wa_desktop_android?id=0001'
+                url: 'https://www.example.com/us_wa_desktop_android'
                 position: 1
 
 

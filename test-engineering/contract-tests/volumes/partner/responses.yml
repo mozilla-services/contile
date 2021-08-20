@@ -91,13 +91,13 @@ tablet:
       headers: []
       content:
         tiles:
-          - id: 12345
-            name: 'Example COM
-            click_url: 'https://example.com/desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-            image_url: 'https://example.com/desktop_android01.jpg'
-            impression_url: 'https://example.com/desktop_android?id=0001'
-            advertiser_url: 'https://www.example.com/desktop_android'
-          - id: 56789
+          - id: 12349
+            name: 'Example COM'
+            click_url: 'https://example.com/us_wa_desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+            image_url: 'https://example.com/us_wa_desktop_android01.jpg'
+            impression_url: 'https://example.com/us_wa_desktop_android?id=0001'
+            advertiser_url: 'https://www.example.com/us_wa_desktop_android'
+          - id: 56793
             name: 'Example NET'
             click_url: 'https://example.net/desktop_android?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
             image_url: 'https://example.net/desktop_android02.jpg'
