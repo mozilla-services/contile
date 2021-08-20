@@ -58,6 +58,15 @@ impl Provider for TestHeaderProvider {
                 }
             }
 
+            if let Some(dma) = parts.next() {
+                let dma = dma.trim().parse().unwrap_or(0);
+                // Non-exact validation (there's only 210 DMA regions) but
+                // close enough for testing
+                if (500..=900).contains(&dma) {
+                    builder = builder.dma(dma);
+                }
+            }
+
             let location = builder.finish().map_err(|_| {
                 Error::Provider(HandlerError::internal("Couldn't build Location").into())
             })?;
@@ -98,7 +107,7 @@ pub mod test {
         let provider = TestHeaderProvider::new(test_header);
 
         let request = TestRequest::default()
-            .header(test_header, "US, USCA")
+            .header(test_header, "US, USCA, 862")
             .to_http_request();
         let location = provider
             .get_location(&request)
@@ -110,6 +119,7 @@ pub mod test {
             .provider("test_header".to_owned())
             .country("US".to_owned())
             .region("CA".to_owned())
+            .dma(862)
             .finish()
             .expect("Couldn't build Location");
         assert_eq!(location, expected);
