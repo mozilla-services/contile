@@ -24,7 +24,7 @@ services:
     environment:
       CONTILE_MAXMINDDB_LOC: /tmp/mmdb/GeoLite2-City-Test.mmdb
       CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp
-      CONTILE_ADM_QUERY_TILE_COUNT: 2
+      CONTILE_ADM_QUERY_TILE_COUNT: 5
       CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings.json
       CONTILE_ADM_HAS_LEGACY_IMAGE: '["Example ORG","Example COM"]'
       # Timeout requests to the ADM server after this many seconds (default: 5)
