@@ -90,6 +90,7 @@ impl Server {
         let metrics = metrics_from_opts(&settings)?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let req = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(settings.connect_timeout))
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
         let img_store = StoreImage::create(&settings, &req).await?;

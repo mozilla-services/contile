@@ -227,8 +227,7 @@ impl StoreImage {
             .get(&uri.to_string())
             .timeout(Duration::from_secs(self.settings.request_timeout))
             .send()
-            .await
-            .map_err(|e| HandlerErrorKind::Internal(format!("Image fetch error: {:?}", e)))?
+            .await?
             .error_for_status()?;
         trace!(
             "image type: {:?}, size: {:?}",
@@ -246,12 +245,7 @@ impl StoreImage {
             .unwrap_or(content_type);
 
         trace!("Reading...");
-        Ok((
-            res.bytes()
-                .await
-                .map_err(|e| HandlerErrorKind::Internal(format!("Image body error: {:?}", e)))?,
-            content_type.to_owned(),
-        ))
+        Ok((res.bytes().await?, content_type.to_owned()))
     }
 
     /// Check if a given image byte set is "valid" according to our settings.
@@ -361,10 +355,7 @@ impl StoreImage {
             Ok(mut object) => {
                 object.content_disposition = Some("inline".to_owned());
                 object.cache_control = Some(format!("public, max-age={}", self.settings.cache_ttl));
-                object.update().await.map_err(|_| {
-                    error!("Could not set disposition for {:?}", object.self_link);
-                    HandlerErrorKind::BadImage("Could not set content disposition")
-                })?;
+                object.update().await?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
                 Ok(StoredImage {
@@ -373,37 +364,29 @@ impl StoreImage {
                     image_metrics,
                 })
             }
-            Err(cloud_storage::Error::Google(ger)) => {
-                Err(HandlerErrorKind::Internal(format!("Could not create object {:?}", ger)).into())
-            }
-            Err(cloud_storage::Error::Other(json)) => {
-                // NOTE: cloud_storage doesn't parse the Google response
-                // correctly so they seem to come up as the Other variant
-                let body: serde_json::Value = serde_json::from_str(&json).map_err(|e| {
-                    HandlerError::internal(&format!(
-                        "Could not parse cloud_storage::Error::Other: ({:?}) {:?}",
-                        e, json
-                    ))
-                })?;
-                if body["error"]["code"].as_i64() == Some(412) {
-                    // 412 Precondition Failed: the image already exists, so we
-                    // can continue on
-                    trace!("Store Precondition Failed (412), image already exists, continuing");
-                    let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
-                    return Ok(StoredImage {
-                        url: url.parse()?,
-                        object: None,
-                        image_metrics,
-                    });
-                }
-                Err(
-                    HandlerErrorKind::Internal(format!("Could not create object {:?}", json))
-                        .into(),
-                )
-            }
             Err(e) => {
-                // If the IamPolicy does not have "Storage Legacy Bucket Writer", you get 403
-                Err(HandlerErrorKind::Internal(format!("Error creating object {:?}", e)).into())
+                if let cloud_storage::Error::Other(ref json) = e {
+                    // NOTE: cloud_storage doesn't parse the Google response
+                    // correctly so they seem to come up as the Other variant
+                    let body: serde_json::Value = serde_json::from_str(json).map_err(|e| {
+                        HandlerError::internal(&format!(
+                            "Could not parse cloud_storage::Error::Other: ({:?}) {:?}",
+                            e, json
+                        ))
+                    })?;
+                    if body["error"]["code"].as_i64() == Some(412) {
+                        // 412 Precondition Failed: the image already exists, so we
+                        // can continue on
+                        trace!("Store Precondition Failed (412), image already exists, continuing");
+                        let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
+                        return Ok(StoredImage {
+                            url: url.parse()?,
+                            object: None,
+                            image_metrics,
+                        });
+                    }
+                }
+                Err(e.into())
             }
         }
     }
