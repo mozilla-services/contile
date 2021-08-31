@@ -183,7 +183,8 @@ scenarios:
           status_code: 403 # Forbidden
           content: 700
 
-  - name: success_tablet_android_return_tiles_that_pass_filter
+  - name: success_tablet_android_return_only_tiles_that_pass_filter
+    # This is not a working test but only for documentation purpose
     description: Test that Contile only returns tiles that pass the filter.
     steps:
       - request:
@@ -191,26 +192,23 @@ scenarios:
           path: '/v1/tiles'
           headers:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
-            # The following value will result in os-family: android and form-factor: tablet
+            # The following value will result in os-family: android and form-factor: phone(android-tablets falls under 'phones')
+            # This won't return a 200 response but a 500 as contile has cached the response from the previous scenario with
+            # os-family: android and form-factor: phone
             - name: User-Agent
-              value: 'Mozilla/5.0 (Android; Tablet; rv:40.0) Gecko/40.0 Firefox/40.0'
-            # Contile looks up the IP address from this header value and maps it to proxy information.
-            # We use a random IP address from the range specified by the CIDR network notation '216.160.83.56/29'
-            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
-            # The following value will result in country-code: US and region-code: WA
-            - name: X-Forwarded-For
-              value: '216.160.83.62'
+              value: 'Mozilla/5.0 (Android; Tablet; rv:92.0) Gecko/92.0 Firefox/92.0'
+            # The response below returned only 1 tile because the other tile (.NET) didn't pass the filter specification in the adm_settings.json
         response:
           status_code: 200
           content:
             tiles:
               - id: 12349
                 name: 'Example COM'
-                click_url: 'https://example.com/us_wa_desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-                image_url: 'https://example.com/us_wa_desktop_android01.jpg'
+                click_url: 'https://example.com/desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/desktop_android01.jpg'
                 image_size: null
-                impression_url: 'https://example.com/us_wa_desktop_android?id=0001'
-                url: 'https://www.example.com/us_wa_desktop_android'
+                impression_url: 'https://example.com/desktop_android?id=0001'
+                url: 'https://www.example.com/desktop_android'
                 position: 1
 
 
