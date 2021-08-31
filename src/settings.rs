@@ -17,6 +17,11 @@ static DEFAULT_PORT: u16 = 8000;
 // real `Settings`?
 //
 /// Configuration settings and options
+///
+/// Each of these can be specified as an environment variable by
+/// making them upper case and prefixing `CONTILE_`. For example,
+/// to specify the `port`, use the environment variable
+/// `CONTILE_PORT=8000`
 #[allow(rustdoc::private_intra_doc_links)]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(default)]
@@ -41,7 +46,8 @@ pub struct Settings {
     pub tiles_ttl: u32,
     /// path to MaxMind location database
     pub maxminddb_loc: Option<PathBuf>,
-    /// [StorageSettings] related to the google cloud storage
+    /// A JSON formatted string of [StorageSettings] related to
+    /// the Google Cloud Storage
     pub storage: String,
     /// Run in "integration test mode"
     pub test_mode: bool,
