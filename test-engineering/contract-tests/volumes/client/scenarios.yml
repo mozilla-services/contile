@@ -192,7 +192,9 @@ scenarios:
           path: '/v1/tiles'
           headers:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
-            # The following value will result in os-family: android and form-factor: phone(android-tablets falls under 'phones')
+            # The following value will result in os-family: android and form-factor: phone
+            # Currently woothee categorizes Android tablets as phones
+            # (the library Contile uses for parsing the User-Agent Header)
             # This won't return a 200 response but a 500 as contile has cached the response from the previous scenario with
             # os-family: android and form-factor: phone
             - name: User-Agent
