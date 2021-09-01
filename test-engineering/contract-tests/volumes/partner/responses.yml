@@ -93,7 +93,7 @@ tablet:
         tiles:
           - id: 12349
             name: 'Example COM'
-            click_url: 'https://example.com/desktop_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+            click_url: 'https://example.com/tablet_android?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
             image_url: 'https://example.com/desktop_android01.jpg'
             impression_url: 'https://example.com/desktop_android?id=0001'
             advertiser_url: 'https://www.example.com/desktop_android'
