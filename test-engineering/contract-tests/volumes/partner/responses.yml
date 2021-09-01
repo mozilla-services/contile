@@ -98,7 +98,7 @@ tablet:
             impression_url: 'https://example.com/desktop_android?id=0001'
             advertiser_url: 'https://www.example.com/desktop_android'
           - id: 56793
-            name: 'Example NET' # this tile doesn't conforms to the filter specs (.NET is not an acceptable host in adm_settings.json)
+            name: 'Example NET' # this tile is from an unexpected advertiser (per adm_settings.json)
             click_url: 'https://example.net/desktop_android?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
             image_url: 'https://example.net/desktop_android02.jpg'
             impression_url: 'https://example.net/desktop_android?id=0002'
