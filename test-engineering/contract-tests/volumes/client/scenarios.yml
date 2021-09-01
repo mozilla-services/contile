@@ -199,7 +199,7 @@ scenarios:
             # os-family: android and form-factor: phone
             - name: User-Agent
               value: 'Mozilla/5.0 (Android; Tablet; rv:92.0) Gecko/92.0 Firefox/92.0'
-            # The response below returned only 1 tile because the other tile (.NET) didn't pass the filter specification in the adm_settings.json
+            # We expect only 1 tile because 'Example NET' is not an expected advertiser (per adm_settings.json) 
         response:
           status_code: 200
           content:
