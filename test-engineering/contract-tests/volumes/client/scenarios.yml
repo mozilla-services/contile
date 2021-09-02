@@ -197,10 +197,10 @@ scenarios:
             # (the library Contile uses for parsing the User-Agent Header)
             - name: User-Agent
               value: 'Mozilla/5.0 (Android; Tablet; rv:92.0) Gecko/92.0 Firefox/92.0'
-            # We expect only 1 tile because 'Example NET' is not an expected advertiser (per adm_settings.json)
-            # This won't return a 200 response but a 500 as contile has cached the response from the previous test
-            # scenario 'error_phone_android_reqwest_error'
         response:
+          # We expect only 1 tile because 'Example NET' is not an expected advertiser (per adm_settings.json)
+          # This won't return a 200 response but a 500 as contile has cached the response from the previous test
+          # scenario 'error_phone_android_reqwest_error'
           status_code: 200
           content:
             tiles:
