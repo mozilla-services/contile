@@ -7,6 +7,7 @@
 
 use std::collections::HashMap;
 
+use actix_http::http::HeaderValue;
 use actix_web::{dev::Payload, web, FromRequest, HttpRequest, HttpResponse};
 use actix_web_location::Location;
 use serde::Deserialize;
@@ -29,6 +30,7 @@ pub fn service(config: &mut web::ServiceConfig) {
         .service(web::resource("/__heartbeat__").route(web::get().to(heartbeat)))
         .service(web::resource("/__version__").route(web::get().to(version)))
         .service(web::resource("/__error__").route(web::get().to(test_error)))
+        .service(web::resource("/__loc_test__").route(web::get().to(loc_test)))
         .service(web::resource("").route(web::get().to(document_boot)));
 }
 
@@ -81,6 +83,21 @@ async fn test_error(
         err.tags.add_extra("location", &location_info);
     }
     Err(err)
+}
+
+async fn loc_test(req: HttpRequest) -> Result<HttpResponse, HandlerError> {
+    let location_info = Location::from_request(&req, &mut Payload::None)
+        .await
+        .map_err(|e| HandlerError::internal(&e.to_string()))?;
+    Ok(HttpResponse::Ok().body(format!(
+        r#"{{"country":{:?}, "region": {:?}, "provider": {:?}, "ip":{:?}}}"#,
+        location_info.country(),
+        location_info.region.unwrap_or_else(|| "None".to_owned()),
+        location_info.provider,
+        req.headers()
+            .get("X-FORWARDED-FOR")
+            .unwrap_or(&HeaderValue::from_str("None").unwrap())
+    )))
 }
 
 async fn document_boot(state: web::Data<ServerState>) -> Result<HttpResponse, HandlerError> {
