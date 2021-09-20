@@ -294,3 +294,75 @@ scenarios:
                 impression_url: 'https://example.org/gb_desktop_macos?id=0002'
                 url: 'https://www.example.org/gb_desktop_macos'
                 position: 1
+
+  - name: success_tile_cached_from_windows
+    description: Test that Contile successfully returns cached tiles for Windows on Desktop.
+    steps:
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: Windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "81.2.69.192/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.204'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 41234
+                name: 'DunBroch'
+                click_url: 'https://dunbroch.co.uk/gb_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://dunbroch.co.uk/gb_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://dunbroch.co.uk/gb_desktop_windows?id=0001'
+                url: 'https://www.dunbroch.co.uk/gb_desktop_windows'
+                position: 2
+              - id: 32345
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_windows?id=0001'
+                url: 'https://www.example.com/gb_desktop_windows'
+                position: 1
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: Windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/90.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "81.2.69.192/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.192'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 32345
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_windows?id=0001'
+                url: 'https://www.example.com/gb_desktop_windows'
+                position: 1
+              - id: 76789
+                name: 'Example ORG'
+                click_url: 'https://example.org/gb_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/gb_desktop_windows02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/gb_desktop_windows?id=0002'
+                url: 'https://www.example.org/gb_desktop_windows'
+                position: 1
