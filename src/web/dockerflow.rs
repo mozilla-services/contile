@@ -94,7 +94,6 @@ async fn loc_test(req: HttpRequest, location: Location) -> Result<HttpResponse, 
     Ok(HttpResponse::Ok().json(json!({
         "country": empty_to_null(location.country()),
         "region": empty_to_null(location.region()),
-        "dma": if location.dma() == 0 { None } else { Some(location.dma()) },
         "provider": empty_to_null(location.provider),
         "ip": ip,
     })))
