@@ -1,3 +1,33 @@
+<a name="1.3.0"></a>
+## 1.3.0 (2021-08-24)
+
+
+#### Test
+
+*   upgrade the Docker images for contile-integration-tests to 21.4.0 (#262) ([de43bf16](https://github.com/mozilla-services/contile/commit/de43bf16c695c54d6fbb69bcfde1f1746c84812c))
+
+#### Chore
+
+*   API Updates for 2021-08-19 (#272) ([84b79088](https://github.com/mozilla-services/contile/commit/84b790884f3880d562489b14c9ca47eb51c26d66), closes [#268](https://github.com/mozilla-services/contile/issues/268))
+
+#### Features
+
+*   set a connect_timeout for reqwest client ([6a363f21](https://github.com/mozilla-services/contile/commit/6a363f212827d167692c10d326a96a237219de2c), closes [#253](https://github.com/mozilla-services/contile/issues/253))
+*   don't hide cloud storage update errors ([5fad141a](https://github.com/mozilla-services/contile/commit/5fad141afd1a55ebd0b68bc2f51a9c55bddc939c), closes [#263](https://github.com/mozilla-services/contile/issues/263))
+*   support dma-codes in location_test_header (#271) ([74e053ec](https://github.com/mozilla-services/contile/commit/74e053ec0e2d1de54aeb1432842f1fba135c1ecc), closes [#269](https://github.com/mozilla-services/contile/issues/269))
+*   enable send of dma-code (#235) ([5da0bda0](https://github.com/mozilla-services/contile/commit/5da0bda0e3539336e98f3e479e18b28153f44004), closes [#205](https://github.com/mozilla-services/contile/issues/205))
+*   add a cloud storage write precondition (#260) ([d0bddfd6](https://github.com/mozilla-services/contile/commit/d0bddfd63179bd1829007a77305195560d2afc34), closes [#259](https://github.com/mozilla-services/contile/issues/259))
+
+#### Bug Fixes
+
+*   re-add location_test_header support (#264) ([4c6c2cad](https://github.com/mozilla-services/contile/commit/4c6c2cadaa90f01bd067dab8009444c3352af98c), closes [#257](https://github.com/mozilla-services/contile/issues/257))
+
+#### Refactor
+
+*   Replace location determination with common-rs crate (#219) ([ac2783ca](https://github.com/mozilla-services/contile/commit/ac2783ca34c6763ac7d60816874fd046d8aab2f3))
+
+
+
 <a name="1.2.1"></a>
 ## 1.2.1 (2021-08-10)
 
