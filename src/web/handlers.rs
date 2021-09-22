@@ -1,6 +1,7 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_location::Location;
+use lazy_static::lazy_static;
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -15,6 +16,11 @@ use crate::{
     tags::Tags,
     web::{middleware::sentry as l_sentry, DeviceInfo},
 };
+
+lazy_static! {
+    static ref EMPTY_TILES: String = serde_json::to_string(&adm::TileResponse { tiles: vec![] })
+        .expect("Couldn't serialize EMPTY_TILES");
+}
 
 /// Calculate the ttl from the settings by taking the tiles_ttl
 /// and calculating a jitter that is no more than 50% of the total TTL.
@@ -41,17 +47,26 @@ pub async fn get_tiles(
     trace!("get_tiles");
     metrics.incr("tiles.get");
 
+    let settings = &state.settings;
     if !state
         .filter
         .all_include_regions
         .contains(&location.country())
     {
         trace!("get_tiles: country not included: {:?}", location.country());
-        // Nothing to serve
-        return Ok(HttpResponse::NoContent().finish());
+        // Nothing to serve. We typically send a 204 for empty tiles but
+        // optionally send 200 to resolve
+        // https://github.com/mozilla-services/contile/issues/284
+        let response = if settings.excluded_countries_200 {
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .body(&*EMPTY_TILES)
+        } else {
+            HttpResponse::NoContent().finish()
+        };
+        return Ok(response);
     }
 
-    let settings = &state.settings;
     let mut tags = Tags::default();
     {
         tags.add_extra("country", &location.country());
