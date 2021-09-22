@@ -6,6 +6,7 @@ Servers
 
 |environment | server |
 |--|--|
+|dev| https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/ |
 |stage| https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/ |
 |prod| https://contile.services.mozilla.com/ |
 
