@@ -624,3 +624,22 @@ async fn include_regions() {
     assert_eq!(tiles.len(), 1);
     assert_eq!(&tiles[0]["name"], "Acme");
 }
+
+#[actix_rt::test]
+async fn test_loc() {
+    let mut settings = get_test_settings();
+
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/__loc_test__")
+        .header("X-FORWARDED-FOR", TEST_ADDR)
+        .to_request();
+
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let result: Value = test::read_body_json(resp).await;
+    assert_eq!(result["country"], "US");
+    assert_eq!(result["region"], "WA");
+}

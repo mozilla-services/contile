@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use actix_web::{dev::Payload, web, FromRequest, HttpRequest, HttpResponse};
 use actix_web_location::Location;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{error::HandlerError, server::ServerState};
 
@@ -29,6 +29,7 @@ pub fn service(config: &mut web::ServiceConfig) {
         .service(web::resource("/__heartbeat__").route(web::get().to(heartbeat)))
         .service(web::resource("/__version__").route(web::get().to(version)))
         .service(web::resource("/__error__").route(web::get().to(test_error)))
+        .service(web::resource("/__loc_test__").route(web::get().to(loc_test)))
         .service(web::resource("").route(web::get().to(document_boot)));
 }
 
@@ -81,6 +82,21 @@ async fn test_error(
         err.tags.add_extra("location", &location_info);
     }
     Err(err)
+}
+
+async fn loc_test(req: HttpRequest, location: Location) -> Result<HttpResponse, HandlerError> {
+    let ip = req.headers().get("X-FORWARDED-FOR").map(|val| {
+        val.to_str()
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(|val| format!("{:?}", val))
+    });
+    let empty_to_null = |val: String| if val.is_empty() { None } else { Some(val) };
+    Ok(HttpResponse::Ok().json(json!({
+        "country": empty_to_null(location.country()),
+        "region": empty_to_null(location.region()),
+        "provider": empty_to_null(location.provider),
+        "ip": ip,
+    })))
 }
 
 async fn document_boot(state: web::Data<ServerState>) -> Result<HttpResponse, HandlerError> {
