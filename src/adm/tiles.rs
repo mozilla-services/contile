@@ -122,8 +122,6 @@ pub fn filtered_dma(exclude: &Option<Vec<u16>>, dma: &u16) -> String {
 }
 
 /// Main handler for the User Agent HTTP request
-///
-/// This calls out to the
 pub async fn get_tiles(
     state: &ServerState,
     location: &Location,
