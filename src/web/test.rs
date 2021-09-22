@@ -571,5 +571,6 @@ async fn test_loc() {
     let result: Value = test::read_body_json(resp).await;
     assert_eq!(result["country"], "US");
     assert_eq!(result["region"], "WA");
-    dbg!(result);
+    dbg!(&result);
+    dbg!(result.to_string());
 }
