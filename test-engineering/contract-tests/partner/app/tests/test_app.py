@@ -148,23 +148,25 @@ def test_read_tilesp_validate_country_code(client, country_code):
 
 
 @pytest.mark.parametrize(
-    "country_code, region_code",
+    "country_code, region_code, dma_code",
     [
-        ("CA", "BC"),
-        ("DE", "BE"),
-        ("GB", "SCT"),
-        ("FR", "BRE"),
-        ("AU", "WA"),
-        ("IT", "52"),
-        ("MX", "CHH"),
-        ("IN", "PB"),
-        ("BR", "RJ"),
-        ("ES", "M"),
-        ("US", ""),
-        ("US", "NY"),
+        ("CA", "BC", ""),
+        ("DE", "BE", ""),
+        ("GB", "SCT", ""),
+        ("FR", "BRE", ""),
+        ("AU", "WA", ""),
+        ("IT", "52", ""),
+        ("MX", "CHH", ""),
+        ("IN", "PB", ""),
+        ("BR", "RJ", ""),
+        ("ES", "M", ""),
+        ("US", "", ""),
+        ("US", "NY", "532"),
     ],
 )
-def test_read_tilesp_accepted_country_region_code(client, country_code, region_code):
+def test_read_tilesp_accepted_country_region_code(
+    client, country_code, region_code, dma_code
+):
     """Test that the API endpoint accepts region codes from countries Contile
     has been rolled out to for the region-code query parameter.
 
@@ -179,6 +181,7 @@ def test_read_tilesp_accepted_country_region_code(client, country_code, region_c
             "sub2": "sub2",
             "country-code": country_code,
             "region-code": region_code,
+            "dma-code": dma_code,
             "form-factor": "desktop",
             "os-family": "macos",
             "v": "1.0",
