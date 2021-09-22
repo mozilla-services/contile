@@ -1,6 +1,6 @@
 # Contile API Specification
 
-Firefox Instant Suggest (Contile) is a service to deliver sponsored tiles to customers on the New Browser Tab page. It's a simple service with one endpoint. It uses the User Agent's IP address (exposed via the `Forwarded-For` header) and some platform information from the `User-Agent` header.
+Firefox Instant Suggest (Contile) is a service to deliver sponsored tiles to customers on the New Browser Tab page. It's a simple service with one endpoint. It uses the User Agent's IP address (exposed via the `X-Forwarded-For` header) and some platform information from the `User-Agent` header.
 
 Servers
 
