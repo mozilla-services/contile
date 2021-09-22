@@ -7,11 +7,10 @@
 
 use std::collections::HashMap;
 
-use actix_http::http::HeaderValue;
 use actix_web::{dev::Payload, web, FromRequest, HttpRequest, HttpResponse};
 use actix_web_location::Location;
 use serde::Deserialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::{error::HandlerError, server::ServerState};
 
@@ -85,19 +84,19 @@ async fn test_error(
     Err(err)
 }
 
-async fn loc_test(req: HttpRequest) -> Result<HttpResponse, HandlerError> {
-    let location_info = Location::from_request(&req, &mut Payload::None)
-        .await
-        .map_err(|e| HandlerError::internal(&e.to_string()))?;
-    Ok(HttpResponse::Ok().body(format!(
-        r#"{{"country":{:?}, "region": {:?}, "provider": {:?}, "ip":{:?}}}"#,
-        location_info.country(),
-        location_info.region.unwrap_or_else(|| "None".to_owned()),
-        location_info.provider,
-        req.headers()
-            .get("X-FORWARDED-FOR")
-            .unwrap_or(&HeaderValue::from_str("None").unwrap())
-    )))
+async fn loc_test(req: HttpRequest, location: Location) -> Result<HttpResponse, HandlerError> {
+    let ip = req.headers().get("X-FORWARDED-FOR").map(|val| {
+        val.to_str()
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(|val| format!("{:?}", val))
+    });
+    let empty_to_null = |val: String| if val.is_empty() { None } else { Some(val) };
+    Ok(HttpResponse::Ok().json(json!({
+        "country": empty_to_null(location.country()),
+        "region": empty_to_null(location.region()),
+        "provider": empty_to_null(location.provider),
+        "ip": ip,
+    })))
 }
 
 async fn document_boot(state: web::Data<ServerState>) -> Result<HttpResponse, HandlerError> {
