@@ -500,9 +500,80 @@ async fn location_test_header() {
 #[actix_rt::test]
 async fn empty_tiles() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
-    // no adm_settings filters everything out
+    // test empty responses of an included country (US)
+    let adm_settings_json = json!({
+        "Foo": {
+            "advertiser_hosts": ["www.foo.bar"],
+            "impression_hosts": [],
+            "click_hosts": [],
+            "position": 0,
+            "include_regions": ["US"]
+        }
+    });
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: adm_settings_json.to_string(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_91)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+    // Ensure same result from cache
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_91)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+}
+
+#[actix_rt::test]
+async fn empty_tiles_excluded_country() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    // no adm_settings filters everything out, the client's country (US) is
+    // considered "excluded"
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        ..get_test_settings()
+    };
+    let mut app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_91)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert_eq!(tiles.len(), 0);
+
+    // Ensure same result from cache
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_91)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert_eq!(tiles.len(), 0);
+}
+
+#[actix_rt::test]
+async fn empty_tiles_excluded_country_204() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    // no adm_settings filters everything out, the client's country (US) is
+    // considered "excluded"
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        excluded_countries_200: false,
         ..get_test_settings()
     };
     let mut app = init_app!(settings).await;
