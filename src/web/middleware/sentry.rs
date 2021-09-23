@@ -17,7 +17,7 @@ use actix_web::{
 use futures::future::{self, LocalBoxFuture, TryFutureExt};
 use sentry::protocol::Event;
 
-use crate::{error::HandlerError, settings::Settings, tags::Tags};
+use crate::{error::HandlerError, metrics::Metrics, settings::Settings, tags::Tags};
 
 pub struct SentryWrapper;
 
@@ -61,13 +61,11 @@ pub struct SentryWrapperMiddleware<S> {
 pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
     let herr: Option<&HandlerError> = err.as_error();
     if let Some(herr) = herr {
-        /*
         // example: Skip if the error shouldn't be reported
-        if !herr.is_reportable() {
+        if !herr.kind().is_reportable() {
             trace!("Sentry Not reporting error: {:?}", err);
             return;
         }
-        */
         let event = event_from_error(herr);
         if let Some(events) = ext.get_mut::<Vec<Event<'static>>>() {
             events.push(event);
@@ -153,13 +151,14 @@ where
                             herr.on_response(state.as_ref());
                         };
                         */
-                        /*
                         // skip reporting error if need be
-                        if !herr.is_reportable() {
+                        if !herr.kind().is_reportable() {
                             trace!("Sentry: Not reporting error: {:?}", herr);
+                            if let Some(metrics) = sresp.request().extensions().get::<Metrics>() {
+                                metrics.incr_with_tags(herr.kind().metric_name(), Some(&tags))
+                            }
                             return future::ok(sresp);
                         }
-                        */
                         tags.extend(herr.tags.clone());
                         report(&tags, event_from_error(herr));
                     }

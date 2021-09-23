@@ -81,12 +81,19 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
 /// Filter a given tile data set provided by ADM and validate the various elements
 impl AdmFilter {
     /// Report the error directly to sentry
-    fn report(&self, error: &HandlerError, tags: &Tags) {
+    fn report(&self, error: &HandlerError, tags: &Tags, metrics: Option<&Metrics>) {
         // trace!(&error, &tags);
-        // TODO: if not error.is_reportable, just add to metrics.
-        let mut merged_tags = error.tags.clone();
-        merged_tags.extend(tags.clone());
-        l_sentry::report(&merged_tags, sentry::event_from_error(error));
+        // enforce consistency with all sentry reporting functions.
+        if error.kind().is_reportable() {
+            let mut merged_tags = error.tags.clone();
+            merged_tags.extend(tags.clone());
+            l_sentry::report(&merged_tags, sentry::event_from_error(error));
+        } else {
+            // we sometimes report the metric before reporting the error.
+            if let Some(metrics) = metrics {
+                metrics.incr_with_tags(error.kind().metric_name(), Some(tags))
+            }
+        }
     }
 
     /// Check the advertiser URL
@@ -291,19 +298,19 @@ impl AdmFilter {
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
-                    self.report(&e, tags);
+                    self.report(&e, tags, None);
                     return None;
                 }
                 if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad click");
                     metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
-                    self.report(&e, tags);
+                    self.report(&e, tags, None);
                     return None;
                 }
                 if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad imp");
                     metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
-                    self.report(&e, tags);
+                    self.report(&e, tags, None);
                     return None;
                 }
 
@@ -313,6 +320,7 @@ impl AdmFilter {
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
                         tags,
+                        None,
                     );
                     return None;
                 }
@@ -331,6 +339,7 @@ impl AdmFilter {
                     self.report(
                         &HandlerErrorKind::UnexpectedAdvertiser(tile.name).into(),
                         tags,
+                        None,
                     );
                 }
                 None

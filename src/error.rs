@@ -124,14 +124,29 @@ impl HandlerErrorKind {
         }
     }
 
-    /*
-    // Optionally record metric for certain states
+    /// Optionally record metric for certain states
     pub fn is_reportable(&self) -> bool {
+        !matches!(self, HandlerErrorKind::InvalidUA())
+    }
+
+    pub fn metric_name(&self) -> &'static str {
         match self {
-            _ => true
+            HandlerErrorKind::General(_) => "err.general",
+            HandlerErrorKind::Internal(_) => "err.internal",
+            HandlerErrorKind::Reqwest(_) => "err.request_internal",
+            HandlerErrorKind::BadAdmResponse(_) => "err.adm.bad_response",
+            HandlerErrorKind::AdmServerError() => "err.adm.server_error",
+            HandlerErrorKind::Location(_) => "err.location",
+            HandlerErrorKind::Validation(_) => "err.validation",
+            HandlerErrorKind::InvalidHost(_, _) => "filter.adm.err.invalid_host",
+            HandlerErrorKind::UnexpectedHost(_, _) => "filter.adm.err.unexpected_host",
+            HandlerErrorKind::MissingHost(_, _) => "filter.adm.err.missing_host",
+            HandlerErrorKind::UnexpectedAdvertiser(_) => "error.adm.unexpected_advertiser",
+            HandlerErrorKind::BadImage(_) => "filter.adm.err.invalid_impression",
+            HandlerErrorKind::CloudStorage(_) => "err.cloud_storage",
+            HandlerErrorKind::InvalidUA() => "filter.err.invalid_useragent",
         }
     }
-    */
 }
 
 impl From<HandlerErrorKind> for actix_web::Error {
