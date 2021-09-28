@@ -57,6 +57,14 @@ pub struct Settings {
     pub documentation_url: String,
     /// Operational trace header
     pub trace_header: Option<String>,
+    /// a JSON list of location DMAs to never return (population less than 15K)
+    pub exclude_dma: Option<String>,
+    /// Timeout (in seconds) for only the connect phase of all outbound HTTP requests
+    pub connect_timeout: u64,
+    /// Whether excluded countries recieve empty tile responses via an HTTP 200
+    /// status code or 204s when disabled. See
+    /// https://github.com/mozilla-services/contile/issues/284
+    pub excluded_countries_200: bool,
 
     // TODO: break these out into a PartnerSettings?
     /// Adm partner ID (default: "demofeed")
@@ -81,8 +89,7 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
-    /// a JSON list of location DMAs to never return (population less than 15K)
-    pub exclude_dma: Option<String>,
+
     // OBSOLETE:
     pub sub1: Option<String>,
     pub partner_id: Option<String>,
@@ -113,6 +120,8 @@ impl Default for Settings {
             trace_header: Some("X-Cloud-Trace-Context".to_owned()),
             // exclude for: Glendive, MT(798); Alpena, MI(583); North Platte, NE (740)
             exclude_dma: Some("[798, 583, 740]".to_owned()),
+            connect_timeout: 2,
+            excluded_countries_200: true,
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,

@@ -82,6 +82,9 @@ pub enum HandlerErrorKind {
     /// Invalid UserAgent request
     #[error("Invalid user agent")]
     InvalidUA(),
+
+    #[error("Cloud Storage error: {}", _0)]
+    CloudStorage(#[from] cloud_storage::Error),
 }
 
 /// A set of Error Context utilities
@@ -94,7 +97,8 @@ impl HandlerErrorKind {
             HandlerErrorKind::BadAdmResponse(_)
             | HandlerErrorKind::InvalidHost(_, _)
             | HandlerErrorKind::UnexpectedHost(_, _)
-            | HandlerErrorKind::BadImage(_) => StatusCode::BAD_GATEWAY,
+            | HandlerErrorKind::BadImage(_)
+            | HandlerErrorKind::CloudStorage(_) => StatusCode::BAD_GATEWAY,
             &HandlerErrorKind::InvalidUA() => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -115,6 +119,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::MissingHost(_, _) => 603,
             HandlerErrorKind::UnexpectedAdvertiser(_) => 604,
             HandlerErrorKind::BadImage(_) => 605,
+            HandlerErrorKind::CloudStorage(_) => 620,
             HandlerErrorKind::InvalidUA() => 700,
         }
     }
