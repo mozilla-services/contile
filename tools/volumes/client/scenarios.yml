@@ -294,3 +294,25 @@ scenarios:
                 impression_url: 'https://example.org/gb_desktop_macos?id=0002'
                 url: 'https://www.example.org/gb_desktop_macos'
                 position: 1
+
+  - name: success_200_OK_exluded_region
+    description: Test that Contile returns a 200 OK with an empty tiles array for excluded regions
+    steps:
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: macos and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "89.160.20.112/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: SE and region-code: E
+            - name: X-Forwarded-For
+              value: '89.160.20.115'
+        response:
+          status_code: 200
+          content:
+            tiles: []
