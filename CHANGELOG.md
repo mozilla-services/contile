@@ -1,3 +1,14 @@
+<a name="1.4.0"></a>
+## 1.4.0 (2021-09-23)
+
+
+#### Features
+
+*   add a `/__test_loc__` dockerflow endpoint (#282) ([d28584d9](https://github.com/mozilla-services/contile/commit/d28584d94338ead8a56cb04cf15307ed1f6ee4c4), closes [#281](https://github.com/mozilla-services/contile/issues/281))
+*   optionally send 200 OK empty responses to excluded countries (#290) ([bf8594e0](https://github.com/mozilla-services/contile/commit/bf8594e03ed8d9acc71814db0c322e97d86ce205), closes [#284](https://github.com/mozilla-services/contile/issues/284))
+
+
+
 <a name="1.3.0"></a>
 ## 1.3.0 (2021-08-24)
 
