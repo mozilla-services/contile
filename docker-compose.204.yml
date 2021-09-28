@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  contile:
+    environment:
+      CONTILE_EXCLUDED_COUNTRIES_200: 0
+  client:
+    environment:
+      SCENARIOS_FILE: /tmp/client/scenarios_204.yml
