@@ -211,15 +211,15 @@ jobs:
          command: |
            docker-compose --version
            docker-compose \
-            -f docker-compose.yml \
+            -f integration-tests/docker-compose.yml \
             up --abort-on-container-exit --force-recreate
       - run:
          name: Run additional integration tests
          command: |
            docker-compose --version
            docker-compose \
-            -f docker-compose.yml \
-            -f docker-compose.204.yml \
+            -f integration-tests/docker-compose.yml \
+            -f integration-tests/docker-compose.204.yml \
             up --abort-on-container-exit --force-recreate
 
 workflows:
