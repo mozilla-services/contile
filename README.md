@@ -13,7 +13,44 @@ This system uses [Actix](https://actix.rs/) web, and Google Cloud APIs (currentl
 
 ## Setting Up
 
-TBD
+Contile uses Rust, and requires the latest stable iteration. See
+[rustup.rs](https://rustup.rs/) for how to install this application.
+
+Once Rust is installed you can compile using `cargo build`. This will
+create a development release.
+
+### Running
+
+Contile is configured via environment variables. To see the complete list of available settings in `contile::settings::Settings` (note, you can use `cargo doc --open` to generate documentation.) In general, we have tried to provide sensible default values for most of these,
+however you may need to specify the following:
+
+```
+CONTILE_ADM_ENDPOINT_URL={Your ADM endpoint} \
+    cargo run
+```
+Please note that the `{}` indicate a variable replacement and should not be included, for example, a real environmet variable would look like: `CONTILE_ADM_ENDPOINT_URL=https://example.com/`
+
+### Testing
+#### Unit tests
+
+To run Contile's unit tests, run
+
+```cargo test```
+
+This will test everything, except for Google Storage for images. In order to test that, you
+will need to include the following:
+```
+GOOGLE_APPLICATION_CREDENTIALS={path to your credential.json file} \
+    CONTILE_TEST_PROJECT={GCP Project name} \
+    CONTILE_TEST_BUCKET={GCP Bucket name} \
+    cargo test
+```
+
+#### Integration tests
+
+Integration tests are currently run using Docker images. This is so that they can be run as
+part of our automated continuous integration (CI) testing. Running these tests outside of
+Docker is possible, but requires some additional work. See [Contile Integration Tests](https://github.com/mozilla-services/contile-integration-tests) for details.
 
 ## Why "Contile"?
 
