@@ -162,6 +162,15 @@ pub async fn get_tiles(
     .map_err(|e| HandlerError::internal(&e.to_string()))?;
     let adm_url = adm_url.as_str();
 
+    // To reduce cardinality, only add this tag when fetching data from
+    // the partner. (This tag is only for metrics.)
+    tags.add_metric(
+        "srv.hostname",
+        &gethostname::gethostname()
+            .into_string()
+            .unwrap_or_else(|_| "Unkwnown".to_owned()),
+    );
+
     info!("adm::get_tiles GET {}", adm_url);
     metrics.incr("tiles.adm.request");
     let response: AdmTileResponse = if state.settings.test_mode {

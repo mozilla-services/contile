@@ -51,7 +51,7 @@ impl TilesCache {
         let metrics = Metrics::from(&metrics);
         actix_rt::spawn(async move {
             loop {
-                tiles_cache_periodic_reporter(&cache, &metrics).await;
+                tiles_cache_garbage_collect(&cache, &metrics).await;
                 actix_rt::time::delay_for(interval).await;
             }
         });
@@ -135,8 +135,8 @@ impl TilesContent {
     }
 }
 
-async fn tiles_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
-    trace!("tiles_cache_periodic_reporter");
+async fn tiles_cache_garbage_collect(cache: &TilesCache, metrics: &Metrics) {
+    trace!("tiles_cache_garbage_collect");
     // calculate the size and GC (for seldomly used Tiles) while we're at it
     let mut cache_count = 0;
     let mut cache_size = 0;
