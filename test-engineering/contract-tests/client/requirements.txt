@@ -8,7 +8,7 @@ attrs==21.2.0
     # via pytest
 certifi==2021.5.30
     # via requests
-chardet==4.0.0
+charset-normalizer==2.0.7
     # via requests
 idna==2.10
     # via requests
@@ -24,11 +24,11 @@ pydantic==1.8.2
     # via -r requirements.in
 pyparsing==2.4.7
     # via packaging
-pytest==6.2.4
+pytest==6.2.5
     # via -r requirements.in
 pyyaml==5.4.1
     # via -r requirements.in
-requests==2.25.1
+requests==2.26.0
     # via -r requirements.in
 toml==0.10.2
     # via pytest
