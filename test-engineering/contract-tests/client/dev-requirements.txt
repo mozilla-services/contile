@@ -10,9 +10,9 @@ black==21.6b0
     # via -r dev-requirements.in
 click==8.0.1
     # via black
-flake8==3.9.2
+flake8==4.0.1
     # via -r dev-requirements.in
-isort==5.9.0
+isort==5.9.3
     # via -r dev-requirements.in
 mccabe==0.6.1
     # via flake8
@@ -24,9 +24,9 @@ mypy-extensions==0.4.3
     #   mypy
 pathspec==0.8.1
     # via black
-pycodestyle==2.7.0
+pycodestyle==2.8.0
     # via flake8
-pyflakes==2.3.1
+pyflakes==2.4.0
     # via flake8
 regex==2021.4.4
     # via black
@@ -35,9 +35,9 @@ toml==0.10.2
     #   -c requirements.txt
     #   black
     #   mypy
-types-pyyaml==5.4.3
+types-pyyaml==5.4.11
     # via -r dev-requirements.in
-types-requests==2.25.0
+types-requests==2.25.10
     # via -r dev-requirements.in
 typing-extensions==3.10.0.0
     # via
