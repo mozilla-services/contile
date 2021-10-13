@@ -35,7 +35,7 @@ toml==0.10.2
     #   -c requirements.txt
     #   black
     #   mypy
-types-pyyaml==5.4.3
+types-pyyaml==5.4.11
     # via -r dev-requirements.in
 types-requests==2.25.10
     # via -r dev-requirements.in
