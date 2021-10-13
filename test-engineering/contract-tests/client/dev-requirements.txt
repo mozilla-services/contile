@@ -4,9 +4,7 @@
 #
 #    pip-compile dev-requirements.in
 #
-appdirs==1.4.4
-    # via black
-black==21.6b0
+black==21.9b0
     # via -r dev-requirements.in
 click==8.0.1
     # via black
@@ -22,7 +20,9 @@ mypy-extensions==0.4.3
     # via
     #   black
     #   mypy
-pathspec==0.8.1
+pathspec==0.9.0
+    # via black
+platformdirs==2.4.0
     # via black
 pycodestyle==2.8.0
     # via flake8
@@ -33,8 +33,9 @@ regex==2021.4.4
 toml==0.10.2
     # via
     #   -c requirements.txt
-    #   black
     #   mypy
+tomli==1.2.1
+    # via black
 types-pyyaml==5.4.11
     # via -r dev-requirements.in
 types-requests==2.25.10
@@ -42,4 +43,5 @@ types-requests==2.25.10
 typing-extensions==3.10.0.0
     # via
     #   -c requirements.txt
+    #   black
     #   mypy
