@@ -9,3 +9,12 @@ updates:
       - "dependencies"
       - "partner"
     open-pull-requests-limit: 10
+  - package-ecosystem: "pip"
+    directory: "client/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "Dependabot"
+      - "dependencies"
+      - "client"
+    open-pull-requests-limit: 10
