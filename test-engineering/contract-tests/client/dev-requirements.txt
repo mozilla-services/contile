@@ -12,7 +12,7 @@ click==8.0.1
     # via black
 flake8==3.9.2
     # via -r dev-requirements.in
-isort==5.9.0
+isort==5.9.3
     # via -r dev-requirements.in
 mccabe==0.6.1
     # via flake8
