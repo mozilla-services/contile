@@ -20,7 +20,7 @@ pydantic==1.8.2
     # via fastapi
 python-dotenv==0.17.1
     # via uvicorn
-pyyaml==5.4.1
+pyyaml==6.0
     # via
     #   -r requirements.in
     #   uvicorn
