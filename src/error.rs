@@ -193,6 +193,12 @@ impl From<HandlerError> for HttpResponse {
     }
 }
 
+impl From<regex::Error> for HandlerError {
+    fn from(err: regex::Error) -> Self {
+        HandlerError::internal(&format!("Malformed filter term: {:?}", err))
+    }
+}
+
 impl fmt::Display for HandlerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.kind.fmt(f)

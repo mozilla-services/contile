@@ -109,11 +109,13 @@ impl AdmFilter {
             }
         };
 
-        let host = get_host(parsed, species)?;
-        if !filter.advertiser_hosts.contains(&host) {
-            return Err(HandlerErrorKind::UnexpectedHost(species, host).into());
+        let host = format!("{}{}", parsed.host().unwrap(), parsed.path());
+        for filter in &filter.advertiser_hosts {
+            if filter.is_match(&host) {
+                return Ok(());
+            }
         }
-        Ok(())
+        Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into())
     }
 
     /// Check the click URL
@@ -341,7 +343,11 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
-    use super::check_url;
+    use crate::adm::tiles::AdmTile;
+    use crate::adm::AdmAdvertiserFilterSettings;
+    use crate::tags::Tags;
+
+    use super::{check_url, AdmFilter};
 
     #[test]
     fn check_url_matches() {
@@ -403,5 +409,72 @@ mod tests {
             ]
         )
         .is_err());
+    }
+
+    #[test]
+    fn check_advertiser() {
+        let s = r#"{
+            "advertiser_hosts": ["r#^(www\\.)([\\w\\.]+)?acme\\.biz/(ca|uk|us|ie)/"],
+            "position": 0
+        }"#;
+        let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
+        let filter = AdmFilter::default();
+        let mut tags = Tags::default();
+
+        let mut tile = AdmTile {
+            id: 0,
+            name: "test".to_owned(),
+            advertiser_url: "https://www.acme.biz/ca/foobar".to_owned(),
+            click_url: "https://example.com".to_owned(),
+            image_url: "".to_owned(),
+            impression_url: "https://example.net".to_owned(),
+            position: None,
+        };
+
+        // Good, contains the right lede and path
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags,)
+            .is_ok());
+
+        // Bad, missing lede
+        tile.advertiser_url = "https://acme.biz/ca/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
+
+        //Bad, wrong path
+        tile.advertiser_url = "https://www.acme.biz/fr/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
+
+        //good, extra element in host
+        tile.advertiser_url = "https://www.black_friday.acme.biz/ca/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
+
+        // "Traditional host. "
+        let s = r#"{
+            "advertiser_hosts": ["acme.biz"],
+            "position": 0
+        }"#;
+        let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
+        // Good, matches hosts
+        tile.advertiser_url = "https://www.acme.biz/ca/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
+
+        // Bad, invalid host.
+        tile.advertiser_url = "https://acme.biz.uk/ca/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
+        // Bad, host in path.
+        tile.advertiser_url = "https://example.com/acme.biz/ca/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
     }
 }
