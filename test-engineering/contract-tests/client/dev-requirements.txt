@@ -38,7 +38,7 @@ tomli==1.2.1
     # via black
 types-pyyaml==5.4.12
     # via -r dev-requirements.in
-types-requests==2.25.10
+types-requests==2.25.11
     # via -r dev-requirements.in
 typing-extensions==3.10.0.0
     # via
