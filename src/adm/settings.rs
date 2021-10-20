@@ -28,11 +28,7 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
     /// Required set of valid hosts for the `advertiser_url`
-    #[serde(
-        deserialize_with = "deserialize_advhost",
-        serialize_with = "serialize_advhost"
-    )]
-    pub(crate) advertiser_hosts: Vec<regex::Regex>,
+    pub(crate) advertiser_hosts: Vec<String>,
     /// Optional set of valid hosts for the `impression_url`
     #[serde(
         deserialize_with = "deserialize_hosts",
@@ -55,41 +51,6 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
-}
-
-fn as_regex(term: String) -> regex::Regex {
-    if let Some(stripped) = term.strip_prefix("r#") {
-        return regex::Regex::new(stripped).unwrap();
-    }
-    let mterm = format!("^[^/]*{}/", term.replace(".", "\\."));
-    regex::Regex::new(&mterm).unwrap()
-}
-
-fn deserialize_advhost<'de, D>(d: D) -> Result<Vec<regex::Regex>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Deserialize::deserialize(d).map(|hosts: Vec<String>| {
-        hosts
-            .into_iter()
-            .map(|host| -> regex::Regex { as_regex(host) })
-            .collect()
-    })
-}
-
-fn serialize_advhost<S>(hosts: &[regex::Regex], s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let hosts: Vec<_> = hosts
-        .iter()
-        .map(|rex| format!("r#{}", rex.as_str()))
-        .collect();
-    let mut seq = s.serialize_seq(Some(hosts.len()))?;
-    for host in hosts {
-        seq.serialize_element(&host)?;
-    }
-    seq.end()
 }
 
 /// Parse JSON:

@@ -109,9 +109,23 @@ impl AdmFilter {
             }
         };
 
-        let host = format!("{}{}", parsed.host().unwrap(), parsed.path());
+        // do a quick string comparison between the supplied host and the provided filter.
+        // (we replace any '.' in the path to prevent accidental host leaks (see tests))
+        let mut host = format!(
+            "{}{}",
+            parsed.host().unwrap(),
+            parsed.path().replace(".", "*")
+        );
+        if !host.ends_with('/') {
+            host = format!("{}/", host);
+        }
         for filter in &filter.advertiser_hosts {
-            if filter.is_match(&host) {
+            let test_filter = if !filter.ends_with('/') {
+                format!("{}/", filter)
+            } else {
+                filter.clone()
+            };
+            if host.contains(&test_filter) {
                 return Ok(());
             }
         }
@@ -414,7 +428,7 @@ mod tests {
     #[test]
     fn check_advertiser() {
         let s = r#"{
-            "advertiser_hosts": ["r#^(www\\.)([\\w\\.]+)?acme\\.biz/(ca|uk|us|ie)/"],
+            "advertiser_hosts": ["acme.biz/ca"],
             "position": 0
         }"#;
         let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
@@ -425,7 +439,7 @@ mod tests {
             id: 0,
             name: "test".to_owned(),
             advertiser_url: "https://www.acme.biz/ca/foobar".to_owned(),
-            click_url: "https://example.com".to_owned(),
+            click_url: "https://example.com/foo".to_owned(),
             image_url: "".to_owned(),
             impression_url: "https://example.net".to_owned(),
             position: None,
@@ -436,12 +450,22 @@ mod tests {
             .check_advertiser(&settings, &mut tile, &mut tags,)
             .is_ok());
 
-        // Bad, missing lede
+        // Good, missing lede
         tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
-            .is_err());
+            .is_ok());
+        // Good, missing last slash
+        tile.advertiser_url = "https://acme.biz/ca".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
 
+        // Bad, path isn't correct.
+        tile.advertiser_url = "https://acme.biz/calzone".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
         //Bad, wrong path
         tile.advertiser_url = "https://www.acme.biz/fr/".to_owned();
         assert!(filter
