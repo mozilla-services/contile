@@ -120,11 +120,14 @@ impl AdmFilter {
             host = format!("{}/", host);
         }
         for filter in &filter.advertiser_hosts {
-            let test_filter = if !filter.ends_with('/') {
+            let filter = if !filter.ends_with('/') {
                 format!("{}/", filter)
             } else {
                 filter.clone()
             };
+            // make sure to do the same s/./*/ to the filter, because you never know...
+            let filter_parts = filter.splitn(2, '/').collect::<Vec<&str>>();
+            let test_filter = format!("{}/{}", filter_parts[0], filter_parts[1].replace('.', "*"));
             if host.contains(&test_filter) {
                 return Ok(());
             }
@@ -480,7 +483,7 @@ mod tests {
 
         // "Traditional host. "
         let s = r#"{
-            "advertiser_hosts": ["acme.biz"],
+            "advertiser_hosts": ["acme.biz", "acme.co/foo.bar"],
             "position": 0
         }"#;
         let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
@@ -500,5 +503,11 @@ mod tests {
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_err());
+
+        //Good, dotted path
+        tile.advertiser_url = "https://www.acme.co/foo.bar/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
     }
 }
