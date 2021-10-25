@@ -251,22 +251,15 @@ impl Tags {
 
     /// Convert tag hash to a Binary Tree map (used by cadence and sentry)
     pub fn tag_tree(self) -> BTreeMap<String, String> {
-        let mut result = BTreeMap::new();
-
-        for (k, v) in self.tags {
-            result.insert(k.clone(), v.clone());
-        }
-        result
+        self.tags.into_iter().collect()
     }
 
     /// Convert extra hash to a Binary Tree map (used by cadence and sentry)
     pub fn extra_tree(self) -> BTreeMap<String, Value> {
-        let mut result = BTreeMap::new();
-
-        for (k, v) in self.extra {
-            result.insert(k.clone(), Value::from(v));
-        }
-        result
+        self.extra
+            .into_iter()
+            .map(|(k, v)| (k, Value::from(v)))
+            .collect()
     }
 
     /// Write the current tag info to the Extensions.
@@ -303,13 +296,7 @@ impl FromRequest for Tags {
 
 impl From<Tags> for BTreeMap<String, String> {
     fn from(tags: Tags) -> Self {
-        let mut result = BTreeMap::new();
-
-        for (k, v) in tags.tags {
-            result.insert(k.clone(), v.clone());
-        }
-
-        result
+        tags.tags.into_iter().collect()
     }
 }
 

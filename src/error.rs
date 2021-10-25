@@ -81,7 +81,7 @@ pub enum HandlerErrorKind {
 
     /// Invalid UserAgent request
     #[error("Invalid user agent")]
-    InvalidUA(),
+    InvalidUA,
 
     #[error("Cloud Storage error: {}", _0)]
     CloudStorage(#[from] cloud_storage::Error),
@@ -99,7 +99,7 @@ impl HandlerErrorKind {
             | HandlerErrorKind::UnexpectedHost(_, _)
             | HandlerErrorKind::BadImage(_)
             | HandlerErrorKind::CloudStorage(_) => StatusCode::BAD_GATEWAY,
-            &HandlerErrorKind::InvalidUA() => StatusCode::FORBIDDEN,
+            &HandlerErrorKind::InvalidUA => StatusCode::FORBIDDEN,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -120,18 +120,23 @@ impl HandlerErrorKind {
             HandlerErrorKind::UnexpectedAdvertiser(_) => 604,
             HandlerErrorKind::BadImage(_) => 605,
             HandlerErrorKind::CloudStorage(_) => 620,
-            HandlerErrorKind::InvalidUA() => 700,
+            HandlerErrorKind::InvalidUA => 700,
         }
     }
 
-    /*
-    // Optionally record metric for certain states
-    pub fn is_reportable(&self) -> bool {
+    /// Errors that don't emit Sentry events (!is_sentry_event()) emit an
+    /// increment metric instead with this label
+    pub fn metric_label(&self) -> Option<&'static str> {
         match self {
-            _ => true
+            HandlerErrorKind::InvalidUA => Some("request.error.invalid_ua"),
+            _ => None,
         }
     }
-    */
+
+    /// Whether this error should trigger a Sentry event
+    pub fn is_sentry_event(&self) -> bool {
+        !matches!(self, HandlerErrorKind::InvalidUA)
+    }
 }
 
 impl From<HandlerErrorKind> for actix_web::Error {

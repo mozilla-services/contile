@@ -168,7 +168,7 @@ pub async fn get_tiles(
         "srv.hostname",
         &gethostname::gethostname()
             .into_string()
-            .unwrap_or_else(|_| "Unkwnown".to_owned()),
+            .unwrap_or_else(|_| "Unknown".to_owned()),
     );
 
     info!("adm::get_tiles GET {}", adm_url);
