@@ -256,7 +256,10 @@ impl Tags {
 
     /// Convert extra hash to a Binary Tree map (used by cadence and sentry)
     pub fn extra_tree(self) -> BTreeMap<String, Value> {
-        self.extra.into_iter().map(|(k, v)| (k, Value::from(v))).collect()
+        self.extra
+            .into_iter()
+            .map(|(k, v)| (k, Value::from(v)))
+            .collect()
     }
 
     /// Write the current tag info to the Extensions.
