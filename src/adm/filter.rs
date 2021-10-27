@@ -133,7 +133,6 @@ impl AdmFilter {
             let filter_parts = filter.splitn(2, '/').collect::<Vec<&str>>();
 
             let test_filter = format!("{}/{}", filter_parts[0], filter_parts[1]);
-            dbg!(&test_filter, &host);
             if host.starts_with(&test_filter) {
                 return Ok(());
             }
