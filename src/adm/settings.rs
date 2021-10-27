@@ -63,28 +63,15 @@ where
     D: Deserializer<'de>,
 {
     Deserialize::deserialize(d).map(|hosts: Vec<String>| {
-        let mut has_slash: Option<bool> = None;
-        for host in hosts.clone() {
-            if let Some(has_slash) = has_slash {
-                if has_slash {
-                    assert!(
-                        host.contains('/'),
-                        "Mismatched Advertiser host does not contain '/'"
-                    )
-                } else {
-                    assert!(
-                        !host.contains('/'),
-                        "Mismatched Advertiser host contains '/'"
-                    )
+        for host in &hosts {
+            for cmp_host in &hosts {
+                if cmp_host != host {
+                    assert!(!cmp_host.starts_with(host), "Advertiser host conflict.")
                 }
-            } else {
-                has_slash = Some(host.contains('/'))
             }
-            if let Some(has_slash) = has_slash {
-                if has_slash {
-                    let parts: Vec<&str> = host.splitn(2, '/').collect();
-                    assert!(!parts[1].is_empty(), "Advertiser host path is empty.")
-                }
+            if host.contains('/') {
+                let parts: Vec<&str> = host.splitn(2, '/').collect();
+                assert!(!parts[1].is_empty(), "Advertiser host path is empty.")
             }
         }
         hosts
@@ -321,7 +308,18 @@ mod tests {
     pub fn mismatched_advertisers() {
         let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
             r#"
-        {"advertiser_hosts": ["foo.bar", "foo.bar/"],
+        {"advertiser_hosts": ["foo.bar", "foo.bar/ca"],
+        }
+        "#,
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn conflicting_advertiser_paths() {
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"
+        {"advertiser_hosts": ["foo.bar/ca", "foo.bar"],
         }
         "#,
         );
@@ -332,7 +330,7 @@ mod tests {
     pub fn empty_advertiser_paths() {
         let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
             r#"
-        {"advertiser_hosts": ["foo.bar/ca", "foo.bar/"],
+        {"advertiser_hosts": ["foo.bar/ca", "foo.biz/"],
         }
         "#,
         );
@@ -352,7 +350,7 @@ mod tests {
     pub fn ok_advertisers() {
         let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
             r#"
-        {"advertiser_hosts": ["foo.com", "foo.co.uk"],
+        {"advertiser_hosts": ["foo.com/ca", "foo.co.uk"],
         }
         "#,
         );
