@@ -63,11 +63,6 @@ where
     D: Deserializer<'de>,
 {
     Deserialize::deserialize(d).map(|hosts: Vec<String>| {
-        /*
-        if host doesn't have a slash
-        compare to hosts that do.
-        if exact match then error
-         */
         for host in &hosts {
             if host.contains('/') {
                 let parts: Vec<&str> = host.splitn(2, '/').collect();
