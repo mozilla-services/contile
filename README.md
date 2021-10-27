@@ -3,9 +3,14 @@
 
 This is the back-end server for the Mozilla Tile Service (MTS).
 
-The goal of this service is to pass tiles from partners along to Firefox for display while ensuring customer privacy and choice.
+The goal of this service is to pass tiles from partners along to Firefox for display while ensuring customer privacy and choice as discussed in the [support article "Sponsored tiles on the New Tab page"](https://support.mozilla.org/en-US/kb/sponsor-privacy).
 
 Supports the TopSites feature within Firefox.
+
+See also:
+
+- [In-repo documentation](docs/)
+- [Monitoring dashboard](https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure) (Mozilla internal)
 
 ## Requirements
 
