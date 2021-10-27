@@ -66,7 +66,7 @@ pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
 
     // If it's not firefox, it doesn't belong here...
     if !["firefox"].contains(&wresult.name.to_lowercase().as_str()) {
-        let mut err: HandlerError = HandlerErrorKind::InvalidUA().into();
+        let mut err: HandlerError = HandlerErrorKind::InvalidUA.into();
         // XXX: Tags::from_head already adds this
         err.tags.add_extra("ua", ua);
         err.tags
@@ -183,7 +183,7 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         match err.kind() {
-            HandlerErrorKind::InvalidUA() => {}
+            HandlerErrorKind::InvalidUA => {}
             _ => panic!("Incorrect error returned for test"),
         }
         assert!(err.tags.extra.get("ua") == Some(&ua_str.to_owned()));

@@ -3,21 +3,22 @@
 //! This sends [crate::error::HandlerError] events to Sentry
 
 use std::{
-    cell::{RefCell, RefMut},
+    cell::RefCell,
     error::Error as StdError,
     rc::Rc,
     task::{Context, Poll},
 };
 
-use actix_http::Extensions;
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
+    web::Data,
     Error, HttpMessage,
 };
+use cadence::CountedExt;
 use futures::future::{self, LocalBoxFuture, TryFutureExt};
 use sentry::protocol::Event;
 
-use crate::{error::HandlerError, settings::Settings, tags::Tags};
+use crate::{error::HandlerError, server::ServerState, settings::Settings, tags::Tags};
 
 pub struct SentryWrapper;
 
@@ -58,25 +59,6 @@ pub struct SentryWrapperMiddleware<S> {
     service: Rc<RefCell<S>>,
 }
 
-pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
-    let herr: Option<&HandlerError> = err.as_error();
-    if let Some(herr) = herr {
-        /*
-        // example: Skip if the error shouldn't be reported
-        if !herr.is_reportable() {
-            trace!("Sentry Not reporting error: {:?}", err);
-            return;
-        }
-        */
-        let event = event_from_error(herr);
-        if let Some(events) = ext.get_mut::<Vec<Event<'static>>>() {
-            events.push(event);
-        } else {
-            ext.insert(vec![event]);
-        }
-    }
-}
-
 /// Report an error with [crate::tags::Tags] and [Event] directly to sentry
 ///
 /// And [Event] can be derived using `event_from_error(HandlerError)`
@@ -105,6 +87,11 @@ where
 
     fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
         let settings: &Settings = (&sreq).into();
+        let metrics = sreq
+            .app_data::<Data<ServerState>>()
+            .expect("No Server state found")
+            .metrics
+            .clone();
         let mut tags = Tags::from_head(sreq.head(), settings);
         sreq.extensions_mut().insert(tags.clone());
 
@@ -147,21 +134,12 @@ where
                 }
                 Some(e) => {
                     if let Some(herr) = e.as_error::<HandlerError>() {
-                        /*
-                        // Call any special processing for a given error (e.g. record metrics)
-                        if let Some(state) = sresp.request().app_data::<Data<ServerState>>() {
-                            herr.on_response(state.as_ref());
-                        };
-                        */
-                        /*
-                        // skip reporting error if need be
-                        if !herr.is_reportable() {
-                            trace!("Sentry: Not reporting error: {:?}", herr);
-                            return future::ok(sresp);
+                        if herr.kind().is_sentry_event() {
+                            tags.extend(herr.tags.clone());
+                            report(&tags, event_from_error(herr));
+                        } else if let Some(label) = herr.kind().metric_label() {
+                            metrics.incr_with_tags(label).send()
                         }
-                        */
-                        tags.extend(herr.tags.clone());
-                        report(&tags, event_from_error(herr));
                     }
                 }
             }
