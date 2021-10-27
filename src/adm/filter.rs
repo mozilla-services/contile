@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
     fmt::Debug,
     iter::FromIterator,
@@ -109,26 +110,31 @@ impl AdmFilter {
             }
         };
 
+        if parsed.scheme().to_lowercase() != "https" {
+            return Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into());
+        }
+
         // do a quick string comparison between the supplied host and the provided filter.
-        // (we replace any '.' in the path to prevent accidental host leaks (see tests))
         let mut host = format!(
             "{}{}",
-            parsed.host().unwrap(),
-            parsed.path().replace(".", "*")
+            parsed
+                .host()
+                .ok_or_else(|| HandlerErrorKind::MissingHost(species, url.to_string()))?,
+            parsed.path()
         );
         if !host.ends_with('/') {
-            host = format!("{}/", host);
+            host.push('/');
         }
         for filter in &filter.advertiser_hosts {
-            let filter = if !filter.ends_with('/') {
-                format!("{}/", filter)
-            } else {
-                filter.clone()
+            let mut filter = Cow::from(filter);
+            if !filter.ends_with('/') {
+                filter.to_mut().push('/');
             };
-            // make sure to do the same s/./*/ to the filter, because you never know...
             let filter_parts = filter.splitn(2, '/').collect::<Vec<&str>>();
-            let test_filter = format!("{}/{}", filter_parts[0], filter_parts[1].replace('.', "*"));
-            if host.contains(&test_filter) {
+
+            let test_filter = format!("{}/{}", filter_parts[0], filter_parts[1]);
+            dbg!(&test_filter, &host);
+            if host.starts_with(&test_filter) {
                 return Ok(());
             }
         }
@@ -431,7 +437,7 @@ mod tests {
     #[test]
     fn check_advertiser() {
         let s = r#"{
-            "advertiser_hosts": ["acme.biz/ca"],
+            "advertiser_hosts": ["acme.biz/ca", "black_friday.acme.biz/ca"],
             "position": 0
         }"#;
         let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
@@ -441,7 +447,7 @@ mod tests {
         let mut tile = AdmTile {
             id: 0,
             name: "test".to_owned(),
-            advertiser_url: "https://www.acme.biz/ca/foobar".to_owned(),
+            advertiser_url: "https://acme.biz/ca/foobar".to_owned(),
             click_url: "https://example.com/foo".to_owned(),
             image_url: "".to_owned(),
             impression_url: "https://example.net".to_owned(),
@@ -470,28 +476,36 @@ mod tests {
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_err());
         //Bad, wrong path
-        tile.advertiser_url = "https://www.acme.biz/fr/".to_owned();
+        tile.advertiser_url = "https://acme.biz/fr/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_err());
 
         //good, extra element in host
-        tile.advertiser_url = "https://www.black_friday.acme.biz/ca/".to_owned();
+        tile.advertiser_url = "https://black_friday.acme.biz/ca/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_ok());
 
         // "Traditional host. "
         let s = r#"{
-            "advertiser_hosts": ["acme.biz", "acme.co/foo.bar"],
+            "advertiser_hosts": ["acme.biz/ca", "www.acme.co/foo.bar"],
             "position": 0
         }"#;
         let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
         // Good, matches hosts
-        tile.advertiser_url = "https://www.acme.biz/ca/".to_owned();
+        tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_ok());
+        tile.advertiser_url = "https://www.acme.co/foo.bar/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
+        tile.advertiser_url = "https://acme.biz/foo.bar/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
 
         // Bad, invalid host.
         tile.advertiser_url = "https://acme.biz.uk/ca/".to_owned();
@@ -509,5 +523,11 @@ mod tests {
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_ok());
+
+        //Bad, invalid scheme
+        tile.advertiser_url = "http://www.acme.co/foo.bar/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
     }
 }
