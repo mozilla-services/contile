@@ -63,15 +63,23 @@ where
     D: Deserializer<'de>,
 {
     Deserialize::deserialize(d).map(|hosts: Vec<String>| {
+        /*
+        if host doesn't have a slash
+        compare to hosts that do.
+        if exact match then error
+         */
         for host in &hosts {
-            for cmp_host in &hosts {
-                if cmp_host != host {
-                    assert!(!cmp_host.starts_with(host), "Advertiser host conflict.")
-                }
-            }
             if host.contains('/') {
                 let parts: Vec<&str> = host.splitn(2, '/').collect();
                 assert!(!parts[1].is_empty(), "Advertiser host path is empty.")
+            } else {
+                for cmp_host in &hosts {
+                    if !cmp_host.contains('/') {
+                        continue;
+                    }
+                    let parts: Vec<&str> = cmp_host.splitn(2, '/').collect();
+                    assert!(parts[0] != host, "Advertiser host conflict.")
+                }
             }
         }
         hosts
@@ -349,10 +357,10 @@ mod tests {
     #[test]
     pub fn ok_advertisers() {
         let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"
-        {"advertiser_hosts": ["foo.com/ca", "foo.co.uk"],
-        }
-        "#,
+            r#"{"advertiser_hosts": ["foo.com/ca", "foo.co.uk", "www.foo.co.uk"]}"#,
+        );
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"{"advertiser_hosts": ["example.com", "example.com.mx"]}"#,
         );
     }
 }
