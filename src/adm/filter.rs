@@ -130,10 +130,7 @@ impl AdmFilter {
             if !filter.ends_with('/') {
                 filter.to_mut().push('/');
             };
-            let filter_parts = filter.splitn(2, '/').collect::<Vec<&str>>();
-
-            let test_filter = format!("{}/{}", filter_parts[0], filter_parts[1]);
-            if host.starts_with(&test_filter) {
+            if host.starts_with(filter.as_ref()) {
                 return Ok(());
             }
         }
