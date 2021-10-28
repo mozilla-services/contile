@@ -28,6 +28,7 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
     /// Required set of valid hosts for the `advertiser_url`
+    #[serde(deserialize_with = "deserialize_advertiser", default)]
     pub(crate) advertiser_hosts: Vec<String>,
     /// Optional set of valid hosts for the `impression_url`
     #[serde(
@@ -51,6 +52,33 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
+}
+
+/// Parse JSON:
+/// fail if you encounter a host that does not match the pattern.
+/// (if only specifying hosts, use "example.com", if requiring a leading path
+///  use "example.com/path/")
+fn deserialize_advertiser<'de, D>(d: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Deserialize::deserialize(d).map(|hosts: Vec<String>| {
+        for host in &hosts {
+            if host.contains('/') {
+                let parts: Vec<&str> = host.splitn(2, '/').collect();
+                assert!(!parts[1].is_empty(), "Advertiser host path is empty.")
+            } else {
+                for cmp_host in &hosts {
+                    if !cmp_host.contains('/') {
+                        continue;
+                    }
+                    let parts: Vec<&str> = cmp_host.splitn(2, '/').collect();
+                    assert!(parts[0] != host, "Advertiser host conflict.")
+                }
+            }
+        }
+        hosts
+    })
 }
 
 /// Parse JSON:
@@ -275,6 +303,59 @@ mod tests {
                     .into_iter()
                     .map(ToOwned::to_owned)
                     .collect()
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn mismatched_advertisers() {
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"
+        {"advertiser_hosts": ["foo.bar", "foo.bar/ca"],
+        }
+        "#,
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn conflicting_advertiser_paths() {
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"
+        {"advertiser_hosts": ["foo.bar/ca", "foo.bar"],
+        }
+        "#,
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn empty_advertiser_paths() {
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"
+        {"advertiser_hosts": ["foo.bar/ca", "foo.biz/"],
+        }
+        "#,
+        );
+    }
+
+    #[test]
+    pub fn ok_advertiser_paths() {
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"
+        {"advertiser_hosts": ["foo.bar/ca", "foo.bar/us"],
+        }
+        "#,
+        );
+    }
+
+    #[test]
+    pub fn ok_advertisers() {
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"{"advertiser_hosts": ["foo.com/ca", "foo.co.uk", "www.foo.co.uk"]}"#,
+        );
+        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
+            r#"{"advertiser_hosts": ["example.com", "example.com.mx"]}"#,
         );
     }
 }
