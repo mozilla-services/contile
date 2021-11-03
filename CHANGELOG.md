@@ -1,3 +1,30 @@
+<a name="1.5.0"></a>
+## 1.5.0 (2021-11-03)
+
+
+#### Refactor
+
+*   Simplify various converters for tags (#307) ([6dc80d0e](https://github.com/mozilla-services/contile/commit/6dc80d0edd043d4e10fd64af60b0aeeff4c501a5))
+*   reorganize integration-tests files (#297) ([23bdb2fd](https://github.com/mozilla-services/contile/commit/23bdb2fd6965c479a226ea906612567e2dbac052))
+
+#### Features
+
+*   add rule parser for advertiser hosts (#304) ([0a287229](https://github.com/mozilla-services/contile/commit/0a2872299e788da6001869ffb2986745cf011b8c), closes [#303](https://github.com/mozilla-services/contile/issues/303))
+*   don't emit InvalidUA to sentry, incr a metric instead (#306) ([dc8e94a5](https://github.com/mozilla-services/contile/commit/dc8e94a53412c149a78500ad7a2bfec00f6ee647), closes [#275](https://github.com/mozilla-services/contile/issues/275))
+*   Add local server hostname to tags (#234) ([ba04b245](https://github.com/mozilla-services/contile/commit/ba04b24502a84c989adde87374f93c0137ec6d90), closes [#200](https://github.com/mozilla-services/contile/issues/200))
+
+#### Chore
+
+*   Add templates for Pull Requests (#278) ([c761902e](https://github.com/mozilla-services/contile/commit/c761902ee702db36eba6293dfa7949ed21e2de27))
+*   delete unused docker-compose example file (#296) ([5f86beb7](https://github.com/mozilla-services/contile/commit/5f86beb7f074fcc765d42d935a91a8c293556223))
+
+#### Test
+
+*   upgrade the Docker images for contile-integration-tests to 21.6.0 (#295) ([cbe464b7](https://github.com/mozilla-services/contile/commit/cbe464b79df90677922ea6f62b1cfec7e53f60fc))
+*   add integration tests for 200 OK for excluded countries (#294) ([b11cc74e](https://github.com/mozilla-services/contile/commit/b11cc74e3db1c4c72f6a318d3faf3887b7e0108b))
+
+
+
 <a name="1.4.0"></a>
 ## 1.4.0 (2021-09-23)
 
