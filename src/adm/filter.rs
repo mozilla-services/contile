@@ -531,13 +531,13 @@ mod tests {
                 {
                     "host": "acme.biz",
                     "paths": [
-                        { "value": "/ca", "matching": "prefix" }
+                        { "value": "/ca/", "matching": "prefix" }
                     ]
                 },
                 {
                     "host": "www.acme.co",
                     "paths": [
-                        { "value": "/foo.bar", "matching": "prefix" }
+                        { "value": "/foo.bar/", "matching": "prefix" }
                     ]
 
                 },

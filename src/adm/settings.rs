@@ -36,19 +36,23 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 /// For each `advertiser_url` (assume its host is `host` and path is `path`),
 /// the matching rule is defined as follows:
 ///
-/// * Check if `host` matches with `filter.host`. If not, this URL is rejected
-///   by this filter.
-/// * If the host matches, and there is no `paths` specified in this filter,
+/// * Check if the host in the advertiser URL exactly matches with the `"host"`
+///   value in this filter.  If not, this URL is rejected by this filter.
+///   For example `https://foo.com` would match, however `https://www.foo.com`
+///   would *not* match and would be rejected. If you wish to include both
+///   hosts, you will need to duplicate the `"paths"`.
+/// * If the host matches, and there is no `"paths"` specified in this filter,
 ///   then the URL is accepted by this filter.
-/// * If the `paths` filter list is present, then proceed with path filtering.
-///   There are two "matching" strategies:
-///   * "exact" for exact path matching, which compares the `path` character-by-character
-///     with the `value` filed of this path filter.
+/// * If the `"paths"` filter list is present, then proceed with path filtering.
+///   There are two matching strategies:
+///   * `"exact"` for exact path matching, which compares the `"path"`
+///     character-by-character with the `"value"` filed of this path filter.
 ///   * "prefix" for prefix path matching, which checks if the `value` is a
-///     prefix of the `path`. Note that we always make sure `path` and `value`
+///     prefix of the `"path"`. Note that we always make sure `"path"` and `"value"`
 ///     are compared with the trailing '/' to avoid the accidental
-///     matches. In particular, Contile will panic when it detects that a prefix
-///     filter doesn't have the trailing '/' in the `value`.
+///     matches. In particular, when loading filters from the settings file,
+///     Contile will panic if it detects that a prefix filter doesn't have
+///     the trailing '/' in the `"value"`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AdvertiserUrlFilter {
     pub(crate) host: String,
@@ -337,7 +341,7 @@ mod tests {
 
     #[test]
     #[should_panic(
-        expected = "Advertiser \"test-adv\" advertiser_urls contain invalid prefix PathFilter"
+        expected = r#"Advertiser "test-adv" advertiser_urls contain invalid prefix PathFilter"#
     )]
     pub fn test_invalid_path_filters() {
         let mut settings = Settings::default();
