@@ -1,16 +1,16 @@
 {
     "Example COM": {
-        "advertiser_hosts": [
-            "www.example.com",
-            "www.example.co.uk",
-            "www.example.it",
-            "www.example.com.au",
-            "www.example.ca",
-            "www.example.de",
-            "www.example.fr",
-            "www.example.es",
-            "www.example.in",
-            "www.example.com.mx"
+        "advertiser_urls": [
+            { "host": "www.example.com" },
+            { "host": "www.example.co.uk" },
+            { "host": "www.example.it" },
+            { "host": "www.example.com.au" },
+            { "host": "www.example.ca" },
+            { "host": "www.example.de" },
+            { "host": "www.example.fr" },
+            { "host": "www.example.es" },
+            { "host": "www.example.in" },
+            { "host": "www.example.com.mx" }
         ],
         "click_hosts": [],
         "impression_hosts": [],
