@@ -28,8 +28,8 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 ///         "host": "foo.com",
 ///         "paths": [
 ///             { "value": "/", "matching": "exact" },
-///             { "value": "/bar", "matching": "prefix" },
-///             { "value": "/baz/spam", "matching": "prefix" },
+///             { "value": "/bar/", "matching": "prefix" },
+///             { "value": "/baz/spam/", "matching": "prefix" },
 ///         ]
 ///     }
 /// ```
@@ -47,7 +47,8 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 ///   * "prefix" for prefix path matching, which checks if the `value` is a
 ///     prefix of the `path`. Note that we always make sure `path` and `value`
 ///     are compared with the trailing '/' to avoid the accidental
-///     matches.
+///     matches. In particular, Contile will panic when it detects that a prefix
+///     filter doesn't have the trailing '/' in the `value`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AdvertiserUrlFilter {
     pub(crate) host: String,
