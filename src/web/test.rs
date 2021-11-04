@@ -126,28 +126,28 @@ fn init_mock_adm(response: String) -> MockAdm {
 pub fn adm_settings() -> AdmSettings {
     let adm_settings = json!({
         "Acme": {
-            "advertiser_hosts": ["www.acme.biz"],
+            "advertiser_urls": [{ "host": "www.acme.biz" }],
             "impression_hosts": [],
             "click_hosts": [],
             "position": 0,
             "include_regions": ["US"]
         },
         "Dunder Mifflin": {
-            "advertiser_hosts": ["www.dunderm.biz"],
+            "advertiser_urls": [{ "host": "www.dunderm.biz" }],
             "impression_hosts": ["example.com", "example.net"],
             "click_hosts": [],
             "position": 1,
             "include_regions": ["US"]
         },
         "Los Pollos Hermanos": {
-            "advertiser_hosts": ["www.lph-nm.biz"],
+            "advertiser_urls": [{ "host": "www.lph-nm.biz" }],
             "impression_hosts": [],
             "click_hosts": [],
             "position": 2,
             "include_regions": ["US"]
         },
         DEFAULT: {
-            "advertiser_hosts": [],
+            "advertiser_urls": [],
             "impression_hosts": ["example.net"],
             "click_hosts": ["example.com"],
             "position": null,
@@ -339,7 +339,7 @@ async fn basic_filtered() {
     adm_settings.insert(
         "Example".to_owned(),
         serde_json::from_value(json!({
-            "advertiser_hosts": ["www.example.ninja"],
+            "advertiser_urls": [{ "host": "www.example.ninja" }],
             "impression_hosts": ["example.net"],
             "click_hosts": ["example.com"],
             "position": 100,
@@ -503,7 +503,7 @@ async fn empty_tiles() {
     // test empty responses of an included country (US)
     let adm_settings_json = json!({
         "Foo": {
-            "advertiser_hosts": ["www.foo.bar"],
+            "advertiser_urls": [{ "host": "www.foo.bar" }],
             "impression_hosts": [],
             "click_hosts": [],
             "position": 0,
