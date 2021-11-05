@@ -316,3 +316,88 @@ scenarios:
           status_code: 200
           content:
             tiles: []
+
+  - name: advertiser_url_path_filter_prefix
+    description: >
+      Test that Contile successfully applies advertiser_url path filters with
+      prefix matching. The request is expected to not result in any DunBroch
+      tiles because the settings do not allow URL paths with a
+      `gb_desktop_windows` prefix for DunBroch tiles.
+    steps:
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "81.2.69.192/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.204'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 32345
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_windows?id=0001'
+                url: 'https://www.example.com/gb_desktop_windows'
+                position: 1
+              - id: 76789
+                name: 'Example ORG'
+                click_url: 'https://example.org/gb_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/gb_desktop_windows02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/gb_desktop_windows?id=0002'
+                url: 'https://www.example.org/gb_desktop_windows'
+                position: 1
+
+  - name: advertiser_url_path_filter_exact
+    description: >
+      Test that Contile successfully applies advertiser_url path filters with
+      exact matching. The request is expected to not result in any DunBroch
+      tiles because the settings only allow exact `gb_desktop_linux` paths, but
+      the DunBroch tile for the proxy parameters in the step has a URL path of
+      `gb_desktop_linux/2021` and the additional path segment is not approved.
+    steps:
+      - request:
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: linux and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/91.0'
+            # Contile looks up the IP address from this header value and maps it to proxy information.
+            # We use a random IP address from the range specified by the CIDR network notation "81.2.69.192/28"
+            # from https://github.com/maxmind/MaxMind-DB/blob/main/source-data/GeoLite2-City-Test.json
+            # The following value will result in country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.204'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 32347
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_linux?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_linux01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_linux?id=0001'
+                url: 'https://www.example.com/gb_desktop_linux'
+                position: 1
+              - id: 76791
+                name: 'Example ORG'
+                click_url: 'https://example.org/gb_desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/gb_desktop_linux02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/gb_desktop_linux?id=0002'
+                url: 'https://www.example.org/gb_desktop_linux'
+                position: 1
