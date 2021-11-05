@@ -55,7 +55,17 @@
     "DunBroch": {
         "advertiser_urls": [
             {
-                "host": "www.dunbroch.co.uk"
+                "host": "www.dunbroch.co.uk",
+                "paths": [
+                    {
+                        "value": "/gb_desktop_macos/",
+                        "matching": "prefix"
+                    },
+                    {
+                        "value": "/gb_desktop_linux",
+                        "matching": "exact"
+                    }
+                ]
             }
         ],
         "click_hosts": [
