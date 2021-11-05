@@ -164,7 +164,6 @@ impl Settings {
 
         // preflight check the storage
         StorageSettings::from(&*self);
-        dbg!("here");
         AdmSettings::try_from(&mut *self).expect("Settings invalid");
         Ok(())
     }

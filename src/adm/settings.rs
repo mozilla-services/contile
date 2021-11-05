@@ -216,11 +216,9 @@ impl TryFrom<&mut Settings> for AdmSettings {
                 }
                 false
             }) {
-                dbg!("slash");
                 return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
             }
         }
-        dbg!(&adm_settings);
         Ok(adm_settings)
     }
 }
