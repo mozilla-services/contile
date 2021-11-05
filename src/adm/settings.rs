@@ -17,6 +17,56 @@ use crate::{
 /// is defined for a given partner.
 pub(crate) const DEFAULT: &str = "DEFAULT";
 
+/// The AdvertiserUrlFilter describes the filtering rule for the `advertiser_url`.
+///
+/// Each rule consists of a host and optionally a list of PathFilters.
+///
+/// Examples:
+///
+/// ```json
+///     {
+///         "host": "foo.com",
+///         "paths": [
+///             { "value": "/", "matching": "exact" },
+///             { "value": "/bar/", "matching": "prefix" },
+///             { "value": "/baz/spam/", "matching": "prefix" },
+///         ]
+///     }
+/// ```
+/// For each `advertiser_url` (assume its host is `host` and path is `path`),
+/// the matching rule is defined as follows:
+///
+/// * Check if the host in the advertiser URL exactly matches with the `"host"`
+///   value in this filter.  If not, this URL is rejected by this filter.
+///   For example `https://foo.com` would match, however `https://www.foo.com`
+///   would *not* match and would be rejected. If you wish to include both
+///   hosts, you will need to duplicate the `"paths"`.
+/// * If the host matches, and there is no `"paths"` specified in this filter,
+///   then the URL is accepted by this filter.
+/// * If the `"paths"` filter list is present, then proceed with path filtering.
+///   There are two matching strategies:
+///   * `"exact"` for exact path matching, which compares the `"path"`
+///     character-by-character with the `"value"` filed of this path filter.
+///   * "prefix" for prefix path matching, which checks if the `value` is a
+///     prefix of the `"path"`. Note that we always make sure `"path"` and `"value"`
+///     are compared with the trailing '/' to avoid the accidental
+///     matches. In particular, when loading filters from the settings file,
+///     Contile will panic if it detects that a prefix filter doesn't have
+///     the trailing '/' in the `"value"`.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AdvertiserUrlFilter {
+    pub(crate) host: String,
+    pub(crate) paths: Option<Vec<PathFilter>>,
+}
+
+/// PathFilter describes how path filtering is conducted. See more details in
+/// AdvertiserUrlFilter.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PathFilter {
+    pub(crate) value: String,
+    pub(crate) matching: String,
+}
+
 /// The AdmAdvertiserFilterSettings contain the settings for the various
 /// ADM provided partners.
 ///
@@ -27,9 +77,9 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 /// defined in DEFAULT.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    /// Required set of valid hosts for the `advertiser_url`
-    #[serde(deserialize_with = "deserialize_advertiser", default)]
-    pub(crate) advertiser_hosts: Vec<String>,
+    /// Required set of valid hosts and paths for the `advertiser_url`
+    #[serde(default)]
+    pub(crate) advertiser_urls: Vec<AdvertiserUrlFilter>,
     /// Optional set of valid hosts for the `impression_url`
     #[serde(
         deserialize_with = "deserialize_hosts",
@@ -52,33 +102,6 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
-}
-
-/// Parse JSON:
-/// fail if you encounter a host that does not match the pattern.
-/// (if only specifying hosts, use "example.com", if requiring a leading path
-///  use "example.com/path/")
-fn deserialize_advertiser<'de, D>(d: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Deserialize::deserialize(d).map(|hosts: Vec<String>| {
-        for host in &hosts {
-            if host.contains('/') {
-                let parts: Vec<&str> = host.splitn(2, '/').collect();
-                assert!(!parts[1].is_empty(), "Advertiser host path is empty.")
-            } else {
-                for cmp_host in &hosts {
-                    if !cmp_host.contains('/') {
-                        continue;
-                    }
-                    let parts: Vec<&str> = cmp_host.splitn(2, '/').collect();
-                    assert!(parts[0] != host, "Advertiser host conflict.")
-                }
-            }
-        }
-        hosts
-    })
 }
 
 /// Parse JSON:
@@ -166,6 +189,16 @@ impl From<&mut Settings> for AdmSettings {
             {
                 panic!("Advertiser {:?} include_regions must be uppercase", adv);
             }
+            if filter_setting.advertiser_urls.iter().any(|filter| {
+                if let Some(ref paths) = filter.paths {
+                    return paths
+                        .iter()
+                        .any(|path| path.matching == "prefix" && !path.value.ends_with('/'));
+                }
+                false
+            }) {
+                panic!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv);
+            }
         }
         adm_settings
     }
@@ -178,7 +211,7 @@ impl From<&mut Settings> for AdmSettings {
 /// /* for the Example Co advertiser... */
 /// {"Example": {
 ///     /* The allowed hosts for URLs */
-///     "advertiser_hosts": ["www.example.org", "example.org"],
+///     "advertiser_urls": [{"host": "www.example.org"}, {"host": "example.org"}],
 ///     /* Valid tile positions for this advertiser (empty for "all") */
 ///     "positions": 1,
 ///     /* Valid target countries for this advertiser
@@ -307,55 +340,25 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    pub fn mismatched_advertisers() {
-        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"
-        {"advertiser_hosts": ["foo.bar", "foo.bar/ca"],
-        }
-        "#,
-        );
-    }
-
-    #[test]
-    #[should_panic]
-    pub fn conflicting_advertiser_paths() {
-        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"
-        {"advertiser_hosts": ["foo.bar/ca", "foo.bar"],
-        }
-        "#,
-        );
-    }
-
-    #[test]
-    #[should_panic]
-    pub fn empty_advertiser_paths() {
-        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"
-        {"advertiser_hosts": ["foo.bar/ca", "foo.biz/"],
-        }
-        "#,
-        );
-    }
-
-    #[test]
-    pub fn ok_advertiser_paths() {
-        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"
-        {"advertiser_hosts": ["foo.bar/ca", "foo.bar/us"],
-        }
-        "#,
-        );
-    }
-
-    #[test]
-    pub fn ok_advertisers() {
-        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"{"advertiser_hosts": ["foo.com/ca", "foo.co.uk", "www.foo.co.uk"]}"#,
-        );
-        let _val = serde_json::from_str::<AdmAdvertiserFilterSettings>(
-            r#"{"advertiser_hosts": ["example.com", "example.com.mx"]}"#,
-        );
+    #[should_panic(
+        expected = r#"Advertiser "test-adv" advertiser_urls contain invalid prefix PathFilter"#
+    )]
+    pub fn test_invalid_path_filters() {
+        let mut settings = Settings::default();
+        let adm_settings = r#"{"test-adv": {
+            "advertiser_urls": [
+                {
+                    "host": "foo.com",
+                    "paths": [
+                        {
+                            "value": "/bar",
+                            "matching": "prefix"
+                        }
+                    ]
+                }
+            ]
+        }}"#;
+        settings.adm_settings = adm_settings.to_owned();
+        AdmSettings::from(&mut settings);
     }
 }

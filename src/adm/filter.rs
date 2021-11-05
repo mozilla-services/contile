@@ -115,25 +115,35 @@ impl AdmFilter {
         }
 
         // do a quick string comparison between the supplied host and the provided filter.
-        let mut host = format!(
-            "{}{}",
-            parsed
-                .host()
-                .ok_or_else(|| HandlerErrorKind::MissingHost(species, url.to_string()))?,
-            parsed.path()
-        );
-        if !host.ends_with('/') {
-            host.push('/');
+        let host = parsed
+            .host()
+            .ok_or_else(|| HandlerErrorKind::MissingHost(species, url.to_string()))?
+            .to_string();
+        let mut path = Cow::from(parsed.path());
+        if !path.ends_with('/') {
+            path.to_mut().push('/');
         }
-        for filter in &filter.advertiser_hosts {
-            let mut filter = Cow::from(filter);
-            if !filter.ends_with('/') {
-                filter.to_mut().push('/');
-            };
-            if host.starts_with(filter.as_ref()) {
-                return Ok(());
+
+        for filter in &filter.advertiser_urls {
+            if !host.eq(&filter.host) {
+                continue;
             }
+
+            if let Some(ref paths) = filter.paths {
+                for rule in paths {
+                    match rule.matching.as_str() {
+                        // Note that the orignal path is used for exact matching
+                        "exact" if rule.value == parsed.path() => return Ok(()),
+                        "prefix" if path.starts_with(&rule.value) => return Ok(()),
+                        _ => continue,
+                    }
+                }
+            } else {
+                // Host matches without any path filters, matching succeeds.
+                return Ok(());
+            };
         }
+
         Err(HandlerErrorKind::InvalidHost(species, url.to_string()).into())
     }
 
@@ -294,7 +304,7 @@ impl AdmFilter {
                     return None;
                 }
 
-                let adv_filter = if filter.advertiser_hosts.is_empty() {
+                let adv_filter = if filter.advertiser_urls.is_empty() {
                     default
                 } else {
                     filter
@@ -433,7 +443,27 @@ mod tests {
     #[test]
     fn check_advertiser() {
         let s = r#"{
-            "advertiser_hosts": ["acme.biz/ca", "black_friday.acme.biz/ca"],
+            "advertiser_urls": [
+                {
+                    "host": "acme.biz",
+                    "paths": [
+                        { "value": "/ca/", "matching": "prefix" }
+                    ]
+                },
+                {
+                    "host": "black_friday.acme.biz",
+                    "paths": [
+                        { "value": "/ca/", "matching": "prefix" }
+                    ]
+
+                },
+                {
+                    "host": "acme.biz",
+                    "paths": [
+                        { "value": "/usa", "matching": "exact" }
+                    ]
+                }
+            ],
             "position": 0
         }"#;
         let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
@@ -477,15 +507,47 @@ mod tests {
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_err());
 
-        //good, extra element in host
+        //Good, extra element in host
         tile.advertiser_url = "https://black_friday.acme.biz/ca/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_ok());
 
+        //Good, extra matching
+        tile.advertiser_url = "https://acme.biz/usa".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
+
+        // Bad, path doesn't match exactly
+        tile.advertiser_url = "https://acme.biz/usa/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_err());
+
         // "Traditional host. "
         let s = r#"{
-            "advertiser_hosts": ["acme.biz/ca", "www.acme.co/foo.bar"],
+            "advertiser_urls": [
+                {
+                    "host": "acme.biz",
+                    "paths": [
+                        { "value": "/ca/", "matching": "prefix" }
+                    ]
+                },
+                {
+                    "host": "www.acme.co",
+                    "paths": [
+                        { "value": "/foo.bar/", "matching": "prefix" }
+                    ]
+
+                },
+                {
+                    "host": "acme.biz",
+                    "paths": [
+                        { "value": "/", "matching": "exact" }
+                    ]
+                }
+            ],
             "position": 0
         }"#;
         let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
@@ -525,5 +587,11 @@ mod tests {
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
             .is_err());
+
+        //Good, matches exact host and path
+        tile.advertiser_url = "https://acme.biz/".to_owned();
+        assert!(filter
+            .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
     }
 }
