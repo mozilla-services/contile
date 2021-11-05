@@ -1,9 +1,13 @@
 use std::{
     collections::{HashMap, HashSet},
+    convert::TryFrom,
     fmt::Debug,
     fs::File,
+    io::Read,
     path::Path,
 };
+
+use config::ConfigError;
 
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
@@ -146,8 +150,10 @@ pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 /// This allows `CONTILE_ADM_SETTINGS` to either be specified as inline JSON, or if the
 /// Settings are too large to fit into an ENV string, specified in a path to where the
 /// settings more comfortably fit.
-impl From<&mut Settings> for AdmSettings {
-    fn from(settings: &mut Settings) -> Self {
+impl TryFrom<&mut Settings> for AdmSettings {
+    type Error = ConfigError;
+
+    fn try_from(settings: &mut Settings) -> Result<Self, Self::Error> {
         // TODO: Convert these to macros.
         if settings.adm_sub1.is_none() {
             if settings.sub1.is_some() {
@@ -157,7 +163,10 @@ impl From<&mut Settings> for AdmSettings {
                     "sub1", "adm_sub1"
                 );
             } else {
-                panic!("Missing argument {}", "adm_sub1");
+                return Err(ConfigError::Message(format!(
+                    "Missing argument {}",
+                    "adm_sub1"
+                )));
             }
         }
         if settings.adm_partner_id.is_none() {
@@ -168,26 +177,36 @@ impl From<&mut Settings> for AdmSettings {
                     "partner_id", "adm_partner_id"
                 );
             } else {
-                panic!("Missing argument {}", "$new");
+                return Err(ConfigError::Message(format!("Missing argument {}", "$new")));
             }
         }
         if settings.adm_settings.is_empty() {
-            return Self::default();
+            return Ok(Self::default());
         }
-        if Path::new(&settings.adm_settings).exists() {
-            if let Ok(f) = File::open(&settings.adm_settings) {
-                return serde_json::from_reader(f).expect("Invalid ADM Settings file");
+        let mut settings_str = settings.adm_settings.clone();
+        if Path::new(&settings_str).exists() {
+            if let Ok(mut f) = File::open(&settings.adm_settings) {
+                settings_str = String::new();
+                f.read_to_string(&mut settings_str).map_err(|e| {
+                    ConfigError::Message(format!(
+                        "Could not read {}: {:?}",
+                        settings.adm_settings, e
+                    ))
+                })?;
             }
         }
         let adm_settings: AdmSettings =
-            serde_json::from_str(&settings.adm_settings).expect("Invalid ADM Settings JSON string");
+            serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
         for (adv, filter_setting) in &adm_settings {
             if filter_setting
                 .include_regions
                 .iter()
                 .any(|region| region != &region.to_uppercase())
             {
-                panic!("Advertiser {:?} include_regions must be uppercase", adv);
+                return Err(ConfigError::Message(format!(
+                    "Advertiser {:?} include_regions must be uppercase",
+                    adv
+                )));
             }
             if filter_setting.advertiser_urls.iter().any(|filter| {
                 if let Some(ref paths) = filter.paths {
@@ -197,10 +216,12 @@ impl From<&mut Settings> for AdmSettings {
                 }
                 false
             }) {
-                panic!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv);
+                dbg!("slash");
+                return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
             }
         }
-        adm_settings
+        dbg!(&adm_settings);
+        Ok(adm_settings)
     }
 }
 
@@ -243,7 +264,9 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .unwrap_or_else(|| "[]".to_owned())
             .to_lowercase();
         let mut all_include_regions = HashSet::new();
-        for (adv, setting) in AdmSettings::from(settings) {
+        for (adv, setting) in
+            AdmSettings::try_from(settings).map_err(|e| HandlerError::internal(&e.to_string()))?
+        {
             trace!("Processing records for {:?}", &adv);
             // DEFAULT included but sans special processing -- close enough
             for country in &setting.include_regions {
@@ -287,7 +310,7 @@ mod tests {
         settings.adm_partner_id = Some(partner_id.clone());
         settings.sub1 = Some("000000".to_owned());
         settings.partner_id = Some("banana".to_owned());
-        AdmSettings::from(&mut settings);
+        AdmSettings::try_from(&mut settings).unwrap();
         assert!(settings.adm_sub1 == Some(sub1.clone()));
         assert!(settings.adm_partner_id == Some(partner_id.clone()));
 
@@ -295,7 +318,7 @@ mod tests {
         env::set_var("CONTILE_SUB1", &sub1);
         env::set_var("CONTILE_PARTNER_ID", &partner_id);
         let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
-        AdmSettings::from(&mut settings);
+        AdmSettings::try_from(&mut settings).unwrap();
         assert!(settings.adm_sub1 == Some(sub1));
         assert!(settings.adm_partner_id == Some(partner_id));
     }
@@ -359,6 +382,6 @@ mod tests {
             ]
         }}"#;
         settings.adm_settings = adm_settings.to_owned();
-        AdmSettings::from(&mut settings);
+        AdmSettings::try_from(&mut settings).unwrap();
     }
 }
