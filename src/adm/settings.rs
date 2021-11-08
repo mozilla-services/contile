@@ -394,9 +394,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = r#"Advertiser "test-adv" advertiser_urls contain invalid prefix PathFilter"#
-    )]
     pub fn test_invalid_path_filters() {
         let mut settings = Settings::default();
         let adm_settings = r#"{"test-adv": {
@@ -413,6 +410,6 @@ mod tests {
             ]
         }}"#;
         settings.adm_settings = adm_settings.to_owned();
-        AdmSettings::try_from(&mut settings).unwrap();
+        assert!(AdmSettings::try_from(&mut settings).is_err());
     }
 }
