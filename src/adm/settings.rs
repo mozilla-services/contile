@@ -218,6 +218,16 @@ impl TryFrom<&mut Settings> for AdmSettings {
             }) {
                 return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
             }
+            if filter_setting.advertiser_urls.iter().any(|filter| {
+                if let Some(ref paths) = filter.paths {
+                    return paths
+                        .iter()
+                        .any(|path| path.matching == "prefix" && !path.value.ends_with('/'));
+                }
+                false
+            }) {
+                panic!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv);
+            }
         }
         Ok(adm_settings)
     }
