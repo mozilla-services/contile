@@ -63,12 +63,44 @@ pub struct AdvertiserUrlFilter {
     pub(crate) paths: Option<Vec<PathFilter>>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PathMatching {
+    Prefix,
+    Exact,
+}
+
+impl TryFrom<&str> for PathMatching {
+    type Error = ConfigError;
+
+    fn try_from(string: &str) -> Result<Self, Self::Error> {
+        match string.to_lowercase().as_str() {
+            "prefix" => Ok(Self::Prefix),
+            "exact" => Ok(Self::Exact),
+            _ => Err(ConfigError::Message(format!(
+                "Invalid Path Filter Type {}",
+                string
+            ))),
+        }
+    }
+}
+
+impl From<PathMatching> for String {
+    fn from(pm: PathMatching) -> String {
+        match pm {
+            PathMatching::Prefix => "prefix",
+            PathMatching::Exact => "exact",
+        }
+        .to_owned()
+    }
+}
+
 /// PathFilter describes how path filtering is conducted. See more details in
 /// AdvertiserUrlFilter.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PathFilter {
     pub(crate) value: String,
-    pub(crate) matching: String,
+    pub(crate) matching: PathMatching,
 }
 
 /// The AdmAdvertiserFilterSettings contain the settings for the various
@@ -210,23 +242,14 @@ impl TryFrom<&mut Settings> for AdmSettings {
             }
             if filter_setting.advertiser_urls.iter().any(|filter| {
                 if let Some(ref paths) = filter.paths {
-                    return paths
-                        .iter()
-                        .any(|path| path.matching == "prefix" && !path.value.ends_with('/'));
+                    return paths.iter().any(|path| match path.matching {
+                        PathMatching::Prefix => !path.value.ends_with('/'),
+                        PathMatching::Exact => !path.value.starts_with('/'),
+                    });
                 }
                 false
             }) {
                 return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
-            }
-            if filter_setting.advertiser_urls.iter().any(|filter| {
-                if let Some(ref paths) = filter.paths {
-                    return paths
-                        .iter()
-                        .any(|path| path.matching == "prefix" && !path.value.ends_with('/'));
-                }
-                false
-            }) {
-                panic!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv);
             }
         }
         Ok(adm_settings)
