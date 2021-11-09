@@ -1,16 +1,36 @@
 {
     "Example COM": {
         "advertiser_urls": [
-            { "host": "www.example.com" },
-            { "host": "www.example.co.uk" },
-            { "host": "www.example.it" },
-            { "host": "www.example.com.au" },
-            { "host": "www.example.ca" },
-            { "host": "www.example.de" },
-            { "host": "www.example.fr" },
-            { "host": "www.example.es" },
-            { "host": "www.example.in" },
-            { "host": "www.example.com.mx" }
+            {
+                "host": "www.example.com"
+            },
+            {
+                "host": "www.example.co.uk"
+            },
+            {
+                "host": "www.example.it"
+            },
+            {
+                "host": "www.example.com.au"
+            },
+            {
+                "host": "www.example.ca"
+            },
+            {
+                "host": "www.example.de"
+            },
+            {
+                "host": "www.example.fr"
+            },
+            {
+                "host": "www.example.es"
+            },
+            {
+                "host": "www.example.in"
+            },
+            {
+                "host": "www.example.com.mx"
+            }
         ],
         "click_hosts": [],
         "impression_hosts": [],
@@ -19,7 +39,9 @@
     },
     "Example ORG": {
         "advertiser_urls": [
-            { "host": "www.example.org" }
+            {
+                "host": "www.example.org"
+            }
         ],
         "click_hosts": [
             "example.org"
@@ -32,7 +54,19 @@
     },
     "DunBroch": {
         "advertiser_urls": [
-            { "host": "www.dunbroch.co.uk" }
+            {
+                "host": "www.dunbroch.co.uk",
+                "paths": [
+                    {
+                        "value": "/gb_desktop_macos/",
+                        "matching": "prefix"
+                    },
+                    {
+                        "value": "/gb_desktop_linux",
+                        "matching": "exact"
+                    }
+                ]
+            }
         ],
         "click_hosts": [
             "dunbroch.co.uk"
