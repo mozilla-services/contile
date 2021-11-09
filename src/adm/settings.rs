@@ -63,7 +63,7 @@ pub struct AdvertiserUrlFilter {
     pub(crate) paths: Option<Vec<PathFilter>>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PathMatching {
     Prefix,
@@ -85,13 +85,12 @@ impl TryFrom<&str> for PathMatching {
     }
 }
 
-impl From<PathMatching> for String {
-    fn from(pm: PathMatching) -> String {
+impl From<PathMatching> for &'static str {
+    fn from(pm: PathMatching) -> &'static str {
         match pm {
             PathMatching::Prefix => "prefix",
             PathMatching::Exact => "exact",
         }
-        .to_owned()
     }
 }
 
