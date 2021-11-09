@@ -1,5 +1,6 @@
 //! Application settings objects and initialization
 
+use std::convert::TryFrom;
 use std::path::PathBuf;
 
 use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
@@ -163,7 +164,7 @@ impl Settings {
 
         // preflight check the storage
         StorageSettings::from(&*self);
-        AdmSettings::from(&mut *self);
+        AdmSettings::try_from(&mut *self)?;
         Ok(())
     }
 

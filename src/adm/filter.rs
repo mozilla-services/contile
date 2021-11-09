@@ -15,6 +15,7 @@ use super::{
     AdmAdvertiserFilterSettings, DEFAULT,
 };
 use crate::{
+    adm::settings::PathMatching,
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     tags::Tags,
@@ -131,10 +132,10 @@ impl AdmFilter {
 
             if let Some(ref paths) = filter.paths {
                 for rule in paths {
-                    match rule.matching.as_str() {
+                    match rule.matching {
                         // Note that the orignal path is used for exact matching
-                        "exact" if rule.value == parsed.path() => return Ok(()),
-                        "prefix" if path.starts_with(&rule.value) => return Ok(()),
+                        PathMatching::Exact if rule.value == parsed.path() => return Ok(()),
+                        PathMatching::Prefix if path.starts_with(&rule.value) => return Ok(()),
                         _ => continue,
                     }
                 }
