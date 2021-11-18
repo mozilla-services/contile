@@ -1,3 +1,21 @@
+<a name="1.5.1"></a>
+## 1.5.1 (2021-11-10)
+
+
+#### Test
+
+*   add integration test coverage for path filtering (#313) ([bc89e5f2](https://github.com/mozilla-services/contile/commit/bc89e5f206e7ee7301e17f7252c6d56bdeef3125))
+
+#### Bug Fixes
+
+*   ensure settings from file are filtered like env settings (#314) ([b510434d](https://github.com/mozilla-services/contile/commit/b510434d6deccfd75fce11560d67cdb0c7860e4f))
+
+#### Features
+
+*   Refine the host & pathing filter (#311) ([99ee20ea](https://github.com/mozilla-services/contile/commit/99ee20ea8c926b57f656201ae3b354c36259e001))
+
+
+
 <a name="1.5.0"></a>
 ## 1.5.0 (2021-11-03)
 

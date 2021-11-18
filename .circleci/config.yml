@@ -214,13 +214,30 @@ jobs:
             -f integration-tests/docker-compose.yml \
             up --abort-on-container-exit --force-recreate
       - run:
-         name: Run additional integration tests
+         name: 'Run "204" integration tests'
          command: |
            docker-compose --version
            docker-compose \
             -f integration-tests/docker-compose.yml \
             -f integration-tests/docker-compose.204.yml \
             up --abort-on-container-exit --force-recreate
+      - run:
+         name: 'Run "init_error" integration tests'
+         command: |
+           docker-compose --version
+           set +e # We need this so that the run doesn't exit after docker-compose
+           docker-compose \
+            -f integration-tests/docker-compose.yml \
+            -f integration-tests/docker-compose.init_error.yml \
+            up --abort-on-container-exit --exit-code contile --force-recreate
+           contile_exit_code=$?
+           if [ "${contile_exit_code}" -eq 0 ]; then
+            echo "Expected non-zero exit_code from Contile service"
+            exit 1
+           else
+            echo "Contile service exit_code: ${contile_exit_code}"
+            exit 0
+           fi
 
 workflows:
   version: 2
