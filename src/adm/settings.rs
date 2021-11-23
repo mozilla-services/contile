@@ -177,7 +177,7 @@ where
 pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
 
 /// Create AdmSettings from a string serialized JSON format
-fn adm_settings_from_string(settings_str:String) -> Result<AdmSettings, ConfigError> {
+fn adm_settings_from_string(settings_str: String) -> Result<AdmSettings, ConfigError> {
     let adm_settings: AdmSettings =
         serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
     for (adv, filter_setting) in &adm_settings {
@@ -209,18 +209,31 @@ fn adm_settings_from_string(settings_str:String) -> Result<AdmSettings, ConfigEr
 /// Try to fetch the ADM settings from a Google Storage bucket url.
 fn adm_settings_from_bucket(settings: &Settings) -> Result<AdmSettings, ConfigError> {
     let settings_str = settings.adm_settings.clone();
-    let parsed = url::Url::parse(&settings_str).map_err(|e| ConfigError::Message(format!("Invalid bucket URL: {:?}", e)))?;
+    let parsed = url::Url::parse(&settings_str)
+        .map_err(|e| ConfigError::Message(format!("Invalid bucket URL: {:?}", e)))?;
     if parsed.scheme() != "gs" {
-        return Err(ConfigError::Message(format!("Improper bucket URL: {:?}", settings_str)))
+        return Err(ConfigError::Message(format!(
+            "Improper bucket URL: {:?}",
+            settings_str
+        )));
     }
     let bucket = match parsed.host() {
         Some(v) => v,
-        None => return Err(ConfigError::Message(format!("Invalid adm settings bucket name {}", settings_str)))
+        None => {
+            return Err(ConfigError::Message(format!(
+                "Invalid adm settings bucket name {}",
+                settings_str
+            )))
+        }
     }
     .to_string();
     let path = parsed.path();
-    let contents = cloud_storage::Object::download_sync(&bucket, &path).map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
-    adm_settings_from_string(String::from_utf8(contents).map_err(|e| ConfigError::Message(format!("Could not read ADM Settings: {:?}", e)))?)
+    let contents = cloud_storage::Object::download_sync(&bucket, path)
+        .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
+    adm_settings_from_string(
+        String::from_utf8(contents)
+            .map_err(|e| ConfigError::Message(format!("Could not read ADM Settings: {:?}", e)))?,
+    )
 }
 
 /// Attempt to read the AdmSettings as either a path to a JSON file, or as a JSON string.
@@ -275,10 +288,9 @@ impl TryFrom<&mut Settings> for AdmSettings {
         }
         // Check if the settings are coming from a bucket.
         if settings_str.starts_with("gs://") {
-            return adm_settings_from_bucket(&settings)
+            return adm_settings_from_bucket(settings);
         }
         adm_settings_from_string(settings_str)
-
     }
 }
 
