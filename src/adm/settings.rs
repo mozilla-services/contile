@@ -8,7 +8,6 @@ use std::{
 };
 
 use config::ConfigError;
-
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
 
 use super::AdmFilter;
@@ -174,7 +173,115 @@ where
     seq.end()
 }
 
-pub(crate) type AdmSettings = HashMap<String, AdmAdvertiserFilterSettings>;
+#[derive(Debug, Clone)]
+pub struct AdmSettings {
+    updated: chrono::DateTime<chrono::Utc>,
+    bucket: Option<url::Url>,
+    pub advertisers: HashMap<String, AdmAdvertiserFilterSettings>,
+}
+
+impl Default for AdmSettings {
+    fn default() -> Self {
+        Self {
+            updated: std::time::SystemTime::UNIX_EPOCH.into(),
+            bucket: None,
+            advertisers: HashMap::new(),
+        }
+    }
+}
+
+impl Serialize for AdmSettings {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_map(self.advertisers.clone())
+    }
+}
+
+/// Create AdmSettings from a string serialized JSON format
+impl TryFrom<String> for AdmSettings {
+    type Error = ConfigError;
+
+    fn try_from(settings_str: String) -> Result<Self, Self::Error> {
+        // don't try to serialize bucket values quite yet.
+        if settings_str.starts_with("gs://") {
+            return Ok(Self {
+                bucket: Some(settings_str.parse::<url::Url>().map_err(|err| {
+                    ConfigError::Message(format!(
+                        "Invalid bucket url: {:?} {:?}",
+                        settings_str, err
+                    ))
+                })?),
+                ..Default::default()
+            });
+        }
+        let adm_settings: HashMap<String, AdmAdvertiserFilterSettings> =
+            serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
+        for (adv, filter_setting) in &adm_settings {
+            if filter_setting
+                .include_regions
+                .iter()
+                .any(|region| region != &region.to_uppercase())
+            {
+                return Err(ConfigError::Message(format!(
+                    "Advertiser {:?} include_regions must be uppercase",
+                    adv
+                )));
+            }
+            if filter_setting.advertiser_urls.iter().any(|filter| {
+                if let Some(ref paths) = filter.paths {
+                    return paths.iter().any(|path| match path.matching {
+                        PathMatching::Prefix => !path.value.ends_with('/'),
+                        PathMatching::Exact => !path.value.starts_with('/'),
+                    });
+                }
+                false
+            }) {
+                return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
+            }
+        }
+        Ok(AdmSettings {
+            advertisers: adm_settings,
+            ..Default::default()
+        })
+    }
+}
+
+impl AdmSettings {
+    /// Try to fetch the ADM settings from a Google Storage bucket url.
+    pub async fn from_settings_bucket(
+        settings_bucket: &url::Url,
+    ) -> Result<AdmSettings, ConfigError> {
+        let settings_str = settings_bucket.as_str();
+        if settings_bucket.scheme() != "gs" {
+            return Err(ConfigError::Message(format!(
+                "Improper bucket URL: {:?}",
+                settings_str
+            )));
+        }
+        let bucket_name = match settings_bucket.host() {
+            Some(v) => v,
+            None => {
+                return Err(ConfigError::Message(format!(
+                    "Invalid adm settings bucket name {}",
+                    settings_str
+                )))
+            }
+        }
+        .to_string();
+        let path = settings_bucket.path();
+        let contents = cloud_storage::Object::download(&bucket_name, path)
+            .await
+            .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
+        let mut reply =
+            AdmSettings::try_from(String::from_utf8(contents).map_err(|e| {
+                ConfigError::Message(format!("Could not read ADM Settings: {:?}", e))
+            })?)?;
+        reply.bucket = Some(settings_bucket.clone());
+        Ok(reply)
+    }
+}
 
 /// Attempt to read the AdmSettings as either a path to a JSON file, or as a JSON string.
 ///
@@ -226,32 +333,7 @@ impl TryFrom<&mut Settings> for AdmSettings {
                 })?;
             }
         }
-        let adm_settings: AdmSettings =
-            serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
-        for (adv, filter_setting) in &adm_settings {
-            if filter_setting
-                .include_regions
-                .iter()
-                .any(|region| region != &region.to_uppercase())
-            {
-                return Err(ConfigError::Message(format!(
-                    "Advertiser {:?} include_regions must be uppercase",
-                    adv
-                )));
-            }
-            if filter_setting.advertiser_urls.iter().any(|filter| {
-                if let Some(ref paths) = filter.paths {
-                    return paths.iter().any(|path| match path.matching {
-                        PathMatching::Prefix => !path.value.ends_with('/'),
-                        PathMatching::Exact => !path.value.starts_with('/'),
-                    });
-                }
-                false
-            }) {
-                return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
-            }
-        }
-        Ok(adm_settings)
+        AdmSettings::try_from(settings_str)
     }
 }
 
@@ -294,8 +376,10 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .unwrap_or_else(|| "[]".to_owned())
             .to_lowercase();
         let mut all_include_regions = HashSet::new();
-        for (adv, setting) in
-            AdmSettings::try_from(settings).map_err(|e| HandlerError::internal(&e.to_string()))?
+        let source = settings.adm_settings.clone();
+        for (adv, setting) in AdmSettings::try_from(settings)
+            .map_err(|e| HandlerError::internal(&e.to_string()))?
+            .advertisers
         {
             trace!("Processing records for {:?}", &adv);
             // DEFAULT included but sans special processing -- close enough
@@ -316,6 +400,11 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             ignore_list,
             all_include_regions,
             legacy_list,
+            last_updated: match &source.starts_with("gs://") {
+                true => Some(std::time::SystemTime::now()),
+                false => None,
+            },
+            source,
         })
     }
 }
@@ -378,10 +467,11 @@ mod tests {
         let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
         let mut adm_settings = adm_settings();
         adm_settings
+            .advertisers
             .get_mut("Dunder Mifflin")
             .expect("No Dunder Mifflin tile")
             .include_regions = vec!["MX".to_owned()];
-        settings.adm_settings = json!(adm_settings).to_string();
+        settings.adm_settings = json!(adm_settings.advertisers).to_string();
         let filter = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
         assert!(
             filter.all_include_regions

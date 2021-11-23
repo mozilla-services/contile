@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::sync::RwLock;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -60,7 +62,7 @@ macro_rules! init_app {
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 settings: $settings.clone(),
-                filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
+                filter: RwLock::new(HandlerResult::<AdmFilter>::from(&mut $settings).unwrap()),
                 img_store: None,
                 excluded_dmas,
             };
@@ -154,7 +156,7 @@ pub fn adm_settings() -> AdmSettings {
             "include_regions": []
         }
     });
-    serde_json::from_value(adm_settings).unwrap()
+    AdmSettings::try_from(adm_settings.to_string()).unwrap()
 }
 
 /// Basic integration test
@@ -336,7 +338,7 @@ async fn basic_filtered() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let mut adm_settings = adm_settings();
-    adm_settings.insert(
+    adm_settings.advertisers.insert(
         "Example".to_owned(),
         serde_json::from_value(json!({
             "advertiser_urls": [{ "host": "www.example.ninja" }],
@@ -347,7 +349,7 @@ async fn basic_filtered() {
         }))
         .unwrap(),
     );
-    adm_settings.remove("Dunder Mifflin");
+    adm_settings.advertisers.remove("Dunder Mifflin");
 
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
@@ -599,8 +601,9 @@ async fn include_regions() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let mut adm_settings = adm_settings();
-    adm_settings.remove("Los Pollos Hermanos");
+    adm_settings.advertisers.remove("Los Pollos Hermanos");
     adm_settings
+        .advertisers
         .get_mut("Dunder Mifflin")
         .expect("No Dunder Mifflin tile")
         .include_regions = vec!["MX".to_owned()];

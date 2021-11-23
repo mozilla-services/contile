@@ -12,7 +12,7 @@ use url::Url;
 
 use super::{
     tiles::{AdmTile, Tile},
-    AdmAdvertiserFilterSettings, DEFAULT,
+    AdmAdvertiserFilterSettings, AdmSettings, DEFAULT,
 };
 use crate::{
     adm::settings::PathMatching,
@@ -48,12 +48,14 @@ pub struct AdmFilter {
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
     /// Ignored (not included but also not reported to Sentry) Advertiser names
     pub ignore_list: HashSet<String>,
-    /// All countries set for inclusion in at least one of the
+    /// All countries set for inclusion in at least one of the advertiser regions
     /// [crate::adm::AdmAdvertiserFilterSettings]
     pub all_include_regions: HashSet<String>,
     /// Temporary list of advertisers with legacy images built into firefox
     /// for pre 91 tile support.
     pub legacy_list: HashSet<String>,
+    pub source: String,
+    pub last_updated: Option<std::time::SystemTime>,
 }
 
 /// Parse &str into a `Url`
@@ -105,6 +107,87 @@ impl AdmFilter {
         let mut merged_tags = error.tags.clone();
         merged_tags.extend(tags.clone());
         l_sentry::report(&merged_tags, sentry::event_from_error(error));
+    }
+
+    pub async fn requires_update(&self) -> HandlerResult<bool> {
+        // don't update non-bucket versions (for now)
+        if !self.source.starts_with("gs://") {
+            return Ok(false);
+        }
+        let bucket: url::Url = match self.source.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(HandlerError::internal(&format!(
+                    "Invalid bucket url: {:?} {:?}",
+                    self.source, e
+                )))
+            }
+        };
+        let host = match bucket.host() {
+            Some(v) => v,
+            None => {
+                return Err(HandlerError::internal(&format!(
+                    "Missing bucket Host {:?}",
+                    self.source
+                )))
+            }
+        }
+        .to_string();
+
+        let obj: cloud_storage::Object = cloud_storage::Object::read(&host, bucket.path())
+            .await
+            .map_err(|e| {
+                HandlerError::internal(&format!("Could not read bucket {:?}, {:?}", self.source, e))
+            })?;
+        if let Some(updated) = self.last_updated {
+            // if the bucket is older than when we last checked, do nothing.
+            return Ok(chrono::DateTime::<chrono::Utc>::from_utc(
+                chrono::NaiveDateTime::from_timestamp(
+                    updated
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+                        .as_secs() as i64,
+                    0,
+                ),
+                chrono::Utc,
+            ) <= obj.updated);
+        };
+        Ok(true)
+    }
+
+    /// Try to update the ADM filter data
+    pub async fn update(&mut self) -> HandlerResult<()> {
+        let bucket: url::Url = match self.source.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(HandlerError::internal(&format!(
+                    "Invalid bucket url: {:?} {:?}",
+                    self.source, e
+                )))
+            }
+        };
+        let adm_settings = AdmSettings::from_settings_bucket(&bucket)
+            .await
+            .map_err(|e| {
+                HandlerError::internal(&format!(
+                    "Invalid bucket data in {:?}: {:?}",
+                    self.source, e
+                ))
+            })?;
+        for (adv, setting) in adm_settings.advertisers {
+            trace!("Processing records for {:?}", &adv);
+            // DEFAULT included but sans special processing -- close enough
+            for country in &setting.include_regions {
+                if !self.all_include_regions.contains(country) {
+                    self.all_include_regions.insert(country.clone());
+                }
+            }
+            // map the settings to the URL we're going to be checking
+            self.filter_set.insert(adv.to_lowercase(), setting);
+        }
+        self.last_updated = Some(std::time::SystemTime::now());
+
+        Ok(())
     }
 
     /// Check the advertiser URL
