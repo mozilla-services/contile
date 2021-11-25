@@ -58,4 +58,4 @@ thiserror = "1.0"
 # pinning to 0.2.4 due to dependencies (actix, etc.)
 tokio = { version = "0.2.4", features = ["macros", "sync"] }
 url = "2"
-woothee = "0.11"
+woothee = "0.13"

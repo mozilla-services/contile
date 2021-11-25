@@ -7,4 +7,5 @@ ignore = [
     # time 0.1.43 still in use by chrono
     "RUSTSEC-2020-0071", # Time 0.14.3 - Potential segfault in time crate.
     "RUSTSEC-2020-0159", # Chrono 0.4.19 - Potential segfault in `localtime_r` invokations.
+    "RUSTSEC-2021-0124", # Bound by tokio restrictions
 ]
