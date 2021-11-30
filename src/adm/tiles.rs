@@ -210,6 +210,13 @@ pub async fn get_tiles(
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
+    // update the filters if needed.
+    if state.filter.requires_update().await? {
+        dbg!("Need to update filter...");
+        // TODO: modifying filter, requires state to be mutable, which it's not. Add Mutex wrapper?
+        // state.filter.update().await?;
+    }
+
     let filtered: Vec<Tile> = response
         .tiles
         .into_iter()

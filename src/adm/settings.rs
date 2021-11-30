@@ -184,7 +184,7 @@ pub struct AdmSettings {
 impl Default for AdmSettings {
     fn default() -> Self {
         Self {
-            updated: std::time::SystemTime::now().into(),
+            updated: std::time::SystemTime::UNIX_EPOCH.into(),
             bucket: None,
             advertisers: HashMap::new(),
         }
@@ -205,6 +205,15 @@ impl TryFrom<String> for AdmSettings {
     type Error = ConfigError;
 
     fn try_from(settings_str: String) -> Result<Self, Self::Error> {
+        // don't try to serialize bucket values quite yet.
+        if settings_str.starts_with("gs://") {
+            return Ok(
+                Self{
+                    bucket: Some(settings_str.parse::<url::Url>().map_err(|err| ConfigError::Message(format!("Invalid bucket url: {:?} {:?}", settings_str, err)))?),
+                    ..Default::default()
+                }
+            )
+        }
         let adm_settings: HashMap<String, AdmAdvertiserFilterSettings> =
             serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
         for (adv, filter_setting) in &adm_settings {
@@ -239,7 +248,7 @@ impl TryFrom<String> for AdmSettings {
 
 impl AdmSettings {
     /// Try to fetch the ADM settings from a Google Storage bucket url.
-    fn from_settings_bucket(settings_bucket: &url::Url) -> Result<AdmSettings, ConfigError> {
+    pub async fn from_settings_bucket(settings_bucket: &url::Url) -> Result<AdmSettings, ConfigError> {
         let settings_str = settings_bucket.as_str();
         if settings_bucket.scheme() != "gs" {
             return Err(ConfigError::Message(format!(
@@ -258,7 +267,7 @@ impl AdmSettings {
         }
         .to_string();
         let path = settings_bucket.path();
-        let contents = cloud_storage::Object::download_sync(&bucket_name, path)
+        let contents = cloud_storage::Object::download(&bucket_name, path).await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
         let mut reply =
             AdmSettings::try_from(String::from_utf8(contents).map_err(|e| {
@@ -268,25 +277,6 @@ impl AdmSettings {
         Ok(reply)
     }
 
-    #[allow(dead_code)] // temp allow until I can put this into a thread loop. Maybe for AdmFilter w/ loop for app state settings?
-    pub fn check_bucket(self) -> Result<Self, ConfigError> {
-        // check the bucket to see if the meta date is more recent than our last update
-        if let Some(bucket_url) = &self.bucket {
-            let host = bucket_url
-                .host()
-                .unwrap_or_else(||{ panic!("Invalid bucket URL {:?}", bucket_url)})
-                .to_string();
-            let obj: cloud_storage::Object =
-                cloud_storage::Object::read_sync(&host, bucket_url.path())
-                    .map_err(|e| ConfigError::Message(format!("Could not read bucket {:?}", e)))?;
-            if !self.advertisers.is_empty() && obj.updated <= self.updated {
-                // there's been no update, so don't bother reading data.
-                return Ok(self);
-            }
-            return Self::from_settings_bucket(bucket_url);
-        }
-        Ok(self)
-    }
 }
 
 /// Attempt to read the AdmSettings as either a path to a JSON file, or as a JSON string.
@@ -339,12 +329,6 @@ impl TryFrom<&mut Settings> for AdmSettings {
                 })?;
             }
         }
-        // Check if the settings are coming from a bucket.
-        if settings_str.starts_with("gs://") {
-            let settings_bucket = Url::parse(&settings_str)
-                .map_err(|e| ConfigError::Message(format!("Invalid bucket URL: {:?}", e)))?;
-            return AdmSettings::from_settings_bucket(&settings_bucket);
-        }
         AdmSettings::try_from(settings_str)
     }
 }
@@ -388,6 +372,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .unwrap_or_else(|| "[]".to_owned())
             .to_lowercase();
         let mut all_include_regions = HashSet::new();
+        let source = settings.adm_settings.clone();
         for (adv, setting) in AdmSettings::try_from(settings)
             .map_err(|e| HandlerError::internal(&e.to_string()))?
             .advertisers
@@ -411,6 +396,12 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             ignore_list,
             all_include_regions,
             legacy_list,
+            last_updated: match &source.starts_with("gs://") {
+                true => Some(std::time::SystemTime::now()),
+                false => None
+            },
+            source,
+
         })
     }
 }
