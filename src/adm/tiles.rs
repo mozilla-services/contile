@@ -170,6 +170,7 @@ pub async fn get_tiles(
             .into_string()
             .unwrap_or_else(|_| "Unknown".to_owned()),
     );
+    tags.add_extra("adm_url", adm_url);
 
     info!("adm::get_tiles GET {}", adm_url);
     metrics.incr("tiles.adm.request");

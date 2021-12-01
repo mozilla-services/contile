@@ -69,14 +69,6 @@ pub async fn get_tiles(
         return Ok(response);
     }
 
-    let mut tags = Tags::default();
-    {
-        tags.add_extra("country", &location.country());
-        tags.add_extra("region", &location.region());
-        // Add/modify the existing request tags.
-        // tags.clone().commit(&mut request.extensions_mut());
-    }
-
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
         region_code: if location.region() != "" {
@@ -89,6 +81,13 @@ pub async fn get_tiles(
         os_family: device_info.os_family,
         legacy_only: device_info.legacy_only(),
     };
+
+    let mut tags = Tags::default();
+    {
+        tags.add_extra("audience_key", &format!("{:#?}", audience_key));
+        // Add/modify the existing request tags.
+        // tags.clone().commit(&mut request.extensions_mut());
+    }
 
     let mut expired = false;
     if !settings.test_mode {
