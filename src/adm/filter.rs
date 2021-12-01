@@ -10,7 +10,10 @@ use actix_web_location::Location;
 use lazy_static::lazy_static;
 use url::Url;
 
-use super::{AdmAdvertiserFilterSettings, AdmSettings, DEFAULT, tiles::{AdmTile, Tile}};
+use super::{
+    tiles::{AdmTile, Tile},
+    AdmAdvertiserFilterSettings, AdmSettings, DEFAULT,
+};
 use crate::{
     adm::settings::PathMatching,
     error::{HandlerError, HandlerErrorKind, HandlerResult},
@@ -93,38 +96,69 @@ impl AdmFilter {
     pub async fn requires_update(&self) -> HandlerResult<bool> {
         // don't update non-bucket versions (for now)
         if !self.source.starts_with("gs://") {
-            return Ok(false)
+            return Ok(false);
         }
-        let bucket: url::Url = match self.source.parse(){
+        let bucket: url::Url = match self.source.parse() {
             Ok(v) => v,
-            Err(e) => return Err(HandlerError::internal(&format!("Invalid bucket url: {:?} {:?}", self.source, e)))
+            Err(e) => {
+                return Err(HandlerError::internal(&format!(
+                    "Invalid bucket url: {:?} {:?}",
+                    self.source, e
+                )))
+            }
         };
         let host = match bucket.host() {
             Some(v) => v,
-            None => return Err(HandlerError::internal(&format!("Missing bucket Host {:?}", self.source)))
-        }.to_string();
+            None => {
+                return Err(HandlerError::internal(&format!(
+                    "Missing bucket Host {:?}",
+                    self.source
+                )))
+            }
+        }
+        .to_string();
 
-        let obj: cloud_storage::Object = cloud_storage::Object::read(&host, bucket.path()).await.map_err(|e|
-            HandlerError::internal(&format!("Could not read bucket {:?}, {:?}", self.source, e))
-        )?;
+        let obj: cloud_storage::Object = cloud_storage::Object::read(&host, bucket.path())
+            .await
+            .map_err(|e| {
+                HandlerError::internal(&format!("Could not read bucket {:?}, {:?}", self.source, e))
+            })?;
         if let Some(updated) = self.last_updated {
             // if the bucket is older than when we last checked, do nothing.
-            return Ok(chrono::DateTime::<chrono::Utc>::from_utc(chrono::NaiveDateTime::from_timestamp(updated.duration_since(std::time::UNIX_EPOCH).unwrap_or(std::time::Duration::from_secs(0)).as_secs() as i64,0), chrono::Utc) <= obj.updated );
+            return Ok(chrono::DateTime::<chrono::Utc>::from_utc(
+                chrono::NaiveDateTime::from_timestamp(
+                    updated
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
+                        .as_secs() as i64,
+                    0,
+                ),
+                chrono::Utc,
+            ) <= obj.updated);
         };
         Ok(true)
     }
 
     /// Try to update the ADM filter data
     pub async fn update(&mut self) -> HandlerResult<()> {
-
-        let bucket: url::Url = match self.source.parse(){
+        let bucket: url::Url = match self.source.parse() {
             Ok(v) => v,
-            Err(e) => return Err(HandlerError::internal(&format!("Invalid bucket url: {:?} {:?}", self.source, e)))
+            Err(e) => {
+                return Err(HandlerError::internal(&format!(
+                    "Invalid bucket url: {:?} {:?}",
+                    self.source, e
+                )))
+            }
         };
-        let adm_settings = AdmSettings::from_settings_bucket(&bucket).await.map_err(|e| HandlerError::internal(&format!("Invalid bucket data in {:?}: {:?}", self.source, e)))?;
-        for (adv, setting) in adm_settings
-            .advertisers
-        {
+        let adm_settings = AdmSettings::from_settings_bucket(&bucket)
+            .await
+            .map_err(|e| {
+                HandlerError::internal(&format!(
+                    "Invalid bucket data in {:?}: {:?}",
+                    self.source, e
+                ))
+            })?;
+        for (adv, setting) in adm_settings.advertisers {
             trace!("Processing records for {:?}", &adv);
             // DEFAULT included but sans special processing -- close enough
             for country in &setting.include_regions {
@@ -137,7 +171,7 @@ impl AdmFilter {
         }
         self.last_updated = Some(std::time::SystemTime::now());
 
-        return Ok(())
+        Ok(())
     }
 
     /// Check the advertiser URL

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::sync::RwLock;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -61,7 +62,7 @@ macro_rules! init_app {
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 settings: $settings.clone(),
-                filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
+                filter: RwLock::new(HandlerResult::<AdmFilter>::from(&mut $settings).unwrap()),
                 img_store: None,
                 excluded_dmas,
             };

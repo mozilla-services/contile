@@ -211,19 +211,24 @@ pub async fn get_tiles(
     }
 
     // update the filters if needed.
-    if state.filter.requires_update().await? {
+    if state.filter.read().unwrap().requires_update().await? {
         dbg!("Need to update filter...");
         // TODO: modifying filter, requires state to be mutable, which it's not. Add Mutex wrapper?
-        // state.filter.update().await?;
+        let mut mfilter = state.filter.write().unwrap();
+        (*mfilter).update().await?;
     }
 
     let filtered: Vec<Tile> = response
         .tiles
         .into_iter()
         .filter_map(|tile| {
-            state
-                .filter
-                .filter_and_process(tile, location, &device_info, tags, metrics)
+            state.filter.read().unwrap().filter_and_process(
+                tile,
+                location,
+                &device_info,
+                tags,
+                metrics,
+            )
         })
         .take(settings.adm_max_tiles as usize)
         .collect();

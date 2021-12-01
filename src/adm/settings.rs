@@ -9,7 +9,6 @@ use std::{
 
 use config::ConfigError;
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
-use url::Url;
 
 use super::AdmFilter;
 use crate::{
@@ -207,12 +206,15 @@ impl TryFrom<String> for AdmSettings {
     fn try_from(settings_str: String) -> Result<Self, Self::Error> {
         // don't try to serialize bucket values quite yet.
         if settings_str.starts_with("gs://") {
-            return Ok(
-                Self{
-                    bucket: Some(settings_str.parse::<url::Url>().map_err(|err| ConfigError::Message(format!("Invalid bucket url: {:?} {:?}", settings_str, err)))?),
-                    ..Default::default()
-                }
-            )
+            return Ok(Self {
+                bucket: Some(settings_str.parse::<url::Url>().map_err(|err| {
+                    ConfigError::Message(format!(
+                        "Invalid bucket url: {:?} {:?}",
+                        settings_str, err
+                    ))
+                })?),
+                ..Default::default()
+            });
         }
         let adm_settings: HashMap<String, AdmAdvertiserFilterSettings> =
             serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
@@ -248,7 +250,9 @@ impl TryFrom<String> for AdmSettings {
 
 impl AdmSettings {
     /// Try to fetch the ADM settings from a Google Storage bucket url.
-    pub async fn from_settings_bucket(settings_bucket: &url::Url) -> Result<AdmSettings, ConfigError> {
+    pub async fn from_settings_bucket(
+        settings_bucket: &url::Url,
+    ) -> Result<AdmSettings, ConfigError> {
         let settings_str = settings_bucket.as_str();
         if settings_bucket.scheme() != "gs" {
             return Err(ConfigError::Message(format!(
@@ -267,7 +271,8 @@ impl AdmSettings {
         }
         .to_string();
         let path = settings_bucket.path();
-        let contents = cloud_storage::Object::download(&bucket_name, path).await
+        let contents = cloud_storage::Object::download(&bucket_name, path)
+            .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
         let mut reply =
             AdmSettings::try_from(String::from_utf8(contents).map_err(|e| {
@@ -276,7 +281,6 @@ impl AdmSettings {
         reply.bucket = Some(settings_bucket.clone());
         Ok(reply)
     }
-
 }
 
 /// Attempt to read the AdmSettings as either a path to a JSON file, or as a JSON string.
@@ -398,10 +402,9 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             legacy_list,
             last_updated: match &source.starts_with("gs://") {
                 true => Some(std::time::SystemTime::now()),
-                false => None
+                false => None,
             },
             source,
-
         })
     }
 }
