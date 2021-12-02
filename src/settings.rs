@@ -163,7 +163,7 @@ impl Settings {
         self.fallback_country = self.fallback_country.to_uppercase();
 
         // preflight check the storage
-        StorageSettings::from(&*self);
+        let _ = StorageSettings::from(&*self);
         AdmSettings::try_from(&mut *self)?;
         Ok(())
     }

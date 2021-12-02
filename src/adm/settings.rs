@@ -173,21 +173,10 @@ where
     seq.end()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct AdmSettings {
-    updated: chrono::DateTime<chrono::Utc>,
     bucket: Option<url::Url>,
     pub advertisers: HashMap<String, AdmAdvertiserFilterSettings>,
-}
-
-impl Default for AdmSettings {
-    fn default() -> Self {
-        Self {
-            updated: std::time::SystemTime::UNIX_EPOCH.into(),
-            bucket: None,
-            advertisers: HashMap::new(),
-        }
-    }
 }
 
 impl Serialize for AdmSettings {
