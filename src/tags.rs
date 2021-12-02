@@ -76,7 +76,7 @@ pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str) {
 ///
 /// Not all tags are distributed out. `tags` are searchable and may cause cardinality issues.
 /// `extra` are not searchable, but may not be sent to [crate::metrics::Metrics].
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Tags {
     // All tags (both metric and sentry)
     pub tags: HashMap<String, String>,
@@ -84,16 +84,6 @@ pub struct Tags {
     pub extra: HashMap<String, String>,
     // metric only supplemental tags.
     pub metric: HashMap<String, String>,
-}
-
-impl Default for Tags {
-    fn default() -> Tags {
-        Tags {
-            tags: HashMap::new(),
-            extra: HashMap::new(),
-            metric: HashMap::new(),
-        }
-    }
 }
 
 impl Serialize for Tags {
