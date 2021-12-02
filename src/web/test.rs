@@ -156,7 +156,7 @@ pub fn adm_settings() -> AdmSettings {
             "include_regions": []
         }
     });
-    AdmSettings::try_from(adm_settings.as_str().unwrap().to_owned()).unwrap()
+    AdmSettings::try_from(adm_settings.to_string()).unwrap()
 }
 
 /// Basic integration test
