@@ -4,7 +4,7 @@
 #
 #    pip-compile dev-requirements.in
 #
-black==21.11b1
+black==21.12b0
     # via -r dev-requirements.in
 click==8.0.1
     # via black
@@ -28,8 +28,6 @@ pycodestyle==2.8.0
     # via flake8
 pyflakes==2.4.0
     # via flake8
-regex==2021.4.4
-    # via black
 toml==0.10.2
     # via
     #   -c requirements.txt
