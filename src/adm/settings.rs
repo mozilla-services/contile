@@ -354,6 +354,7 @@ impl TryFrom<&mut Settings> for AdmSettings {
 impl From<&mut Settings> for HandlerResult<AdmFilter> {
     fn from(settings: &mut Settings) -> Self {
         let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
+        let refresh_rate = settings.adm_refresh_rate_secs;
         let ignore_list = settings
             .adm_ignore_advertisers
             .clone()
@@ -394,6 +395,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
                 false => None,
             },
             source,
+            refresh_rate: std::time::Duration::from_secs(refresh_rate),
         })
     }
 }

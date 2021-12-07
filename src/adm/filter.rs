@@ -56,6 +56,7 @@ pub struct AdmFilter {
     pub legacy_list: HashSet<String>,
     pub source: String,
     pub last_updated: Option<std::time::SystemTime>,
+    pub refresh_rate: std::time::Duration,
 }
 
 /// Parse &str into a `Url`
@@ -100,6 +101,11 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
 
 /// Filter a given tile data set provided by ADM and validate the various elements
 impl AdmFilter {
+    /// convenience function to determine if settings are cloud ready.
+    pub fn is_cloud(&self) -> bool {
+        self.source.starts_with("gs://")
+    }
+
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
         // trace!(&error, &tags);
@@ -109,9 +115,10 @@ impl AdmFilter {
         l_sentry::report(&merged_tags, sentry::event_from_error(error));
     }
 
+    /// check to see if the bucket has been modified since the last time we updated.
     pub async fn requires_update(&self) -> HandlerResult<bool> {
         // don't update non-bucket versions (for now)
-        if !self.source.starts_with("gs://") {
+        if !self.is_cloud() {
             return Ok(false);
         }
         let bucket: url::Url = match self.source.parse() {
@@ -155,7 +162,7 @@ impl AdmFilter {
         Ok(true)
     }
 
-    /// Try to update the ADM filter data
+    /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self) -> HandlerResult<()> {
         let bucket: url::Url = match self.source.parse() {
             Ok(v) => v,
@@ -188,6 +195,22 @@ impl AdmFilter {
         self.last_updated = Some(std::time::SystemTime::now());
 
         Ok(())
+    }
+
+    // background settings updater.
+    pub async fn spawn_updater(&self) {
+        if !self.is_cloud() {
+            return;
+        }
+        let mut s = self.clone();
+        actix_rt::spawn(async move {
+            loop {
+                if s.requires_update().await.expect("Failed to detect update") {
+                    s.update().await.expect("Failed to update");
+                    actix_rt::time::delay_for(s.refresh_rate).await;
+                }
+            }
+        });
     }
 
     /// Check the advertiser URL

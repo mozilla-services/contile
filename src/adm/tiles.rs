@@ -212,13 +212,10 @@ pub async fn get_tiles(
     }
 
     // update the filters if needed.
-    if state.filter.read().unwrap().requires_update().await? {
-        dbg!("Need to update filter...");
-        // TODO: modifying filter, requires state to be mutable, which it's not. Add Mutex wrapper?
+    if settings.adm_live_update && state.filter.read().unwrap().requires_update().await? {
         let mut mfilter = state.filter.write().unwrap();
         (*mfilter).update().await?;
     }
-
     let filtered: Vec<Tile> = response
         .tiles
         .into_iter()
