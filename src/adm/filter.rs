@@ -55,7 +55,8 @@ pub struct AdmFilter {
     /// for pre 91 tile support.
     pub legacy_list: HashSet<String>,
     pub source: String,
-    pub last_updated: Option<std::time::SystemTime>,
+    pub source_url: Option<url::Url>,
+    pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: std::time::Duration,
 }
 
@@ -103,7 +104,10 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
 impl AdmFilter {
     /// convenience function to determine if settings are cloud ready.
     pub fn is_cloud(&self) -> bool {
-        self.source.starts_with("gs://")
+        if let Some(source) = &self.source_url {
+            return source.scheme() == "gs";
+        }
+        false
     }
 
     /// Report the error directly to sentry
@@ -121,79 +125,59 @@ impl AdmFilter {
         if !self.is_cloud() {
             return Ok(false);
         }
-        let bucket: url::Url = match self.source.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(HandlerError::internal(&format!(
-                    "Invalid bucket url: {:?} {:?}",
-                    self.source, e
-                )))
+        if let Some(bucket) = &self.source_url {
+            let host = match bucket.host() {
+                Some(v) => v,
+                None => {
+                    return Err(HandlerError::internal(&format!(
+                        "Missing bucket Host {:?}",
+                        self.source
+                    )))
+                }
             }
-        };
-        let host = match bucket.host() {
-            Some(v) => v,
-            None => {
-                return Err(HandlerError::internal(&format!(
-                    "Missing bucket Host {:?}",
-                    self.source
-                )))
-            }
-        }
-        .to_string();
+            .to_string();
 
-        let obj: cloud_storage::Object = cloud_storage::Object::read(&host, bucket.path())
-            .await
-            .map_err(|e| {
-                HandlerError::internal(&format!("Could not read bucket {:?}, {:?}", self.source, e))
-            })?;
-        if let Some(updated) = self.last_updated {
-            // if the bucket is older than when we last checked, do nothing.
-            return Ok(chrono::DateTime::<chrono::Utc>::from_utc(
-                chrono::NaiveDateTime::from_timestamp(
-                    updated
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_else(|_| std::time::Duration::from_secs(0))
-                        .as_secs() as i64,
-                    0,
-                ),
-                chrono::Utc,
-            ) <= obj.updated);
-        };
-        Ok(true)
+            let obj: cloud_storage::Object = cloud_storage::Object::read(&host, bucket.path())
+                .await
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Could not read bucket {:?}, {:?}",
+                        self.source, e
+                    ))
+                })?;
+            if let Some(updated) = self.last_updated {
+                // if the bucket is older than when we last checked, do nothing.
+                return Ok(updated <= obj.updated);
+            };
+            return Ok(true);
+        }
+        Ok(false)
     }
 
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self) -> HandlerResult<()> {
-        let bucket: url::Url = match self.source.parse() {
-            Ok(v) => v,
-            Err(e) => {
-                return Err(HandlerError::internal(&format!(
-                    "Invalid bucket url: {:?} {:?}",
-                    self.source, e
-                )))
-            }
-        };
-        let adm_settings = AdmSettings::from_settings_bucket(&bucket)
-            .await
-            .map_err(|e| {
-                HandlerError::internal(&format!(
-                    "Invalid bucket data in {:?}: {:?}",
-                    self.source, e
-                ))
-            })?;
-        for (adv, setting) in adm_settings.advertisers {
-            trace!("Processing records for {:?}", &adv);
-            // DEFAULT included but sans special processing -- close enough
-            for country in &setting.include_regions {
-                if !self.all_include_regions.contains(country) {
-                    self.all_include_regions.insert(country.clone());
+        if let Some(bucket) = &self.source_url {
+            let adm_settings = AdmSettings::from_settings_bucket(bucket)
+                .await
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Invalid bucket data in {:?}: {:?}",
+                        self.source, e
+                    ))
+                })?;
+            for (adv, setting) in adm_settings.advertisers {
+                trace!("Processing records for {:?}", &adv);
+                // DEFAULT included but sans special processing -- close enough
+                for country in &setting.include_regions {
+                    if !self.all_include_regions.contains(country) {
+                        self.all_include_regions.insert(country.clone());
+                    }
                 }
+                // map the settings to the URL we're going to be checking
+                self.filter_set.insert(adv.to_lowercase(), setting);
             }
-            // map the settings to the URL we're going to be checking
-            self.filter_set.insert(adv.to_lowercase(), setting);
+            self.last_updated = Some(chrono::Utc::now());
         }
-        self.last_updated = Some(std::time::SystemTime::now());
-
         Ok(())
     }
 

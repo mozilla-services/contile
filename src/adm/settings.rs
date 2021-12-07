@@ -367,6 +367,16 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .to_lowercase();
         let mut all_include_regions = HashSet::new();
         let source = settings.adm_settings.clone();
+        let source_url = match source.parse::<url::Url>() {
+            Ok(v) => Some(v),
+            Err(e) => {
+                warn!(
+                    "Source may be path or unparsable URL: {:?} {:?}",
+                    &source, e
+                );
+                None
+            }
+        };
         for (adv, setting) in AdmSettings::try_from(settings)
             .map_err(|e| HandlerError::internal(&e.to_string()))?
             .advertisers
@@ -391,10 +401,11 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             all_include_regions,
             legacy_list,
             last_updated: match &source.starts_with("gs://") {
-                true => Some(std::time::SystemTime::now()),
+                true => Some(chrono::Utc::now()),
                 false => None,
             },
             source,
+            source_url,
             refresh_rate: std::time::Duration::from_secs(refresh_rate),
         })
     }
