@@ -63,6 +63,7 @@ macro_rules! init_app {
                 filter: HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
                 img_store: None,
                 excluded_dmas,
+                start_up: std::time::Instant::now(),
             };
             let location_config = location_config_from_settings(&$settings, &metrics);
 

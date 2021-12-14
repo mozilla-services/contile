@@ -1,5 +1,5 @@
 //! Main application server
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -40,6 +40,7 @@ pub struct ServerState {
     pub filter: AdmFilter,
     pub img_store: Option<StoreImage>,
     pub excluded_dmas: Option<Vec<u16>>,
+    pub start_up: Instant,
 }
 
 impl std::fmt::Debug for ServerState {
@@ -110,6 +111,7 @@ impl Server {
             filter,
             img_store,
             excluded_dmas,
+            start_up: Instant::now(),
         };
         let location_config = location_config_from_settings(&settings, &metrics);
 

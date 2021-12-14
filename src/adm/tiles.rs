@@ -1,4 +1,10 @@
-use std::{fmt::Debug, fs::File, io::BufReader, path::Path, time::Duration};
+use std::{
+    fmt::Debug,
+    fs::File,
+    io::BufReader,
+    path::Path,
+    time::{Duration, Instant},
+};
 
 use actix_http::http::header::{HeaderMap, HeaderValue};
 use actix_web_location::Location;
@@ -193,8 +199,24 @@ pub async fn get_tiles(
             .send()
             .await
             .map_err(|e| {
+                // If we're just starting up, we're probably swamping the partner servers as
+                // we fill the queue. Instead of returning a normal 500 error, let's
+                // return something softer to keep our SRE's blood pressure lower.
+                //
+                // We still want to track this as a server error later.
+                //
+                // TODO: Remove this after the shared cache is implemented.
+                let mut err: HandlerError = if e.is_timeout()
+                    && Instant::now()
+                        .checked_duration_since(state.start_up)
+                        .unwrap_or_else(|| Duration::from_secs(0))
+                        <= Duration::from_secs(state.settings.adm_timeout)
+                {
+                    HandlerErrorKind::AdmLoadError().into()
+                } else {
+                    HandlerErrorKind::AdmServerError().into()
+                };
                 // ADM servers are down, or improperly configured
-                let mut err: HandlerError = HandlerErrorKind::AdmServerError().into();
                 err.tags.add_extra("error", &e.to_string());
                 err
             })?
