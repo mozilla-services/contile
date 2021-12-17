@@ -67,7 +67,7 @@ def setup_server(module=None, test_mode="TestFakeResponse"):
         print("using existing server...")
         return
     # Always set test mode
-    os.environ.setdefault("CONTILE_TEST_MODE", test_mode)
+    os.environ["CONTILE_TEST_MODE"] = test_mode
     os.environ.setdefault("RUST_LOG", "trace")
     os.environ.setdefault(
         "CONTILE_ADM_SETTINGS", "{}/adm_settings_test.json".format(ROOT_DIR)
@@ -77,7 +77,8 @@ def setup_server(module=None, test_mode="TestFakeResponse"):
     )
 
     cmd = [get_rust_binary_path("contile")]
-    print("Starting server: {cmd}".format(cmd=cmd))
+    print("Starting server: {cmd} in mode {mode}".format(
+        cmd=cmd, mode=os.environ.get("CONTILE_TEST_MODE")))
     SERVER = subprocess.Popen(
         cmd,
         shell=True,
@@ -96,9 +97,10 @@ def setup_server(module=None, test_mode="TestFakeResponse"):
             capture_output_to_queue(SERVER.stderr),
         ]
     )
+    return SERVER
 
 
-def kill_process(process):
+def kill_process(process=SERVER):
     if process:
         proc = psutil.Process(pid=process.pid)
         child_proc = proc.children(recursive=True)
@@ -112,21 +114,23 @@ def settings():
     return get_settings()
 
 
-def default_headers(test: str = "default"):
-    return {
+def default_headers(test="default", fx_version="94"):
+    headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) "
-            "Gecko/20100101 Firefox/90.0"
-        ),
-        "X-Client-Geo-Location": "US,AK",
-        "Remote-Addr": "44.236.48.31",
-        "Fake-Response": test,
+            "Gecko/20100101 Firefox/{fx_version}.0"
+        ).format(fx_version=fx_version),
+        "X-Client-Geo-Location": "US,WA",
+        "Remote-Addr": "44.236.48.31"
     }
+    if test:
+        headers["Fake-Response"] = test
+    return headers
 
 
-def setup_module(test_mode="TestFakeResponse"):
+def setup_module(module=None, test_mode="TestFakeResponse"):
     settings = get_settings()
-    setup_server(test_mode)
+    srv = setup_server(test_mode=test_mode)
     try_count = 0
     while True:
         try:
@@ -144,7 +148,7 @@ def setup_module(test_mode="TestFakeResponse"):
             print("Could not start server")
             exit(-1)
         time.sleep(1)
-    return
+    return srv
 
 
 def teardown_module():
@@ -154,6 +158,9 @@ def teardown_module():
 
 class TestAdm:
     def test_success(self, settings):
+        if settings.get("noserver"):
+            pytest.skip()
+            return
         url = "{root}/v1/tiles".format(root=settings.get("test_url"))
         resp = requests.get(url, headers=default_headers())
         assert resp.status_code == 200, "Failed to return"
@@ -194,13 +201,11 @@ class TestAdm:
         names = map(lambda tile: tile.get("name").lower(), tiles)
         assert list(names) == ["acme", "dunder mifflin"]
 
-    def test_timeout(self, settings):
-        if settings.get("noserver"):
-            pytest.skip()
-            return
+    def test_aatimeout(self, settings):
         # restart the test server with a timeout response
-        teardown_module()
+        global SERVER
+        kill_process(SERVER)
         setup_module(test_mode="TestTimeout")
         url = "{root}/v1/tiles".format(root=settings.get("test_url"))
-        resp = requests.get(url, headers=default_headers())
+        resp = requests.get(url, headers=default_headers(test=""))
         assert resp.status_code == 204

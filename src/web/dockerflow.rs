@@ -50,12 +50,18 @@ fn version() -> HttpResponse {
 }
 
 /// Returns a status message indicating the current state of the server
-fn heartbeat() -> HttpResponse {
+fn heartbeat(state: web::Data<ServerState>) -> HttpResponse {
     let mut checklist = HashMap::new();
     checklist.insert(
         "version".to_owned(),
         Value::String(env!("CARGO_PKG_VERSION").to_owned()),
     );
+    if state.settings.test_mode != crate::settings::TestModes::NoTest {
+        checklist.insert(
+            "test_mode".to_owned(),
+            Value::String(state.settings.test_mode.to_string()),
+        );
+    }
     HttpResponse::Ok().json(checklist)
 }
 

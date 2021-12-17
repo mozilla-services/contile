@@ -1,11 +1,31 @@
 {"DEFAULT": {
     "advertiser_urls": [{ "host": "example.com" }],
     "impression_hosts": ["example.net"],
-    "click_hosts":["example.com"]
+    "click_hosts":["example.com"],
+    "include_regions": [
+        "US",
+        "GB",
+        "IT",
+        "AU",
+        "CA",
+        "DE",
+        "FR",
+        "ES",
+        "IN",
+        "MX",
+        "CN"
+    ]
 },
 "Acme": {
     "advertiser_urls": [
-        { "host": "www.acme.biz" },
+        { "host": "www.acme.biz",
+            "paths": [
+                {
+                    "value": "/",
+                    "matching": "exact"
+                }
+            ]
+        },
         { "host": "acme.biz" }
     ],
     "position": 0

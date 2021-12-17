@@ -193,7 +193,8 @@ pub async fn get_tiles(
             AdmTileResponse::fake_response(&state.settings, test_response)?
         }
         crate::settings::TestModes::TestTimeout => {
-            return Err(HandlerErrorKind::AdmLoadError().into())
+            trace!("### Timeout!");
+            return Err(HandlerErrorKind::AdmLoadError().into());
         }
         _ => {
             state
