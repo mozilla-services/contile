@@ -98,7 +98,7 @@ impl HandlerErrorKind {
         match self {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
             HandlerErrorKind::AdmServerError() => StatusCode::SERVICE_UNAVAILABLE,
-            HandlerErrorKind::AdmLoadError() => StatusCode::PARTIAL_CONTENT,
+            HandlerErrorKind::AdmLoadError() => StatusCode::NO_CONTENT,
             HandlerErrorKind::BadAdmResponse(_)
             | HandlerErrorKind::InvalidHost(_, _)
             | HandlerErrorKind::UnexpectedHost(_, _)

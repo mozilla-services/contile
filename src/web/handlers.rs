@@ -88,7 +88,7 @@ pub async fn get_tiles(
     }
 
     let mut expired = false;
-    if !settings.test_mode {
+    if settings.test_mode != crate::settings::TestModes::TestFakeResponse {
         // First make a cheap read from the cache
         if let Some(tiles_state) = state.tiles_cache.get(&audience_key) {
             match &*tiles_state {
@@ -149,7 +149,7 @@ pub async fn get_tiles(
         &mut tags,
         &metrics,
         // be aggressive about not passing headers unless we absolutely need to
-        if settings.test_mode {
+        if settings.test_mode != crate::settings::TestModes::NoTest {
             Some(request.head().headers())
         } else {
             None

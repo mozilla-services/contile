@@ -60,14 +60,14 @@ def capture_output_to_queue(output_stream):
     return log_queue
 
 
-def setup_server():
+def setup_server(module=None, test_mode="TestFakeResponse"):
     global SERVER
     settings = get_settings()
     if settings.get("noserver"):
         print("using existing server...")
         return
     # Always set test mode
-    os.environ.setdefault("CONTILE_TEST_MODE", "True")
+    os.environ.setdefault("CONTILE_TEST_MODE", test_mode)
     os.environ.setdefault("RUST_LOG", "trace")
     os.environ.setdefault(
         "CONTILE_ADM_SETTINGS", "{}/adm_settings_test.json".format(ROOT_DIR)
@@ -86,6 +86,7 @@ def setup_server():
         stderr=subprocess.PIPE,
         universal_newlines=True,
     )
+    time.sleep(0.5)
     if SERVER.poll():
         print("Could not start server")
         exit(-1)
@@ -123,9 +124,9 @@ def default_headers(test: str = "default"):
     }
 
 
-def setup_module():
+def setup_module(test_mode="TestFakeResponse"):
     settings = get_settings()
-    setup_server()
+    setup_server(test_mode)
     try_count = 0
     while True:
         try:
@@ -192,3 +193,14 @@ class TestAdm:
         assert len(tiles) == 2
         names = map(lambda tile: tile.get("name").lower(), tiles)
         assert list(names) == ["acme", "dunder mifflin"]
+
+    def test_timeout(self, settings):
+        if settings.get("noserver"):
+            pytest.skip()
+            return
+        # restart the test server with a timeout response
+        teardown_module()
+        setup_module(test_mode="TestTimeout")
+        url = "{root}/v1/tiles".format(root=settings.get("test_url"))
+        resp = requests.get(url, headers=default_headers())
+        assert resp.status_code == 204

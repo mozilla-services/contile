@@ -14,6 +14,27 @@ static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum TestModes {
+    TestTimeout,
+    TestFakeResponse,
+    NoTest,
+}
+
+impl std::fmt::Display for TestModes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::TestTimeout => "Test Timeout",
+                Self::TestFakeResponse => "Test Fake Response",
+                Self::NoTest => "No Test",
+            }
+        )
+    }
+}
+
 // TODO: Call this `EnvSettings` that serializes into
 // real `Settings`?
 //
@@ -51,7 +72,7 @@ pub struct Settings {
     /// the Google Cloud Storage
     pub storage: String,
     /// Run in "integration test mode"
-    pub test_mode: bool,
+    pub test_mode: TestModes,
     /// path to the test files
     pub test_file_path: String,
     /// Location test header override
@@ -119,7 +140,7 @@ impl Default for Settings {
             tiles_ttl: 15 * 60,
             maxminddb_loc: None,
             storage: "".to_owned(),
-            test_mode: false,
+            test_mode: TestModes::NoTest,
             test_file_path: "./tools/test/test_data/".to_owned(),
             location_test_header: None,
             fallback_country: "US".to_owned(),
@@ -191,7 +212,7 @@ impl Settings {
         Ok(match s.try_into::<Self>() {
             Ok(mut s) => {
                 trace!("raw Settings: {:?}", &s);
-                if debug || s.test_mode {
+                if debug || s.test_mode != TestModes::NoTest {
                     trace!("!! Running in test mode!");
                     s.adm_endpoint_url = "http://localhost:8675/".to_owned();
                     s.debug = true;
