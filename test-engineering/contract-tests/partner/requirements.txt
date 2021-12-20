@@ -28,13 +28,13 @@ starlette==0.14.2
     # via fastapi
 typing-extensions==3.10.0.0
     # via pydantic
-uvicorn[standard]==0.15.0
+uvicorn[standard]==0.16.0
     # via -r requirements.in
 uvloop==0.15.2
     # via uvicorn
 watchgod==0.7
     # via uvicorn
-websockets==9.1
+websockets==10.1
     # via uvicorn
 
 # The following packages are considered to be unsafe in a requirements file:
