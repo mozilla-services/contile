@@ -136,6 +136,8 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
+    #[serde(default)]
+    pub(crate) delete:bool
 }
 
 /// Parse JSON:
@@ -249,16 +251,12 @@ impl AdmSettings {
                 settings_str
             )));
         }
-        let bucket_name = match settings_bucket.host() {
-            Some(v) => v,
-            None => {
-                return Err(ConfigError::Message(format!(
-                    "Invalid adm settings bucket name {}",
-                    settings_str
-                )))
-            }
-        }
-        .to_string();
+        let bucket_name = settings_bucket
+            .host()
+            .ok_or_else(|| {
+                ConfigError::Message(format!("Invalid adm settings bucket name {}", settings_str))
+            })?
+            .to_string();
         let path = settings_bucket.path();
         let contents = cloud_storage::Object::download(&bucket_name, path)
             .await
@@ -400,10 +398,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             ignore_list,
             all_include_regions,
             legacy_list,
-            last_updated: match &source.starts_with("gs://") {
-                true => Some(chrono::Utc::now()),
-                false => None,
-            },
+            last_updated: source.starts_with("gs://").then(chrono::Utc::now),
             source,
             source_url,
             refresh_rate: std::time::Duration::from_secs(refresh_rate),

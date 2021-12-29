@@ -1,5 +1,5 @@
 //! Main application server
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use actix_cors::Cors;
@@ -37,7 +37,7 @@ pub struct ServerState {
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
-    pub filter: RwLock<AdmFilter>,
+    pub filter: Arc<RwLock<AdmFilter>>,
     pub img_store: Option<StoreImage>,
     pub excluded_dmas: Option<Vec<u16>>,
 }
@@ -50,7 +50,7 @@ impl Clone for ServerState {
             reqwest_client: self.reqwest_client.clone(),
             tiles_cache: self.tiles_cache.clone(),
             settings: self.settings.clone(),
-            filter: RwLock::new((*self.filter.read().unwrap()).clone()),
+            filter: self.filter.clone(),
             img_store: self.img_store.clone(),
             excluded_dmas: self.excluded_dmas.clone(),
         }
@@ -101,9 +101,9 @@ macro_rules! build_app {
 impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
+        let metrics = metrics_from_opts(&settings)?;
         let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         filter.spawn_updater().await;
-        let metrics = metrics_from_opts(&settings)?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
@@ -123,7 +123,7 @@ impl Server {
             reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             settings: settings.clone(),
-            filter: RwLock::new(filter),
+            filter: Arc::new(RwLock::new(filter)),
             img_store,
             excluded_dmas,
         };

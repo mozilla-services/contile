@@ -126,18 +126,14 @@ impl AdmFilter {
             return Ok(false);
         }
         if let Some(bucket) = &self.source_url {
-            let host = match bucket.host() {
-                Some(v) => v,
-                None => {
-                    return Err(HandlerError::internal(&format!(
-                        "Missing bucket Host {:?}",
-                        self.source
-                    )))
-                }
-            }
-            .to_string();
+            let host = bucket
+                .host()
+                .ok_or_else(|| {
+                    HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
+                })?
+                .to_string();
 
-            let obj: cloud_storage::Object = cloud_storage::Object::read(&host, bucket.path())
+            let obj = cloud_storage::Object::read(&host, bucket.path())
                 .await
                 .map_err(|e| {
                     HandlerError::internal(&format!(
@@ -166,6 +162,10 @@ impl AdmFilter {
                     ))
                 })?;
             for (adv, setting) in adm_settings.advertisers {
+                if setting.delete {
+                    trace!("Removing advertiser {:?}", &adv);
+                    self.filter_set.remove(&adv.to_lowercase());
+                };
                 trace!("Processing records for {:?}", &adv);
                 // DEFAULT included but sans special processing -- close enough
                 for country in &setting.include_regions {
@@ -189,10 +189,16 @@ impl AdmFilter {
         let mut s = self.clone();
         actix_rt::spawn(async move {
             loop {
-                if s.requires_update().await.expect("Failed to detect update") {
-                    s.update().await.expect("Failed to update");
-                    actix_rt::time::delay_for(s.refresh_rate).await;
+                let tags = crate::tags::Tags::default();
+                match s.requires_update().await {
+                    Ok(_) => s.update().await.unwrap_or_else(|e| {
+                        s.report(&e, &tags);
+                    }),
+                    Err(e) => {
+                        s.report(&e, &tags);
+                    }
                 }
+                actix_rt::time::delay_for(s.refresh_rate).await;
             }
         });
     }
