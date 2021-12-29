@@ -1,6 +1,6 @@
 [package]
 name = "contile"
-version = "1.5.1"
+version = "1.6.0"
 authors = [
   "Philip Jenvey <pjenvey@underboss.org>",
   "jrconlin <jr+git@mozilla.com>",
