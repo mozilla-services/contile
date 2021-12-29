@@ -137,7 +137,7 @@ pub struct AdmAdvertiserFilterSettings {
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
     #[serde(default)]
-    pub(crate) delete:bool
+    pub(crate) delete: bool,
 }
 
 /// Parse JSON:
