@@ -1,3 +1,21 @@
+<a name="1.6.0"></a>
+## 1.6.0 (2021-12-08)
+
+
+#### Bug Fixes
+
+*   fix YAML schema warning for CircleCI config (#329) ([6f9afc3e](https://github.com/mozilla-services/contile/commit/6f9afc3e2a7ee463040380c824d9dece11a8d09b))
+
+#### Chore
+
+*   2021 Q4 dependency update (#321) ([de6ae1e2](https://github.com/mozilla-services/contile/commit/de6ae1e24a702c29575a294d90429c2a863b290a), closes [#320](https://github.com/mozilla-services/contile/issues/320))
+
+#### Features
+
+*   only include hostname in InvalidHost's err message (#327) ([77278272](https://github.com/mozilla-services/contile/commit/77278272edaee2cd9e0470720716e3105927a290), closes [#322](https://github.com/mozilla-services/contile/issues/322), [#323](https://github.com/mozilla-services/contile/issues/323))
+
+
+
 <a name="1.5.1"></a>
 ## 1.5.1 (2021-11-10)
 
