@@ -102,7 +102,10 @@ impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
         let metrics = metrics_from_opts(&settings)?;
-        let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        let mut filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        if filter.requires_update().await? {
+            filter.update().await?;
+        }
         filter.spawn_updater().await;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let req = reqwest::Client::builder()

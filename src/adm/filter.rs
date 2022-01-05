@@ -143,8 +143,13 @@ impl AdmFilter {
                 })?;
             if let Some(updated) = self.last_updated {
                 // if the bucket is older than when we last checked, do nothing.
+                let requires_update = updated <= obj.updated;
+                if requires_update {
+                    trace!("AdmFilter::requires_update: true (refreshing)");
+                }
                 return Ok(updated <= obj.updated);
             };
+            trace!("AdmFilter::requires_update: true (populating)");
             return Ok(true);
         }
         Ok(false)
@@ -152,6 +157,7 @@ impl AdmFilter {
 
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self) -> HandlerResult<()> {
+        trace!("AdmFilter::update");
         if let Some(bucket) = &self.source_url {
             let adm_settings = AdmSettings::from_settings_bucket(bucket)
                 .await

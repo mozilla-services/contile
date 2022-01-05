@@ -211,11 +211,6 @@ pub async fn get_tiles(
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
-    // update the filters if needed.
-    if settings.adm_live_update && state.filter.read().unwrap().requires_update().await? {
-        let mut mfilter = state.filter.write().unwrap();
-        (*mfilter).update().await?;
-    }
     let filtered: Vec<Tile> = response
         .tiles
         .into_iter()
