@@ -50,7 +50,7 @@ pyparsing==2.4.7
     # via packaging
 pytest==6.2.5
     # via -r dev-requirements.in
-requests==2.26.0
+requests==2.27.1
     # via -r dev-requirements.in
 toml==0.10.2
     # via
