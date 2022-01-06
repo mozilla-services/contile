@@ -3,6 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
     iter::FromIterator,
+    sync::{Arc, RwLock},
 };
 
 use actix_http::http::Uri;
@@ -100,6 +101,29 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
+pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>) {
+    if !filter.read().unwrap().is_cloud() {
+        return;
+    }
+    let mfilter = filter.clone();
+    actix_rt::spawn(async move {
+        let tags = crate::tags::Tags::default();
+        loop {
+            let mut filter = mfilter.write().unwrap();
+            match filter.requires_update().await {
+                Ok(true) => filter.update().await.unwrap_or_else(|e| {
+                    filter.report(&e, &tags);
+                }),
+                Ok(false) => {}
+                Err(e) => {
+                    filter.report(&e, &tags);
+                }
+            }
+            actix_rt::time::delay_for(filter.refresh_rate).await;
+        }
+    });
+}
+
 /// Filter a given tile data set provided by ADM and validate the various elements
 impl AdmFilter {
     /// convenience function to determine if settings are cloud ready.
@@ -132,15 +156,8 @@ impl AdmFilter {
                     HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
                 })?
                 .to_string();
-
-            let obj = cloud_storage::Object::read(&host, bucket.path())
-                .await
-                .map_err(|e| {
-                    HandlerError::internal(&format!(
-                        "Could not read bucket {:?}, {:?}",
-                        self.source, e
-                    ))
-                })?;
+            let obj =
+                cloud_storage::Object::read(&host, bucket.path().trim_start_matches('/')).await?;
             if let Some(updated) = self.last_updated {
                 // if the bucket is older than when we last checked, do nothing.
                 return Ok(updated <= obj.updated);
@@ -179,28 +196,6 @@ impl AdmFilter {
             self.last_updated = Some(chrono::Utc::now());
         }
         Ok(())
-    }
-
-    // background settings updater.
-    pub async fn spawn_updater(&self) {
-        if !self.is_cloud() {
-            return;
-        }
-        let mut s = self.clone();
-        actix_rt::spawn(async move {
-            loop {
-                let tags = crate::tags::Tags::default();
-                match s.requires_update().await {
-                    Ok(_) => s.update().await.unwrap_or_else(|e| {
-                        s.report(&e, &tags);
-                    }),
-                    Err(e) => {
-                        s.report(&e, &tags);
-                    }
-                }
-                actix_rt::time::delay_for(s.refresh_rate).await;
-            }
-        });
     }
 
     /// Check the advertiser URL

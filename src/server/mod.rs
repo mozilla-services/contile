@@ -9,7 +9,7 @@ use actix_web::{
 use cadence::StatsdClient;
 
 use crate::{
-    adm::AdmFilter,
+    adm::{spawn_updater, AdmFilter},
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     server::{img_storage::StoreImage, location::location_config_from_settings},
@@ -102,8 +102,13 @@ impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
         let metrics = metrics_from_opts(&settings)?;
-        let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
-        filter.spawn_updater().await;
+        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        // try to update from the bucket if possible.
+        if raw_filter.is_cloud() {
+            raw_filter.update().await?
+        }
+        let filter = Arc::new(RwLock::new(raw_filter));
+        spawn_updater(&filter);
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
@@ -123,7 +128,7 @@ impl Server {
             reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             settings: settings.clone(),
-            filter: Arc::new(RwLock::new(filter)),
+            filter,
             img_store,
             excluded_dmas,
         };

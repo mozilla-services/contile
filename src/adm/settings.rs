@@ -257,7 +257,7 @@ impl AdmSettings {
                 ConfigError::Message(format!("Invalid adm settings bucket name {}", settings_str))
             })?
             .to_string();
-        let path = settings_bucket.path();
+        let path = settings_bucket.path().trim_start_matches('/');
         let contents = cloud_storage::Object::download(&bucket_name, path)
             .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
