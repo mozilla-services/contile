@@ -28,7 +28,7 @@ pytest==6.2.5
     # via -r requirements.in
 pyyaml==6.0
     # via -r requirements.in
-requests==2.26.0
+requests==2.27.1
     # via -r requirements.in
 toml==0.10.2
     # via pytest
