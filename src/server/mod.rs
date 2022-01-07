@@ -1,4 +1,5 @@
 //! Main application server
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use actix_cors::Cors;
@@ -8,7 +9,7 @@ use actix_web::{
 use cadence::StatsdClient;
 
 use crate::{
-    adm::AdmFilter,
+    adm::{spawn_updater, AdmFilter},
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     server::{img_storage::StoreImage, location::location_config_from_settings},
@@ -29,7 +30,6 @@ const REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARG
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
-#[derive(Clone)]
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
@@ -37,9 +37,24 @@ pub struct ServerState {
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
-    pub filter: AdmFilter,
+    pub filter: Arc<RwLock<AdmFilter>>,
     pub img_store: Option<StoreImage>,
     pub excluded_dmas: Option<Vec<u16>>,
+}
+
+impl Clone for ServerState {
+    fn clone(&self) -> Self {
+        Self {
+            metrics: self.metrics.clone(),
+            adm_endpoint_url: self.adm_endpoint_url.clone(),
+            reqwest_client: self.reqwest_client.clone(),
+            tiles_cache: self.tiles_cache.clone(),
+            settings: self.settings.clone(),
+            filter: self.filter.clone(),
+            img_store: self.img_store.clone(),
+            excluded_dmas: self.excluded_dmas.clone(),
+        }
+    }
 }
 
 impl std::fmt::Debug for ServerState {
@@ -61,7 +76,7 @@ pub struct Server;
 macro_rules! build_app {
     ($state: expr, $location_config: expr) => {
         App::new()
-            .data($state.clone())
+            .data($state)
             .data($location_config.clone())
             // Middleware is applied LIFO
             // These will wrap all outbound responses with matching status codes.
@@ -86,8 +101,14 @@ macro_rules! build_app {
 impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
-        let filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         let metrics = metrics_from_opts(&settings)?;
+        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        // try to update from the bucket if possible.
+        if raw_filter.is_cloud() {
+            raw_filter.update().await?
+        }
+        let filter = Arc::new(RwLock::new(raw_filter));
+        spawn_updater(&filter);
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
@@ -115,7 +136,7 @@ impl Server {
 
         tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics.clone());
 
-        let mut server = HttpServer::new(move || build_app!(state, location_config));
+        let mut server = HttpServer::new(move || build_app!(state.clone(), location_config));
         if let Some(keep_alive) = settings.actix_keep_alive {
             server = server.keep_alive(keep_alive as usize);
         }

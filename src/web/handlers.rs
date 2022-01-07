@@ -50,6 +50,8 @@ pub async fn get_tiles(
     let settings = &state.settings;
     if !state
         .filter
+        .read()
+        .unwrap()
         .all_include_regions
         .contains(&location.country())
     {
