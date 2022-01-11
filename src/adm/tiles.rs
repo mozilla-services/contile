@@ -1,4 +1,10 @@
-use std::{fmt::Debug, fs::File, io::BufReader, path::Path, time::Duration};
+use std::{
+    fmt::Debug,
+    fs::File,
+    io::BufReader,
+    path::Path,
+    time::{Duration, Instant},
+};
 
 use actix_http::http::header::{HeaderMap, HeaderValue};
 use actix_web_location::Location;
@@ -172,39 +178,64 @@ pub async fn get_tiles(
     );
     tags.add_extra("adm_url", adm_url);
 
-    info!("adm::get_tiles GET {}", adm_url);
     metrics.incr("tiles.adm.request");
-    let response: AdmTileResponse = if state.settings.test_mode {
-        let default = HeaderValue::from_str(DEFAULT).unwrap();
-        let test_response = headers
-            .unwrap_or(&HeaderMap::new())
-            .get("fake-response")
-            .unwrap_or(&default)
-            .to_str()
-            .unwrap()
-            .to_owned();
-        trace!("Getting fake response: {:?}", &test_response);
-        AdmTileResponse::fake_response(&state.settings, test_response)?
-    } else {
-        state
-            .reqwest_client
-            .get(adm_url)
-            .timeout(Duration::from_secs(settings.adm_timeout))
-            .send()
-            .await
-            .map_err(|e| {
-                // ADM servers are down, or improperly configured
-                let mut err: HandlerError = HandlerErrorKind::AdmServerError().into();
-                err.tags.add_extra("error", &e.to_string());
-                err
-            })?
-            .error_for_status()?
-            .json()
-            .await
-            .map_err(|e| {
-                // ADM servers are not returning correct information
-                HandlerErrorKind::BadAdmResponse(format!("ADM provided invalid response: {:?}", e))
-            })?
+    let response: AdmTileResponse = match state.settings.test_mode {
+        crate::settings::TestModes::TestFakeResponse => {
+            let default = HeaderValue::from_str(DEFAULT).unwrap();
+            let test_response = headers
+                .unwrap_or(&HeaderMap::new())
+                .get("fake-response")
+                .unwrap_or(&default)
+                .to_str()
+                .unwrap()
+                .to_owned();
+            trace!("Getting fake response: {:?}", &test_response);
+            AdmTileResponse::fake_response(&state.settings, test_response)?
+        }
+        crate::settings::TestModes::TestTimeout => {
+            trace!("### Timeout!");
+            return Err(HandlerErrorKind::AdmLoadError().into());
+        }
+        _ => {
+            state
+                .reqwest_client
+                .get(adm_url)
+                .timeout(Duration::from_secs(settings.adm_timeout))
+                .send()
+                .await
+                .map_err(|e| {
+                    // If we're just starting up, we're probably swamping the partner servers as
+                    // we fill the queue. Instead of returning a normal 500 error, let's
+                    // return something softer to keep our SRE's blood pressure lower.
+                    //
+                    // We still want to track this as a server error later.
+                    //
+                    // TODO: Remove this after the shared cache is implemented.
+                    let mut err: HandlerError = if e.is_timeout()
+                        && Instant::now()
+                            .checked_duration_since(state.start_up)
+                            .unwrap_or_else(|| Duration::from_secs(0))
+                            <= Duration::from_secs(state.settings.adm_timeout)
+                    {
+                        HandlerErrorKind::AdmLoadError().into()
+                    } else {
+                        HandlerErrorKind::AdmServerError().into()
+                    };
+                    // ADM servers are down, or improperly configured
+                    err.tags.add_extra("error", &e.to_string());
+                    err
+                })?
+                .error_for_status()?
+                .json()
+                .await
+                .map_err(|e| {
+                    // ADM servers are not returning correct information
+                    HandlerErrorKind::BadAdmResponse(format!(
+                        "ADM provided invalid response: {:?}",
+                        e
+                    ))
+                })?
+        }
     };
     if response.tiles.is_empty() {
         warn!("adm::get_tiles empty response {}", adm_url);

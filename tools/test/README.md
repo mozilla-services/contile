@@ -32,7 +32,7 @@ These are different than the Contile test arguments:
 
 | var | description |
 |--|--|
-| **CONTILE_TEST_MODE** | If set to any value, places the server in "Test Mode" which will cause it NOT to call out to the ADM server, but use test response files |
+| **CONTILE_TEST_MODE** | Places the server in "Test Mode". There are several possible test modes available: `TestFakeResponse`: which will cause it NOT to call out to the ADM server, but use test response files. `TestTimeout` which will emulate a timeout error when trying to fetch a tile from ADM server. |
 | **CONTILE_TEST_FILE_PATH** | The path to the ADM fake response files. |
 | **CONTILE_ADM_SETTINGS** | The path to the ADM settings to be used for this run |
 

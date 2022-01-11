@@ -90,17 +90,17 @@ pub async fn get_tiles(
     }
 
     let mut expired = false;
-    if !settings.test_mode {
+    if settings.test_mode != crate::settings::TestModes::TestFakeResponse {
         // First make a cheap read from the cache
         if let Some(tiles_state) = state.tiles_cache.get(&audience_key) {
             match &*tiles_state {
                 TilesState::Populating => {
                     // Another task is currently populating this entry and will
-                    // complete shortly. 503 until then instead of queueing
+                    // complete shortly. 204 until then instead of queueing
                     // more redundant requests
                     trace!("get_tiles: Another task Populating");
                     metrics.incr("tiles_cache.miss.populating");
-                    return Ok(HttpResponse::ServiceUnavailable().finish());
+                    return Ok(HttpResponse::NoContent().finish());
                 }
                 TilesState::Fresh { tiles } => {
                     expired = tiles.expired();
@@ -151,7 +151,7 @@ pub async fn get_tiles(
         &mut tags,
         &metrics,
         // be aggressive about not passing headers unless we absolutely need to
-        if settings.test_mode {
+        if settings.test_mode != crate::settings::TestModes::NoTest {
             Some(request.head().headers())
         } else {
             None

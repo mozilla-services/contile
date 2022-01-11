@@ -1,6 +1,6 @@
 //! Main application server
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -40,6 +40,7 @@ pub struct ServerState {
     pub filter: Arc<RwLock<AdmFilter>>,
     pub img_store: Option<StoreImage>,
     pub excluded_dmas: Option<Vec<u16>>,
+    pub start_up: Instant,
 }
 
 impl Clone for ServerState {
@@ -53,6 +54,7 @@ impl Clone for ServerState {
             filter: self.filter.clone(),
             img_store: self.img_store.clone(),
             excluded_dmas: self.excluded_dmas.clone(),
+            start_up: self.start_up,
         }
     }
 }
@@ -131,6 +133,7 @@ impl Server {
             filter,
             img_store,
             excluded_dmas,
+            start_up: Instant::now(),
         };
         let location_config = location_config_from_settings(&settings, &metrics);
 

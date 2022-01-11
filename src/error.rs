@@ -79,6 +79,10 @@ pub enum HandlerErrorKind {
     #[error("Adm Server Error")]
     AdmServerError(),
 
+    /// ADM Server timeout while loading cache.
+    #[error("Adm Cache Load Error")]
+    AdmLoadError(),
+
     /// Invalid UserAgent request
     #[error("Invalid user agent")]
     InvalidUA,
@@ -94,6 +98,7 @@ impl HandlerErrorKind {
         match self {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
             HandlerErrorKind::AdmServerError() => StatusCode::SERVICE_UNAVAILABLE,
+            HandlerErrorKind::AdmLoadError() => StatusCode::NO_CONTENT,
             HandlerErrorKind::BadAdmResponse(_)
             | HandlerErrorKind::InvalidHost(_, _)
             | HandlerErrorKind::UnexpectedHost(_, _)
@@ -112,6 +117,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Reqwest(_) => 520,
             HandlerErrorKind::BadAdmResponse(_) => 521,
             HandlerErrorKind::AdmServerError() => 522,
+            HandlerErrorKind::AdmLoadError() => 523,
             HandlerErrorKind::Location(_) => 530,
             HandlerErrorKind::Validation(_) => 600,
             HandlerErrorKind::InvalidHost(_, _) => 601,
