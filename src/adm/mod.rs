@@ -10,6 +10,6 @@ mod filter;
 mod settings;
 mod tiles;
 
-pub use filter::AdmFilter;
+pub use filter::{spawn_updater, AdmFilter};
 pub(crate) use settings::{AdmAdvertiserFilterSettings, AdmSettings, DEFAULT};
 pub use tiles::{get_tiles, TileResponse};

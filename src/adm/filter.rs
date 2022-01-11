@@ -3,6 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
     iter::FromIterator,
+    sync::{Arc, RwLock},
 };
 
 use actix_http::http::Uri;
@@ -12,7 +13,7 @@ use url::Url;
 
 use super::{
     tiles::{AdmTile, Tile},
-    AdmAdvertiserFilterSettings, DEFAULT,
+    AdmAdvertiserFilterSettings, AdmSettings, DEFAULT,
 };
 use crate::{
     adm::settings::PathMatching,
@@ -48,12 +49,16 @@ pub struct AdmFilter {
     pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
     /// Ignored (not included but also not reported to Sentry) Advertiser names
     pub ignore_list: HashSet<String>,
-    /// All countries set for inclusion in at least one of the
+    /// All countries set for inclusion in at least one of the advertiser regions
     /// [crate::adm::AdmAdvertiserFilterSettings]
     pub all_include_regions: HashSet<String>,
     /// Temporary list of advertisers with legacy images built into firefox
     /// for pre 91 tile support.
     pub legacy_list: HashSet<String>,
+    pub source: String,
+    pub source_url: Option<url::Url>,
+    pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
+    pub refresh_rate: std::time::Duration,
 }
 
 /// Parse &str into a `Url`
@@ -96,8 +101,39 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
+pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>) {
+    if !filter.read().unwrap().is_cloud() {
+        return;
+    }
+    let mfilter = filter.clone();
+    actix_rt::spawn(async move {
+        let tags = crate::tags::Tags::default();
+        loop {
+            let mut filter = mfilter.write().unwrap();
+            match filter.requires_update().await {
+                Ok(true) => filter.update().await.unwrap_or_else(|e| {
+                    filter.report(&e, &tags);
+                }),
+                Ok(false) => {}
+                Err(e) => {
+                    filter.report(&e, &tags);
+                }
+            }
+            actix_rt::time::delay_for(filter.refresh_rate).await;
+        }
+    });
+}
+
 /// Filter a given tile data set provided by ADM and validate the various elements
 impl AdmFilter {
+    /// convenience function to determine if settings are cloud ready.
+    pub fn is_cloud(&self) -> bool {
+        if let Some(source) = &self.source_url {
+            return source.scheme() == "gs";
+        }
+        false
+    }
+
     /// Report the error directly to sentry
     fn report(&self, error: &HandlerError, tags: &Tags) {
         // trace!(&error, &tags);
@@ -105,6 +141,61 @@ impl AdmFilter {
         let mut merged_tags = error.tags.clone();
         merged_tags.extend(tags.clone());
         l_sentry::report(&merged_tags, sentry::event_from_error(error));
+    }
+
+    /// check to see if the bucket has been modified since the last time we updated.
+    pub async fn requires_update(&self) -> HandlerResult<bool> {
+        // don't update non-bucket versions (for now)
+        if !self.is_cloud() {
+            return Ok(false);
+        }
+        if let Some(bucket) = &self.source_url {
+            let host = bucket
+                .host()
+                .ok_or_else(|| {
+                    HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
+                })?
+                .to_string();
+            let obj =
+                cloud_storage::Object::read(&host, bucket.path().trim_start_matches('/')).await?;
+            if let Some(updated) = self.last_updated {
+                // if the bucket is older than when we last checked, do nothing.
+                return Ok(updated <= obj.updated);
+            };
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    /// Try to update the ADM filter data from the remote bucket.
+    pub async fn update(&mut self) -> HandlerResult<()> {
+        if let Some(bucket) = &self.source_url {
+            let adm_settings = AdmSettings::from_settings_bucket(bucket)
+                .await
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Invalid bucket data in {:?}: {:?}",
+                        self.source, e
+                    ))
+                })?;
+            for (adv, setting) in adm_settings.advertisers {
+                if setting.delete {
+                    trace!("Removing advertiser {:?}", &adv);
+                    self.filter_set.remove(&adv.to_lowercase());
+                };
+                trace!("Processing records for {:?}", &adv);
+                // DEFAULT included but sans special processing -- close enough
+                for country in &setting.include_regions {
+                    if !self.all_include_regions.contains(country) {
+                        self.all_include_regions.insert(country.clone());
+                    }
+                }
+                // map the settings to the URL we're going to be checking
+                self.filter_set.insert(adv.to_lowercase(), setting);
+            }
+            self.last_updated = Some(chrono::Utc::now());
+        }
+        Ok(())
     }
 
     /// Check the advertiser URL

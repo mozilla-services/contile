@@ -107,12 +107,16 @@ pub struct Settings {
     pub adm_query_tile_count: u8,
     /// Timeout requests to the ADM server after this many seconds (default: 5)
     pub adm_timeout: u64,
-    /// ADM tile settings (either as JSON or a path to a JSON file)
+    /// ADM tile settings (either as JSON, a path to a JSON file, or a Google Storage url)
     /// This consists of an advertiser name, and the associated filter settings
     /// (e.g. ```{"Example":{"advertizer_hosts":["example.com"."example.org"]}})```)
     /// Unspecfied [crate::adm::AdmAdvertiserFilterSettings] will use Default values specified
     /// in `Default` (or the application default if not specified)
     pub adm_settings: String,
+    /// Number of seconds to wait between polling ADM settings updates
+    pub adm_refresh_rate_secs: u64,
+    /// Check ADM settings on new tile requests.
+    pub adm_live_update: bool,
     /// A JSON list of advertisers to ignore, specified by the Advertiser name.
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
@@ -158,6 +162,8 @@ impl Default for Settings {
             adm_query_tile_count: 10,
             adm_timeout: 5,
             adm_settings: "".to_owned(),
+            adm_refresh_rate_secs: 300,
+            adm_live_update: false,
             adm_ignore_advertisers: None,
             adm_has_legacy_image: Some(
                 r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),

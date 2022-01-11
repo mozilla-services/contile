@@ -50,6 +50,8 @@ pub async fn get_tiles(
     let settings = &state.settings;
     if !state
         .filter
+        .read()
+        .unwrap()
         .all_include_regions
         .contains(&location.country())
     {
@@ -94,11 +96,11 @@ pub async fn get_tiles(
             match &*tiles_state {
                 TilesState::Populating => {
                     // Another task is currently populating this entry and will
-                    // complete shortly. 503 until then instead of queueing
+                    // complete shortly. 204 until then instead of queueing
                     // more redundant requests
                     trace!("get_tiles: Another task Populating");
                     metrics.incr("tiles_cache.miss.populating");
-                    return Ok(HttpResponse::ServiceUnavailable().finish());
+                    return Ok(HttpResponse::NoContent().finish());
                 }
                 TilesState::Fresh { tiles } => {
                     expired = tiles.expired();
