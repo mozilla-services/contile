@@ -209,3 +209,4 @@ class TestAdm:
         url = "{root}/v1/tiles".format(root=settings.get("test_url"))
         resp = requests.get(url, headers=default_headers(test=""))
         assert resp.status_code == 204
+        assert not resp.content
