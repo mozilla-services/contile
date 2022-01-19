@@ -11,5 +11,5 @@ mod settings;
 mod tiles;
 
 pub use filter::{spawn_updater, AdmFilter};
-pub(crate) use settings::{AdmAdvertiserFilterSettings, AdmSettings, DEFAULT};
+pub(crate) use settings::{AdmAdvertiserFilterSettings, AdmFilterSettings, AdmPse, DEFAULT};
 pub use tiles::{get_tiles, TileResponse};

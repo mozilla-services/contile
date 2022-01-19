@@ -58,6 +58,12 @@ impl DeviceInfo {
         self.os_family == OsFamily::IOs && self.ff_version < 36
             || self.os_family != OsFamily::IOs && self.ff_version < 91
     }
+
+    /// Determine if the device is a mobile phone based on either the form factor or OS.
+    pub fn is_mobile(&self) -> bool {
+        self.form_factor == FormFactor::Phone
+            || [OsFamily::Android, OsFamily::IOs].contains(&self.os_family)
+    }
 }
 
 /// Parse a User-Agent header into a simplified `DeviceInfo`

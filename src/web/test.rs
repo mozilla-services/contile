@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 use url::Url;
 
 use crate::{
-    adm::{AdmFilter, AdmSettings, DEFAULT},
+    adm::{AdmFilter, AdmFilterSettings, DEFAULT},
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
@@ -128,7 +128,7 @@ fn init_mock_adm(response: String) -> MockAdm {
     }
 }
 
-pub fn adm_settings() -> AdmSettings {
+pub fn adm_settings() -> AdmFilterSettings {
     let adm_settings = json!({
         "Acme": {
             "advertiser_urls": [{ "host": "www.acme.biz" }],
@@ -159,7 +159,7 @@ pub fn adm_settings() -> AdmSettings {
             "include_regions": []
         }
     });
-    AdmSettings::try_from(adm_settings.to_string()).unwrap()
+    AdmFilterSettings::try_from(adm_settings.to_string()).unwrap()
 }
 
 /// Basic integration test

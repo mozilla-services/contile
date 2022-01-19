@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    adm::DEFAULT,
+    adm::{AdmPse, DEFAULT},
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     server::ServerState,
@@ -138,11 +138,12 @@ pub async fn get_tiles(
 ) -> Result<TileResponse, HandlerError> {
     let settings = &state.settings;
     let image_store = &state.img_store;
+    let pse = AdmPse::as_appropriate(&device_info, settings);
     let adm_url = Url::parse_with_params(
-        &state.adm_endpoint_url,
+        &pse.endpoint,
         &[
-            ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
-            ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
+            ("partner", pse.partner_id.as_str()),
+            ("sub1", pse.sub1.as_str()),
             ("sub2", "newtab"),
             (
                 "country-code",
