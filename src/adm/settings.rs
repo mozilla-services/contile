@@ -325,7 +325,10 @@ impl TryFrom<&mut Settings> for AdmFilterSettings {
             )));
         }
         if settings.adm_partner_id.is_none() {
-            return Err(ConfigError::Message(format!("Missing argument {}", "$new")));
+            return Err(ConfigError::Message(format!(
+                "Missing argument {}",
+                "partner_id"
+            )));
         }
         if settings.adm_settings.is_empty() {
             return Ok(Self::default());
