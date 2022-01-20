@@ -188,10 +188,17 @@ pub struct AdmPse {
 impl AdmPse {
     /// Return the information for a mobile connection
     pub fn as_mobile(settings: &Settings) -> Self {
+        let default = Self::as_default(settings);
         AdmPse {
-            partner_id: settings.adm_mobile_partner_id.clone().unwrap_or_default(),
-            sub1: settings.adm_mobile_sub1.clone().unwrap_or_default(),
-            endpoint: settings.adm_mobile_endpoint_url.clone(),
+            partner_id: settings
+                .adm_mobile_partner_id
+                .clone()
+                .unwrap_or(default.partner_id),
+            sub1: settings.adm_mobile_sub1.clone().unwrap_or(default.sub1),
+            endpoint: settings
+                .adm_mobile_endpoint_url
+                .clone()
+                .unwrap_or(default.endpoint),
         }
     }
 
