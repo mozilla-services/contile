@@ -185,10 +185,14 @@ pub struct AdmPse {
 
 /// ADM Partner/Sub1/Endpoint.
 /// These change depending on the type of device requesting the tile.
+///
+/// Currently, we only need to check for two patterns "mobile" and "default",
+/// but there's no guarantee that will always be the case. Hopefully this
+/// pattern provides flexibility for future changes.
 impl AdmPse {
     /// Return the information for a mobile connection
-    pub fn as_mobile(settings: &Settings) -> Self {
-        let default = Self::as_default(settings);
+    pub fn mobile_from_settings(settings: &Settings) -> Self {
+        let default = Self::default_from_settings(settings);
         AdmPse {
             partner_id: settings
                 .adm_mobile_partner_id
@@ -202,8 +206,8 @@ impl AdmPse {
         }
     }
 
-    /// Return the information for a non-mobile connection
-    pub fn as_default(settings: &Settings) -> Self {
+    /// Return the information for a generic connection
+    pub fn default_from_settings(settings: &Settings) -> Self {
         AdmPse {
             partner_id: settings.adm_partner_id.clone().unwrap_or_default(),
             sub1: settings.adm_sub1.clone().unwrap_or_default(),
@@ -212,11 +216,11 @@ impl AdmPse {
     }
 
     /// Determine the correct type of information to return based on device info.
-    pub fn as_appropriate(device_info: &DeviceInfo, settings: &Settings) -> Self {
+    pub fn appropriate_from_settings(device_info: &DeviceInfo, settings: &Settings) -> Self {
         if device_info.is_mobile() {
-            return Self::as_mobile(settings);
+            return Self::mobile_from_settings(settings);
         }
-        Self::as_default(settings)
+        Self::default_from_settings(settings)
     }
 }
 

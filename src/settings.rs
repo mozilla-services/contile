@@ -183,7 +183,6 @@ impl Settings {
             return Err(ConfigError::Message("Missing adm_endpoint_url".to_owned()));
         }
 
-        dbg!(self.fallback_country.len());
         if self.fallback_country.len() != 2 {
             return Err(ConfigError::Message(
                 "Invalid fallback_country specified. Please use a string like \"US\"".to_owned(),

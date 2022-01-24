@@ -138,7 +138,7 @@ pub async fn get_tiles(
 ) -> Result<TileResponse, HandlerError> {
     let settings = &state.settings;
     let image_store = &state.img_store;
-    let pse = AdmPse::as_appropriate(&device_info, settings);
+    let pse = AdmPse::appropriate_from_settings(&device_info, settings);
     let adm_url = Url::parse_with_params(
         &pse.endpoint,
         &[

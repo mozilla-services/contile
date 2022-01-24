@@ -58,7 +58,6 @@ macro_rules! init_app {
             };
             let state = ServerState {
                 metrics: Box::new(metrics.clone()),
-                adm_endpoint_url: $settings.adm_endpoint_url.clone(),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 settings: $settings.clone(),
