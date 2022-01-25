@@ -190,9 +190,13 @@ impl StoreImage {
     pub fn meta(&self, image: &Bytes, fmt: ImageFormat) -> HandlerResult<ImageMetrics> {
         let mut reader = ImageReader::new(Cursor::new(image));
         reader.set_format(fmt);
-        let img = reader
-            .decode()
-            .map_err(|_| HandlerErrorKind::BadImage("Image unreadable"))?;
+        let img = reader.decode().map_err(|e| {
+            let mut tags = Tags::default();
+            tags.add_extra("error", &e.to_string());
+            let mut err: HandlerError = HandlerErrorKind::BadImage("Image unreadable").into();
+            err.tags = tags;
+            err
+        })?;
         let rgb_img = img.to_rgb16();
         Ok(ImageMetrics {
             height: rgb_img.height(),
@@ -271,6 +275,7 @@ impl StoreImage {
                 _ => {
                     let mut tags = Tags::default();
                     tags.add_extra("url", &uri.to_string());
+                    tags.add_extra("format", content_type);
                     let mut err: HandlerError =
                         HandlerErrorKind::BadImage("Invalid image format").into();
                     err.tags = tags;
