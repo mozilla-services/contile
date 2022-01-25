@@ -670,6 +670,7 @@ dependencies = [
  "rand 0.8.4",
  "regex",
  "reqwest",
+ "scopeguard",
  "sentry",
  "sentry-backtrace",
  "serde 1.0.133",
