@@ -61,7 +61,7 @@ impl DeviceInfo {
 
     /// Determine if the device is a mobile phone based on either the form factor or OS.
     pub fn is_mobile(&self) -> bool {
-        self.form_factor == FormFactor::Phone
+        [FormFactor::Phone, FormFactor::Tablet].contains(&self.form_factor)
             || [OsFamily::Android, OsFamily::IOs].contains(&self.os_family)
     }
 }
