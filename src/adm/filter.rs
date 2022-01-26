@@ -436,10 +436,7 @@ impl AdmFilter {
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
                 // `default`.
-                Some(Tile::from_adm_tile(
-                    tile,
-                    filter.position.or(default.position),
-                ))
+                Some(Tile::from_adm_tile(tile))
             }
             None => {
                 if !self.ignore_list.contains(&tile.name.to_lowercase()) {

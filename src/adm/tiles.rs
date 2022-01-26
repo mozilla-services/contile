@@ -98,11 +98,11 @@ pub struct Tile {
     pub image_url: String,
     pub image_size: Option<u32>,
     pub impression_url: String,
-    pub position: Option<u8>,
+    // pub position: Option<u8>,
 }
 
 impl Tile {
-    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>) -> Self {
+    pub fn from_adm_tile(tile: AdmTile) -> Self {
         // Generate a base response tile from the ADM provided tile structure.
         // NOTE: the `image_size` is still required to be determined, and is
         // provided by `StoreImage.store()`
@@ -114,7 +114,6 @@ impl Tile {
             image_url: tile.image_url,
             image_size: None,
             impression_url: tile.impression_url,
-            position,
         }
     }
 }

@@ -21,7 +21,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/desktop_windows?id=0001'
                 url: 'https://www.example.com/desktop_windows'
-                position: 1
               - id: 56789
                 name: 'Example ORG'
                 click_url: 'https://example.org/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -29,7 +28,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/desktop_windows?id=0002'
                 url: 'https://www.example.org/desktop_windows'
-                position: 1
       - request:
           method: GET
           path: '/v1/tiles'
@@ -49,7 +47,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/desktop_windows?id=0001'
                 url: 'https://www.example.com/desktop_windows'
-                position: 1
               - id: 56789
                 name: 'Example ORG'
                 click_url: 'https://example.org/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -57,7 +54,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/desktop_windows?id=0002'
                 url: 'https://www.example.org/desktop_windows'
-                position: 1
 
   - name: success_desktop_macos
     description: Test that Contile successfully returns tiles for macOS on Desktop.
@@ -81,7 +77,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/desktop_macos?id=0001'
                 url: 'https://www.example.com/desktop_macos'
-                position: 1
               - id: 56790
                 name: 'Example ORG'
                 click_url: 'https://example.org/desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -89,7 +84,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/desktop_macos?id=0002'
                 url: 'https://www.example.org/desktop_macos'
-                position: 1
 
   - name: success_desktop_linux
     description: Test that Contile returns tiles for Linux on Desktop.
@@ -113,7 +107,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/desktop_linux?id=0001'
                 url: 'https://www.example.com/desktop_linux'
-                position: 1
               - id: 56791
                 name: 'Example ORG'
                 click_url: 'https://example.org/desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -121,7 +114,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/desktop_linux?id=0002'
                 url: 'https://www.example.org/desktop_linux'
-                position: 1
 
   - name: error_phone_android_reqwest_error
     description: Test that Contile correctly handles a 500 from the partner API.
@@ -161,7 +153,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/desktop_linux?id=0001'
                 url: 'https://www.example.com/desktop_linux'
-                position: 1
               - id: 56791
                 name: 'Example ORG'
                 click_url: 'https://example.org/desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -169,7 +160,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/desktop_linux?id=0002'
                 url: 'https://www.example.org/desktop_linux'
-                position: 1
 
   - name: error_phone_ios_timeout
     description: Test that Contile behaves correctly when a request to the partner API times out.
@@ -229,7 +219,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/us_wa_desktop_macos?id=0001'
                 url: 'https://www.example.com/us_wa_desktop_macos'
-                position: 1
               - id: 56790
                 name: 'Example ORG'
                 click_url: 'https://example.org/us_wa_desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -237,7 +226,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/us_wa_desktop_macos?id=0002'
                 url: 'https://www.example.org/us_wa_desktop_macos'
-                position: 1
 
   - name: legacy_image_filter
     description: >
@@ -262,14 +250,6 @@ scenarios:
           status_code: 200
           content:
             tiles:
-              - id: 41235
-                name: 'DunBroch'
-                click_url: 'https://dunbroch.co.uk/gb_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-                image_url: 'https://dunbroch.co.uk/gb_desktop_macos01.jpg'
-                image_size: null
-                impression_url: 'https://dunbroch.co.uk/gb_desktop_macos?id=0001'
-                url: 'https://www.dunbroch.co.uk/gb_desktop_macos'
-                position: 2
               - id: 32346
                 name: 'Example COM'
                 click_url: 'https://example.com/gb_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
@@ -277,7 +257,13 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/gb_desktop_macos?id=0001'
                 url: 'https://www.example.com/gb_desktop_macos'
-                position: 1
+              - id: 41235
+                name: 'DunBroch'
+                click_url: 'https://dunbroch.co.uk/gb_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://dunbroch.co.uk/gb_desktop_macos01.jpg'
+                image_size: null
+                impression_url: 'https://dunbroch.co.uk/gb_desktop_macos?id=0001'
+                url: 'https://www.dunbroch.co.uk/gb_desktop_macos'
       - request:
           method: GET
           path: '/v1/tiles'
@@ -303,7 +289,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/gb_desktop_macos?id=0001'
                 url: 'https://www.example.com/gb_desktop_macos'
-                position: 1
               - id: 76790
                 name: 'Example ORG'
                 click_url: 'https://example.org/gb_desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -311,7 +296,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/gb_desktop_macos?id=0002'
                 url: 'https://www.example.org/gb_desktop_macos'
-                position: 1
 
   - name: success_200_OK_exluded_region
     description: Test that Contile returns a 200 OK with an empty tiles array for excluded regions
@@ -367,7 +351,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/gb_desktop_windows?id=0001'
                 url: 'https://www.example.com/gb_desktop_windows'
-                position: 1
               - id: 76789
                 name: 'Example ORG'
                 click_url: 'https://example.org/gb_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -375,7 +358,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/gb_desktop_windows?id=0002'
                 url: 'https://www.example.org/gb_desktop_windows'
-                position: 1
 
   - name: advertiser_url_path_filter_exact
     description: >
@@ -410,7 +392,6 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.com/gb_desktop_linux?id=0001'
                 url: 'https://www.example.com/gb_desktop_linux'
-                position: 1
               - id: 76791
                 name: 'Example ORG'
                 click_url: 'https://example.org/gb_desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
@@ -418,4 +399,3 @@ scenarios:
                 image_size: null
                 impression_url: 'https://example.org/gb_desktop_linux?id=0002'
                 url: 'https://www.example.org/gb_desktop_linux'
-                position: 1

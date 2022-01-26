@@ -384,10 +384,8 @@ async fn basic_filtered() {
     // Ensure the tile order from adM is preserved
     let tile1 = &tiles[0];
     assert_eq!(tile1["name"], "Acme");
-    assert_eq!(tile1["position"], 0);
     let tile2 = &tiles[1];
     assert_eq!(tile2["name"], "Los Pollos Hermanos");
-    assert_eq!(tile2["position"], 2);
 }
 
 #[actix_rt::test]
