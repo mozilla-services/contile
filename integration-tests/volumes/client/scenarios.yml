@@ -147,8 +147,9 @@ scenarios:
           headers:
             # Contile maps the User-Agent Header value to os-family and form-factor parameters
             # The following value will result in os-family: ios and form-factor: tablet
+            # NOTE: Firefox for iPad returns the default desktop UA string.
             - name: User-Agent
-              value: 'Mozilla/5.0 (iPad; CPU iPhone OS 11_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0 Mobile/15E148 Safari/605.1.15'
+              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Safari/605.1.15'
         response:
           status_code: 204 # No Content
           content: ''
