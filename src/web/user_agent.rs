@@ -75,7 +75,7 @@ pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
     //        (KHTML, like Gecko) Version/13.1 Safari/605.1.15)`
     // therefore we have to accept that one. This does mean that we may presume
     // that a mac safari UA is an iPad.
-    if wresult.name.to_lowercase().as_str() == "safari" && !ua.contains("firefox/") {
+    if wresult.name.to_lowercase() == "safari" && !ua.to_lowercase().contains("firefox/") {
         wresult.name = "firefox";
         wresult.category = "smartphone";
         wresult.os = "ipad";
