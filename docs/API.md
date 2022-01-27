@@ -48,7 +48,6 @@ Returns a JSON structure containing the tile information. For example:
         "image_url":"https://...",
         "image_size":200,
         "impression_url":"...",
-        "position":1
     },
     {
         "id":74161,
@@ -58,7 +57,6 @@ Returns a JSON structure containing the tile information. For example:
         "image_url":"https://...",
         "image_size":200,
         "impression_url":"https://...",
-        "position":2
     }
 ]}
 ```

@@ -86,7 +86,6 @@ pub struct TileResponse {
 /// The individual tile data sent to the User Agent
 /// Differs from AdmTile in:
 ///   - advertiser_url -> url
-///   - includes an optional position
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Tile {
     pub id: u64,
@@ -98,7 +97,6 @@ pub struct Tile {
     pub image_url: String,
     pub image_size: Option<u32>,
     pub impression_url: String,
-    // pub position: Option<u8>,
 }
 
 impl Tile {
