@@ -5,8 +5,9 @@
 import os
 import pathlib
 
+import pytest
 import yaml
-from models import Scenario
+from models import Scenario, Tiles
 
 
 def pytest_configure(config):
@@ -20,6 +21,20 @@ def pytest_configure(config):
     config.contile_scenarios = [
         Scenario(**scenario) for scenario in loaded_scenarios["scenarios"]
     ]
+
+    # Check that all 200 OK responses in test scenarios contain correct tiles
+    # information and FastAPI model instances were created for them.
+    for scenario in config.contile_scenarios:
+        for i, step in enumerate(scenario.steps):
+
+            if step.response.status_code != 200:
+                continue
+
+            if not isinstance(step.response.content, Tiles):
+                raise pytest.UsageError(
+                    f"Failed to create Tiles model for '200 OK' response "
+                    f"content in step {i} of scenario '{scenario.name}'"
+                )
 
 
 def pytest_generate_tests(metafunc):
