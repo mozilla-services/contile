@@ -8,10 +8,11 @@ import pathlib
 import yaml
 
 port = os.getenv("PORT", "8000")
+root = os.getenv("ROOT", "")
 
 accesslog = "-"
 errorlog = "-"
 workers = 4
 
-with pathlib.Path("config/logging.yml").open() as f:
+with pathlib.Path(root + "config/logging.yml").open() as f:
     logconfig_dict = yaml.safe_load(f)

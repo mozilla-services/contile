@@ -32,7 +32,6 @@ class Tile(BaseModel, extra=Extra.allow):
     image_size: Optional[int]
     impression_url: str
     url: str
-    position: int
 
 
 class Tiles(BaseModel):
