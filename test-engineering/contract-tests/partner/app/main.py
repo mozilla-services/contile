@@ -3,11 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import asyncio
+import enum
 import json
 import logging
 import os
 import pathlib
 import sys
+from typing import Dict, List
 
 from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -87,10 +89,32 @@ ACCEPTED_QUERY_PARAMS = [
 ]
 
 
-@app.get("/tilesp", response_model=Tiles, status_code=200)
+class Endpoint(str, enum.Enum):
+    """Path parameters with pre-defined values for the supported endpoints."""
+
+    mobile: str = "mobile"
+    desktop: str = "desktop"
+
+
+# Map from supported API endpoint path to accepted form-factor query parameter
+# values. Example environment variables: 'phone,tablet' or 'desktop'.
+FORM_FACTORS: Dict[Endpoint, List[str]] = {
+    Endpoint.mobile: [
+        form_factor.strip().lower()
+        for form_factor in os.environ["ACCEPTED_MOBILE_FORM_FACTORS"].split(",")
+    ],
+    Endpoint.desktop: [
+        form_factor.strip().lower()
+        for form_factor in os.environ["ACCEPTED_DESKTOP_FORM_FACTORS"].split(",")
+    ],
+}
+
+
+@app.get("/tilesp/{endpoint}", response_model=Tiles, status_code=200)
 async def read_tilesp(
     request: Request,
     response: Response,
+    endpoint: Endpoint,
     partner: str = Query(..., example="demofeed"),
     sub1: str = Query(..., example="123456789"),
     sub2: str = Query(
@@ -116,7 +140,7 @@ async def read_tilesp(
 ):
     """Endpoint for requests from Contile."""
 
-    unknown_query_params = [
+    unknown_query_params: List[str] = [
         param for param in request.query_params if param not in ACCEPTED_QUERY_PARAMS
     ]
 
@@ -125,11 +149,27 @@ async def read_tilesp(
             "received unexpected query parameters from Contile: %s",
             unknown_query_params,
         )
+
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content=jsonable_encoder(
                 {
                     "test": {"unexpected query parameter": unknown_query_params},
+                    **BODY_FROM_API_SPEC,
+                }
+            ),
+        )
+
+    if form_factor not in FORM_FACTORS[endpoint]:
+        logger.error("received form-factor '%s' on %s API", form_factor, endpoint.name)
+
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=jsonable_encoder(
+                {
+                    "test": {
+                        f"invalid form-factor for {endpoint.name} API": form_factor
+                    },
                     **BODY_FROM_API_SPEC,
                 }
             ),
