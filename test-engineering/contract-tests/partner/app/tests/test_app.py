@@ -21,7 +21,7 @@ def test_read_tilesp(client):
     example values for the required query parameters from the API specification.
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
@@ -75,7 +75,7 @@ def test_read_tilesp_validate_sub2(client, sub2):
     See https://github.com/mozilla-services/contile-integration-tests/issues/38
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
@@ -124,7 +124,7 @@ def test_read_tilesp_validate_country_code(client, country_code):
     See https://github.com/mozilla-services/contile-integration-tests/issues/39
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
@@ -174,7 +174,7 @@ def test_read_tilesp_accepted_country_region_code(
     See https://github.com/mozilla-services/contile-integration-tests/issues/40
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
@@ -215,7 +215,7 @@ def test_read_tilesp_validate_region_code(client, region_code):
     See https://github.com/mozilla-services/contile-integration-tests/issues/40
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
@@ -257,7 +257,7 @@ def test_read_tilesp_validate_dma_code(client, dma_code):
     See https://github.com/mozilla-services/contile-integration-tests/issues/62
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
@@ -301,7 +301,7 @@ def test_read_tilesp_error_for_unknown_query_params(client):
     See https://github.com/mozilla-services/contile-integration-tests/issues/41
     """
     response = client.get(
-        "/tilesp",
+        "/tilesp/desktop",
         params={
             "partner": "demofeed",
             "sub1": "123456789",
