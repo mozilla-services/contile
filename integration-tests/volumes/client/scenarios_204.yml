@@ -1,6 +1,9 @@
 scenarios:
-  - name: success_200_No_Content_exluded_region
-    description: Test that Contile returns a 200 empty content for excluded regions
+  - name: success_204_No_Content_exluded_region
+    description: Test that Contile returns a 204 No Content for excluded regions
+    # This test uses the Environment Flag "CONTILE_EXCLUDED_COUNTRIES_200" (specified
+    # in the `docker-compose.204.yml` file) and checks that Contile returns a 204 with
+    # no content if a request is made to an excluded country location.
     steps:
       - request:
           method: GET
@@ -17,6 +20,5 @@ scenarios:
             - name: X-Forwarded-For
               value: '89.160.20.115'
         response:
-          status_code: 200
-          content:
-            tiles: []
+          status_code: 204
+          content: ''

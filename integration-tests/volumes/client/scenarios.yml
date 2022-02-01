@@ -130,7 +130,7 @@ scenarios:
           status_code: 500 # Internal Server Error
           content: 520
 
-  - name: success_tablet_ios_reqwest
+  - name: error_tablet_ios_reqwest
     description: Test that Contile correctly handles invalid tiles responses from the partner API.
     steps:
       - request:
@@ -141,25 +141,10 @@ scenarios:
             # The following value will result in os-family: ios and form-factor: tablet
             # Note: Firefox for iPad uses the default desktop UA string.
             - name: User-Agent
-              value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Safari/605.1.15'
+              value: 'Mozilla/5.0 (iPad; CPU iPhone OS 11_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0 Mobile/15E148 Safari/605.1.15'
         response:
-          status_code: 200
-          content:
-            tiles:
-              - id: 12346
-                name: 'Example COM'
-                url: 'https://www.example.com/desktop_macos'
-                click_url: 'https://example.com/desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-                image_url: 'https://example.com/desktop_macos01.jpg'
-                image_size:
-                impression_url: 'https://example.com/desktop_macos?id=0001'
-              - id: 56790
-                name: 'Example ORG'
-                url: 'https://www.example.org/desktop_macos'
-                click_url: 'https://example.org/desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-                image_url: 'https://example.org/desktop_macos02.jpg'
-                image_size:
-                impression_url: 'https://example.org/desktop_macos?id=0002'
+          status_code: 204
+          content: ''
 
   - name: error_phone_ios_timeout
     description: Test that Contile behaves correctly when a request to the partner API times out.

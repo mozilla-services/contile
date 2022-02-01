@@ -82,19 +82,9 @@ phone:
 
 tablet:
     ios:
+      # While this is normally a valid type and the partner should return content for it, this test
+      # is about dealing with ADM returning invalid content. Contile should be able to handle this
+      # without returning a 500.
       status_code: 200
       headers: []
-      content:
-        tiles:
-          - id: 12346
-            name: 'Example COM'
-            click_url: 'https://example.com/desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
-            image_url: 'https://example.com/desktop_macos01.jpg'
-            impression_url: 'https://example.com/desktop_macos?id=0001'
-            advertiser_url: 'https://www.example.com/desktop_macos'
-          - id: 56790
-            name: 'Example ORG'
-            click_url: 'https://example.org/desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
-            image_url: 'https://example.org/desktop_macos02.jpg'
-            impression_url: 'https://example.org/desktop_macos?id=0002'
-            advertiser_url: 'https://www.example.org/desktop_macos'
+      content: "hello world"

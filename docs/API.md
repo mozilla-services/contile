@@ -6,9 +6,9 @@ Servers
 
 |environment | server |
 |--|--|
-|dev| https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/ |
-|stage| https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/ |
-|prod| https://contile.services.mozilla.com/ |
+|dev| <https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/> |
+|stage| <https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/> |
+|prod| <https://contile.services.mozilla.com/> |
 
 ## Calls
 
@@ -40,24 +40,24 @@ Returns a JSON structure containing the tile information. For example:
 
 ```json
 {"tiles":[
-    {
-        "id":74301,
-        "name":"Amazon",
-        "url":"https://...",
-        "click_url":"https://...",
-        "image_url":"https://...",
-        "image_size":200,
-        "impression_url":"...",
-    },
-    {
-        "id":74161,
-        "name":"eBay",
-        "url":"https://...",
-        "click_url":"https://...",
-        "image_url":"https://...",
-        "image_size":200,
-        "impression_url":"https://...",
-    }
+    {
+        "id":74301,
+        "name":"Amazon",
+        "url":"https://...",
+        "click_url":"https://...",
+        "image_url":"https://...",
+        "image_size":200,
+        "impression_url":"...",
+    },
+    {
+        "id":74161,
+        "name":"eBay",
+        "url":"https://...",
+        "click_url":"https://...",
+        "image_url":"https://...",
+        "image_size":200,
+        "impression_url":"https://...",
+    }
 ]}
 ```
 
@@ -89,4 +89,4 @@ In addition, the following extended Dockerflow endpoints are enabled:
 GET /__error__
 ```
 
-Force an error, used to test Sentry reporting. This has an optional parameter of `with_location=true` which will include detected IP location information in the Sentry error message.
+Force an error, used to test Sentry reporting. This has an optional parameter of `with_location=true` which will include detected IP location information in the Sentry error message.
