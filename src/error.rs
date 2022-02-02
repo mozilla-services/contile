@@ -13,6 +13,7 @@ use actix_web::{
     middleware::errhandlers::ErrorHandlerResponse,
     HttpResponse, Result,
 };
+use serde_json::json;
 use thiserror::Error;
 
 use crate::tags::Tags;
@@ -143,6 +144,29 @@ impl HandlerErrorKind {
     pub fn is_sentry_event(&self) -> bool {
         !matches!(self, HandlerErrorKind::InvalidUA)
     }
+
+    pub fn as_response_string(&self) -> String {
+        match self {
+            HandlerErrorKind::General(_) | HandlerErrorKind::Internal(_) => self.to_string(),
+            HandlerErrorKind::Reqwest(_) => {
+                format!("An error occurred while trying to request data")
+            }
+            HandlerErrorKind::BadAdmResponse(_)
+            | HandlerErrorKind::AdmServerError()
+            | HandlerErrorKind::AdmLoadError()
+            | HandlerErrorKind::Validation(_)
+            | HandlerErrorKind::InvalidHost(_, _)
+            | HandlerErrorKind::UnexpectedHost(_, _)
+            | HandlerErrorKind::MissingHost(_, _)
+            | HandlerErrorKind::UnexpectedAdvertiser(_)
+            | HandlerErrorKind::BadImage(_) => {
+                format!("An invalid response received from the partner")
+            }
+            HandlerErrorKind::Location(_) => self.to_string(),
+            HandlerErrorKind::CloudStorage(_) => format!("Could not cache an tile image"),
+            HandlerErrorKind::InvalidUA => format!("This service is for firefox only"),
+        }
+    }
 }
 
 impl From<HandlerErrorKind> for actix_web::Error {
@@ -212,14 +236,11 @@ impl fmt::Display for HandlerError {
 
 impl ResponseError for HandlerError {
     fn error_response(&self) -> HttpResponse {
-        // To return a descriptive error response, this would work. We do not
-        // unfortunately do that so that we can retain Sync 1.1 backwards compatibility
-        // as the Python one does.
-        // HttpResponse::build(self.status).json(self)
-        //
-        // So instead we translate our error to a backwards compatible one
         let mut resp = HttpResponse::build(self.status_code());
-        resp.json(self.kind().errno() as i32)
+        resp.json(json!({
+            "errno": self.kind().errno(),
+            "error": self.kind().as_response_string(),
+        }))
     }
 
     fn status_code(&self) -> StatusCode {

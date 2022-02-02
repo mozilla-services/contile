@@ -136,7 +136,9 @@ scenarios:
               value: 'Mozilla/5.0 (Android 11; Mobile; rv:92.0) Gecko/92.0 Firefox/92.0'
         response:
           status_code: 500 # Internal Server Error
-          content: 520
+          content:
+            errno: 520
+            error: 'An error occurred while trying to request data'
 
   - name: error_tablet_ios_reqwest_error
     description: Test that Contile correctly handles invalid tiles responses from the partner API.
