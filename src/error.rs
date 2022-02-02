@@ -149,7 +149,7 @@ impl HandlerErrorKind {
         match self {
             HandlerErrorKind::General(_) | HandlerErrorKind::Internal(_) => self.to_string(),
             HandlerErrorKind::Reqwest(_) => {
-                format!("An error occurred while trying to request data")
+                "An error occurred while trying to request data".to_string()
             }
             HandlerErrorKind::BadAdmResponse(_)
             | HandlerErrorKind::AdmServerError()
@@ -160,11 +160,11 @@ impl HandlerErrorKind {
             | HandlerErrorKind::MissingHost(_, _)
             | HandlerErrorKind::UnexpectedAdvertiser(_)
             | HandlerErrorKind::BadImage(_) => {
-                format!("An invalid response received from the partner")
+                "An invalid response received from the partner".to_string()
             }
             HandlerErrorKind::Location(_) => self.to_string(),
-            HandlerErrorKind::CloudStorage(_) => format!("Could not cache an tile image"),
-            HandlerErrorKind::InvalidUA => format!("This service is for firefox only"),
+            HandlerErrorKind::CloudStorage(_) => "Could not cache an tile image".to_string(),
+            HandlerErrorKind::InvalidUA => "This service is for firefox only".to_string(),
         }
     }
 }
