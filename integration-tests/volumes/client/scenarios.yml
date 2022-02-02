@@ -137,6 +137,7 @@ scenarios:
         response:
           status_code: 500 # Internal Server Error
           content:
+            code: 500
             errno: 520
             error: 'An error occurred while trying to request data'
 
@@ -169,6 +170,7 @@ scenarios:
         response:
           status_code: 503 # Service Unavailable
           content:
+            code: 503
             errno: 522
             error: 'An invalid response received from the partner'
 
@@ -186,6 +188,7 @@ scenarios:
         response:
           status_code: 403 # Forbidden
           content:
+            code: 403
             errno: 700
             error: 'This service is for firefox only'
 

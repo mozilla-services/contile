@@ -238,6 +238,7 @@ impl ResponseError for HandlerError {
     fn error_response(&self) -> HttpResponse {
         let mut resp = HttpResponse::build(self.status_code());
         resp.json(json!({
+            "code": self.kind().http_status().as_u16(),
             "errno": self.kind().errno(),
             "error": self.kind().as_response_string(),
         }))
