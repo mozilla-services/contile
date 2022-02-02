@@ -3,7 +3,8 @@ updates:
   - package-ecosystem: "pip"
     directory: "partner/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "friday"
     labels:
       - "Dependabot"
       - "dependencies"
@@ -12,7 +13,8 @@ updates:
   - package-ecosystem: "pip"
     directory: "client/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "friday"
     labels:
       - "Dependabot"
       - "dependencies"
