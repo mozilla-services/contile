@@ -34,7 +34,7 @@ toml==0.10.2
     #   mypy
 tomli==1.2.1
     # via black
-types-pyyaml==6.0.3
+types-pyyaml==6.0.4
     # via -r dev-requirements.in
 types-requests==2.27.8
     # via -r dev-requirements.in
