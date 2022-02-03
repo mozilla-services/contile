@@ -62,7 +62,7 @@ pub struct SentryWrapperMiddleware<S> {
 /// Report an error with [crate::tags::Tags] and [Event] directly to sentry
 ///
 /// And [Event] can be derived using `event_from_error(HandlerError)`
-pub fn report(tags: &Tags, mut event: Event<'static>) {
+pub fn report(mut event: Event<'static>, tags: &Tags) {
     let tags = tags.clone();
     event.tags = tags.clone().tag_tree();
     event.extra = tags.extra_tree();
@@ -118,7 +118,7 @@ where
                     {
                         for event in events {
                             trace!("Sentry: found an error stored in request: {:?}", &event);
-                            report(&tags, event);
+                            report(event, &tags);
                         }
                     }
                     if let Some(events) = sresp
@@ -128,7 +128,7 @@ where
                     {
                         for event in events {
                             trace!("Sentry: Found an error stored in response: {:?}", &event);
-                            report(&tags, event);
+                            report(event, &tags);
                         }
                     }
                 }
@@ -136,7 +136,7 @@ where
                     if let Some(herr) = e.as_error::<HandlerError>() {
                         if herr.kind().is_sentry_event() {
                             tags.extend(herr.tags.clone());
-                            report(&tags, event_from_error(herr));
+                            report(event_from_error(herr), &tags);
                         } else if let Some(label) = herr.kind().metric_label() {
                             metrics.incr_with_tags(label).send()
                         }

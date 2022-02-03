@@ -195,7 +195,7 @@ pub async fn get_tiles(
                         let mut tags = Tags::from_head(request.head(), settings);
                         tags.add_extra("err", es);
                         tags.add_tag("level", "warning");
-                        l_sentry::report(&tags, sentry::event_from_error(&e));
+                        l_sentry::report(sentry::event_from_error(&e), &tags);
                         warn!("ADM Server error: {:?}", e);
                         Ok(HttpResponse::NoContent().finish())
                     }
