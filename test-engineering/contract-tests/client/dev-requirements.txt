@@ -14,7 +14,7 @@ isort==5.10.1
     # via -r dev-requirements.in
 mccabe==0.6.1
     # via flake8
-mypy==0.910
+mypy==0.931
     # via -r dev-requirements.in
 mypy-extensions==0.4.3
     # via
@@ -28,12 +28,10 @@ pycodestyle==2.8.0
     # via flake8
 pyflakes==2.4.0
     # via flake8
-toml==0.10.2
-    # via
-    #   -c requirements.txt
-    #   mypy
 tomli==1.2.1
-    # via black
+    # via
+    #   black
+    #   mypy
 types-pyyaml==6.0.4
     # via -r dev-requirements.in
 types-requests==2.27.8
