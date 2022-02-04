@@ -6,8 +6,8 @@ services:
     environment:
       PORT: 5000
       RESPONSES_DIR: /tmp/partner/
-      ACCEPTED_MOBILE_FORM_FACTORS: 'desktop,phone,tablet'
-      ACCEPTED_DESKTOP_FORM_FACTORS: 'desktop,phone,tablet'
+      ACCEPTED_MOBILE_FORM_FACTORS: phone,tablet
+      ACCEPTED_DESKTOP_FORM_FACTORS: desktop
     expose:
       - "5000"
     volumes:
