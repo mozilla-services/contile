@@ -135,7 +135,7 @@ pub async fn get_tiles(
     tags: &mut Tags,
     metrics: &Metrics,
     headers: Option<&HeaderMap>,
-) -> Result<TileResponse, HandlerError> {
+) -> HandlerResult<TileResponse> {
     let settings = &state.settings;
     let image_store = &state.img_store;
     let adm_url = Url::parse_with_params(
