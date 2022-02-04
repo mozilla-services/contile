@@ -212,6 +212,7 @@ pub async fn get_tiles(
                     // We still want to track this as a server error later.
                     //
                     // TODO: Remove this after the shared cache is implemented.
+                    dbg!(&e);
                     let mut err: HandlerError = if e.is_timeout()
                         && Instant::now()
                             .checked_duration_since(state.start_up)

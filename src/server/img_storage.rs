@@ -187,12 +187,19 @@ impl StoreImage {
         }))
     }
 
-    pub fn meta(&self, image: &Bytes, fmt: ImageFormat) -> HandlerResult<ImageMetrics> {
+    pub fn meta(
+        &self,
+        uri: &uri::Uri,
+        image: &Bytes,
+        fmt: ImageFormat,
+    ) -> HandlerResult<ImageMetrics> {
         let mut reader = ImageReader::new(Cursor::new(image));
         reader.set_format(fmt);
         let img = reader.decode().map_err(|e| {
             let mut tags = Tags::default();
             tags.add_extra("error", &e.to_string());
+            tags.add_extra("url", &uri.to_string());
+            tags.add_extra("format", fmt.extensions_str().first().unwrap_or(&"Unknown"));
             let mut err: HandlerError = HandlerErrorKind::BadImage("Image unreadable").into();
             err.tags = tags;
             err
@@ -282,7 +289,7 @@ impl StoreImage {
                     return Err(err);
                 }
             };
-            self.meta(image, fmt)?
+            self.meta(uri, image, fmt)?
         };
         if self.settings.metrics.symmetric && image_metrics.width != image_metrics.height {
             let mut tags = Tags::default();
