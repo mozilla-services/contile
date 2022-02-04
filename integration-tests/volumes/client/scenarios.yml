@@ -136,7 +136,10 @@ scenarios:
               value: 'Mozilla/5.0 (Android 11; Mobile; rv:92.0) Gecko/92.0 Firefox/92.0'
         response:
           status_code: 500 # Internal Server Error
-          content: 520
+          content:
+            code: 500
+            errno: 520
+            error: 'An error occurred while trying to request data'
 
   - name: error_tablet_ios_reqwest_error
     description: Test that Contile correctly handles invalid tiles responses from the partner API.
@@ -166,7 +169,10 @@ scenarios:
               value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 11_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/35.0 Mobile/15E148 Safari/605.1.15'
         response:
           status_code: 503 # Service Unavailable
-          content: 522
+          content:
+            code: 503
+            errno: 522
+            error: 'An invalid response received from the partner'
 
   - name: error_invalid_user_agent
     description: Test that Contile correctly handles requests from non Firefox clients.
@@ -181,7 +187,10 @@ scenarios:
               value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 11_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1 Safari/605.1.15'
         response:
           status_code: 403 # Forbidden
-          content: 700
+          content:
+            code: 403
+            errno: 700
+            error: 'This service is for firefox only'
 
   - name: success_country_code_region_code
     description: Test that Contile successfully returns tiles for a specific country and region.

@@ -1,11 +1,13 @@
 version: "3"
 services:
   partner:
-    image: mozilla/contile-integration-tests-partner:21.6.0
+    image: mozilla/contile-integration-tests-partner:22.1.0
     container_name: partner
     environment:
       PORT: 5000
       RESPONSES_DIR: /tmp/partner/
+      ACCEPTED_MOBILE_FORM_FACTORS: 'desktop,phone,tablet'
+      ACCEPTED_DESKTOP_FORM_FACTORS: 'desktop,phone,tablet'
     expose:
       - "5000"
     volumes:
@@ -23,7 +25,7 @@ services:
       - partner
     environment:
       CONTILE_MAXMINDDB_LOC: /tmp/mmdb/GeoLite2-City-Test.mmdb
-      CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp
+      CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp/desktop
       CONTILE_ADM_QUERY_TILE_COUNT: 5
       CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings.json
       CONTILE_ADM_HAS_LEGACY_IMAGE: '["Example ORG","Example COM"]'
@@ -47,7 +49,7 @@ services:
     #entrypoint: >
     #  /bin/sh -c "hostname -I && bin/contile"
   client:
-    image: mozilla/contile-integration-tests-client:21.6.0
+    image: mozilla/contile-integration-tests-client:22.1.0
     container_name: client
     depends_on:
       - partner
