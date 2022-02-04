@@ -47,6 +47,7 @@ serde = "1.0"
 sentry = "0.19"
 sentry-backtrace = "0.19"
 serde_json = "1.0"
+scopeguard = "1.1.0"
 slog = { version = "2.7", features = ["max_level_trace", "release_max_level_info", "dynamic-keys"] }
 slog-async = "2.6"
 slog-envlogger = "2.2.0"

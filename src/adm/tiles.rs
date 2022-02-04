@@ -18,6 +18,7 @@ use crate::{
     server::ServerState,
     settings::Settings,
     tags::Tags,
+    web::middleware::sentry::report,
     web::DeviceInfo,
 };
 
@@ -132,7 +133,7 @@ pub async fn get_tiles(
     tags: &mut Tags,
     metrics: &Metrics,
     headers: Option<&HeaderMap>,
-) -> Result<TileResponse, HandlerError> {
+) -> HandlerResult<TileResponse> {
     let settings = &state.settings;
     let image_store = &state.img_store;
     let pse = AdmPse::appropriate_from_settings(&device_info, settings);
@@ -255,23 +256,33 @@ pub async fn get_tiles(
         .take(settings.adm_max_tiles as usize)
         .collect();
 
-    if filtered.is_empty() {
-        warn!("adm::get_tiles no valid tiles {}", adm_url);
-        metrics.incr_with_tags("filter.adm.all_filtered", Some(tags));
-    }
     let mut tiles: Vec<Tile> = Vec::new();
     for mut tile in filtered {
         if let Some(storage) = image_store {
             // we should have already proven the image_url in `filter_and_process`
             // we need to validate the image, store the image for eventual CDN retrieval,
             // and get the metrics of the image.
-            let result = storage.store(&tile.image_url.parse().unwrap()).await?;
-            tile.image_url = result.url.to_string();
-            // Since height should equal width, using either value here works.
-            tile.image_size = Some(result.image_metrics.width);
+            match storage.store(&tile.image_url.parse().unwrap()).await {
+                Ok(result) => {
+                    tile.image_url = result.url.to_string();
+                    // Since height should equal width, using either value here works.
+                    tile.image_size = Some(result.image_metrics.width);
+                }
+                Err(e) => {
+                    // quietly report the error, and drop the tile.
+                    report(sentry::event_from_error(&e), tags);
+                    continue;
+                }
+            }
         }
         tiles.push(tile);
     }
+
+    if tiles.is_empty() {
+        warn!("adm::get_tiles no valid tiles {}", adm_url);
+        metrics.incr_with_tags("filter.adm.all_filtered", Some(tags));
+    }
+
     Ok(TileResponse { tiles })
 }
 

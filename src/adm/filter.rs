@@ -140,7 +140,7 @@ impl AdmFilter {
         // TODO: if not error.is_reportable, just add to metrics.
         let mut merged_tags = error.tags.clone();
         merged_tags.extend(tags.clone());
-        l_sentry::report(&merged_tags, sentry::event_from_error(error));
+        l_sentry::report(sentry::event_from_error(error), &merged_tags);
     }
 
     /// check to see if the bucket has been modified since the last time we updated.
