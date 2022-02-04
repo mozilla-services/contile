@@ -1,7 +1,6 @@
 //! Tile cache manager
 use std::{
     fmt::Debug,
-    ops::Deref,
     sync::Arc,
     time::{Duration, SystemTime},
 };
@@ -56,13 +55,91 @@ impl TilesCache {
             }
         });
     }
+
+    /// Get an immutable reference to an entry in the cache
+    pub fn get(
+        &self,
+        audience_key: &AudienceKey,
+    ) -> Option<dashmap::mapref::one::Ref<'_, AudienceKey, TilesState>> {
+        self.inner.get(audience_key)
+    }
+
+    /// Prepare to write to the cache.
+    ///
+    /// Sets the cache entry to the Refreshing/Populating states.
+    /// `WriteHandle` resets those states when it goes out of scope if no
+    /// `insert` call was issued (due to errors or panics).
+    pub fn prepare_write<'a>(
+        &'a self,
+        audience_key: &'a AudienceKey,
+        expired: bool,
+    ) -> WriteHandle<'a, impl FnOnce(()) + '_> {
+        if expired {
+            // The cache entry's expired and we're about to refresh it
+            trace!("prepare_write: Fresh now expired, Refreshing");
+            self.inner
+                .alter(audience_key, |_, tiles_state| match tiles_state {
+                    TilesState::Fresh { tiles } if tiles.expired() => {
+                        TilesState::Refreshing { tiles }
+                    }
+                    _ => tiles_state,
+                });
+        } else {
+            // We'll populate this cache entry for probably the first time
+            trace!("prepare_write: Populating");
+            self.inner
+                .insert(audience_key.clone(), TilesState::Populating);
+        };
+
+        let guard = scopeguard::guard((), move |_| {
+            trace!("prepare_write (ScopeGuard cleanup): Resetting state");
+            if expired {
+                // Back to Fresh (though the tiles are expired): so a later request
+                // will retry refreshing again
+                self.inner
+                    .alter(audience_key, |_, tiles_state| match tiles_state {
+                        TilesState::Refreshing { tiles } => TilesState::Fresh { tiles },
+                        _ => tiles_state,
+                    });
+            } else {
+                // Clear the entry: a later request will retry populating again
+                self.inner.remove_if(audience_key, |_, tiles_state| {
+                    matches!(tiles_state, TilesState::Populating)
+                });
+            }
+        });
+        WriteHandle {
+            cache: self,
+            audience_key,
+            guard,
+        }
+    }
 }
 
-impl Deref for TilesCache {
-    type Target = Arc<DashMap<AudienceKey, TilesState>>;
+/// Manages a write to a specific `TilesCache` entry.
+///
+/// This will reset the temporary state set by `prepare_write` when it's gone
+/// out of scope and no `insert` was issued (e.g. in the case of errors or
+/// panics).
+pub struct WriteHandle<'a, F>
+where
+    F: FnOnce(()),
+{
+    cache: &'a TilesCache,
+    audience_key: &'a AudienceKey,
+    guard: scopeguard::ScopeGuard<(), F>,
+}
 
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl<F> WriteHandle<'_, F>
+where
+    F: FnOnce(()),
+{
+    /// Insert a value into the cache for our audience_key
+    pub fn insert(self, tiles: TilesState) {
+        self.cache.inner.insert(self.audience_key.clone(), tiles);
+        // With the write completed cancel scopeguard's cleanup
+        scopeguard::ScopeGuard::into_inner(self.guard);
+        trace!("WriteHandle: ScopeGuard defused (cancelled)");
     }
 }
 
@@ -140,7 +217,7 @@ async fn tiles_cache_garbage_collect(cache: &TilesCache, metrics: &Metrics) {
     // calculate the size and GC (for seldomly used Tiles) while we're at it
     let mut cache_count = 0;
     let mut cache_size = 0;
-    for refm in cache.iter() {
+    for refm in cache.inner.iter() {
         cache_count += 1;
         cache_size += refm.value().size();
     }

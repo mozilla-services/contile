@@ -6,7 +6,7 @@ use rand::{thread_rng, Rng};
 
 use crate::{
     adm,
-    error::{HandlerError, HandlerErrorKind},
+    error::{HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     server::{
         cache::{self, Tiles, TilesState},
@@ -43,7 +43,7 @@ pub async fn get_tiles(
     metrics: Metrics,
     state: web::Data<ServerState>,
     request: HttpRequest,
-) -> Result<HttpResponse, HandlerError> {
+) -> HandlerResult<HttpResponse> {
     trace!("get_tiles");
     metrics.incr("tiles.get");
 
@@ -127,22 +127,13 @@ pub async fn get_tiles(
 
     // Alter the cache separately from the read above: writes are more
     // expensive and these alterations occur infrequently
-    if expired {
-        // The cache entry's expired and we're about to refresh it
-        trace!("get_tiles: Fresh now expired, Refreshing");
-        state
-            .tiles_cache
-            .alter(&audience_key, |_, tiles_state| match tiles_state {
-                TilesState::Fresh { tiles } if tiles.expired() => TilesState::Refreshing { tiles },
-                _ => tiles_state,
-            });
-    } else {
-        // We'll populate this cache entry for probably the first time
-        trace!("get_tiles: Populating");
-        state
-            .tiles_cache
-            .insert(audience_key.clone(), TilesState::Populating);
-    };
+
+    // Prepare to write: temporarily set the cache entry to
+    // Refreshing/Populating until we've completed our write, notifying other
+    // requests in flight during this time to return stale data/204 No Content
+    // instead of making duplicate/redundant writes. The handle will reset the
+    // temporary state if no write occurs (due to errors/panics)
+    let handle = state.tiles_cache.prepare_write(&audience_key, expired);
 
     let result = adm::get_tiles(
         &state,
@@ -159,75 +150,43 @@ pub async fn get_tiles(
     )
     .await;
 
-    let handle_result = || {
-        match result {
-            Ok(response) => {
-                let tiles = cache::Tiles::new(response, add_jitter(&state.settings))?;
-                trace!(
-                    "get_tiles: cache miss{}: {:?}",
-                    if expired { " (expired)" } else { "" },
-                    &audience_key
-                );
-                metrics.incr("tiles_cache.miss");
-                state.tiles_cache.insert(
-                    audience_key.clone(),
-                    TilesState::Fresh {
-                        tiles: tiles.clone(),
-                    },
-                );
-                Ok(content_response(&tiles.content))
-            }
-            Err(e) => {
-                // Add some kind of stats to Retrieving or RetrievingFirst?
-                // do we need a kill switch if we're restricting like this already?
-                match e.kind() {
-                    HandlerErrorKind::BadAdmResponse(es) => {
-                        warn!("Bad response from ADM: {:?}", e);
-                        metrics.incr_with_tags("tiles.invalid", Some(&tags));
-                        state.tiles_cache.insert(
-                            audience_key.clone(),
-                            TilesState::Fresh {
-                                tiles: Tiles::empty(add_jitter(&state.settings)),
-                            },
-                        );
-                        // Report directly to sentry
-                        // (This is starting to become a pattern. 🤔)
-                        let mut tags = Tags::from_head(request.head(), settings);
-                        tags.add_extra("err", es);
-                        tags.add_tag("level", "warning");
-                        l_sentry::report(sentry::event_from_error(&e), &tags);
-                        warn!("ADM Server error: {:?}", e);
-                        Ok(HttpResponse::NoContent().finish())
-                    }
-                    _ => Err(e),
-                }
-            }
+    match result {
+        Ok(response) => {
+            let tiles = cache::Tiles::new(response, add_jitter(&state.settings))?;
+            trace!(
+                "get_tiles: cache miss{}: {:?}",
+                if expired { " (expired)" } else { "" },
+                &audience_key
+            );
+            metrics.incr("tiles_cache.miss");
+            handle.insert(TilesState::Fresh {
+                tiles: tiles.clone(),
+            });
+            Ok(content_response(&tiles.content))
         }
-    };
-
-    let result = handle_result();
-    // Cleanup the TilesState on errors
-    // TODO: potential panics are not currently cleaned up
-    if result.is_err() {
-        if expired {
-            // Back to Fresh (though the tiles are expired): so a later request
-            // will retry refreshing again
-            state
-                .tiles_cache
-                .alter(&audience_key, |_, tiles_state| match tiles_state {
-                    TilesState::Refreshing { tiles } => TilesState::Fresh { tiles },
-                    _ => tiles_state,
-                });
-        } else {
-            // Clear the entry: a later request will retry populating again
-            state
-                .tiles_cache
-                .remove_if(&audience_key, |_, tiles_state| {
-                    matches!(tiles_state, TilesState::Populating)
-                });
+        Err(e) => {
+            // Add some kind of stats to Retrieving or RetrievingFirst?
+            // do we need a kill switch if we're restricting like this already?
+            match e.kind() {
+                HandlerErrorKind::BadAdmResponse(es) => {
+                    warn!("Bad response from ADM: {:?}", e);
+                    metrics.incr_with_tags("tiles.invalid", Some(&tags));
+                    handle.insert(TilesState::Fresh {
+                        tiles: Tiles::empty(add_jitter(&state.settings)),
+                    });
+                    // Report directly to sentry
+                    // (This is starting to become a pattern. 🤔)
+                    let mut tags = Tags::from_head(request.head(), settings);
+                    tags.add_extra("err", es);
+                    tags.add_tag("level", "warning");
+                    l_sentry::report(sentry::event_from_error(&e), &tags);
+                    warn!("ADM Server error: {:?}", e);
+                    Ok(HttpResponse::NoContent().finish())
+                }
+                _ => Err(e),
+            }
         }
     }
-    result
 }
 
 fn content_response(content: &cache::TilesContent) -> HttpResponse {
