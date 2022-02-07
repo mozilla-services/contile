@@ -133,7 +133,7 @@ scenarios:
             errno: 520
             error: 'An error occurred while trying to request data'
 
-  - name: error_tablet_ios_reqwest
+  - name: error_tablet_ios_reqwest_error
     description: Test that Contile correctly handles invalid tiles responses from the partner API.
     steps:
       - request:

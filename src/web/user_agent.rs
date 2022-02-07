@@ -70,7 +70,7 @@ impl DeviceInfo {
 pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
     let mut wresult = Parser::new().parse(ua).unwrap_or_default();
 
-    // NOTE: Firefox on iPads report back the "desktop" UA
+    // NOTE: Firefox on iPads report back the Safari "desktop" UA
     // (e.g. `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/605.1.15
     //        (KHTML, like Gecko) Version/13.1 Safari/605.1.15)`
     // therefore we have to accept that one. This does mean that we may presume

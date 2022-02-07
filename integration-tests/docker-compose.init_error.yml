@@ -3,8 +3,8 @@ version: "3"
 services:
   contile:
     environment:
-      CONTILE_ADM_SUB1: test
-      CONTILE_ADM_PARTNER_ID: test
+      CONTILE_ADM_SUB1: sub1_test
+      CONTILE_ADM_PARTNER_ID: partner_id_test
       CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings_init_error.json
   client:
     environment:
