@@ -14,6 +14,7 @@ use super::AdmFilter;
 use crate::{
     error::{HandlerError, HandlerResult},
     settings::Settings,
+    web::DeviceInfo,
 };
 
 /// The name of the "Default" node, which is used as a fall back if no data
@@ -176,12 +177,60 @@ where
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct AdmSettings {
+pub struct AdmPse {
+    pub partner_id: String,
+    pub sub1: String,
+    pub endpoint: String,
+}
+
+/// ADM Partner/Sub1/Endpoint.
+/// These change depending on the type of device requesting the tile.
+///
+/// Currently, we only need to check for two patterns "mobile" and "default",
+/// but there's no guarantee that will always be the case. Hopefully this
+/// pattern provides flexibility for future changes.
+impl AdmPse {
+    /// Return the information for a mobile connection
+    pub fn mobile_from_settings(settings: &Settings) -> Self {
+        let default = Self::default_from_settings(settings);
+        AdmPse {
+            partner_id: settings
+                .adm_mobile_partner_id
+                .clone()
+                .unwrap_or(default.partner_id),
+            sub1: settings.adm_mobile_sub1.clone().unwrap_or(default.sub1),
+            endpoint: settings
+                .adm_mobile_endpoint_url
+                .clone()
+                .unwrap_or(default.endpoint),
+        }
+    }
+
+    /// Return the information for a generic connection
+    pub fn default_from_settings(settings: &Settings) -> Self {
+        AdmPse {
+            partner_id: settings.adm_partner_id.clone().unwrap_or_default(),
+            sub1: settings.adm_sub1.clone().unwrap_or_default(),
+            endpoint: settings.adm_endpoint_url.clone(),
+        }
+    }
+
+    /// Determine the correct type of information to return based on device info.
+    pub fn appropriate_from_settings(device_info: &DeviceInfo, settings: &Settings) -> Self {
+        if device_info.is_mobile() {
+            return Self::mobile_from_settings(settings);
+        }
+        Self::default_from_settings(settings)
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct AdmFilterSettings {
     bucket: Option<url::Url>,
     pub advertisers: HashMap<String, AdmAdvertiserFilterSettings>,
 }
 
-impl Serialize for AdmSettings {
+impl Serialize for AdmFilterSettings {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -191,7 +240,7 @@ impl Serialize for AdmSettings {
 }
 
 /// Create AdmSettings from a string serialized JSON format
-impl TryFrom<String> for AdmSettings {
+impl TryFrom<String> for AdmFilterSettings {
     type Error = ConfigError;
 
     fn try_from(settings_str: String) -> Result<Self, Self::Error> {
@@ -232,18 +281,18 @@ impl TryFrom<String> for AdmSettings {
                 return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
             }
         }
-        Ok(AdmSettings {
+        Ok(AdmFilterSettings {
             advertisers: adm_settings,
             ..Default::default()
         })
     }
 }
 
-impl AdmSettings {
+impl AdmFilterSettings {
     /// Try to fetch the ADM settings from a Google Storage bucket url.
     pub async fn from_settings_bucket(
         settings_bucket: &url::Url,
-    ) -> Result<AdmSettings, ConfigError> {
+    ) -> Result<AdmFilterSettings, ConfigError> {
         let settings_str = settings_bucket.as_str();
         if settings_bucket.scheme() != "gs" {
             return Err(ConfigError::Message(format!(
@@ -262,7 +311,7 @@ impl AdmSettings {
             .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
         let mut reply =
-            AdmSettings::try_from(String::from_utf8(contents).map_err(|e| {
+            AdmFilterSettings::try_from(String::from_utf8(contents).map_err(|e| {
                 ConfigError::Message(format!("Could not read ADM Settings: {:?}", e))
             })?)?;
         reply.bucket = Some(settings_bucket.clone());
@@ -275,35 +324,22 @@ impl AdmSettings {
 /// This allows `CONTILE_ADM_SETTINGS` to either be specified as inline JSON, or if the
 /// Settings are too large to fit into an ENV string, specified in a path to where the
 /// settings more comfortably fit.
-impl TryFrom<&mut Settings> for AdmSettings {
+impl TryFrom<&mut Settings> for AdmFilterSettings {
     type Error = ConfigError;
 
     fn try_from(settings: &mut Settings) -> Result<Self, Self::Error> {
         // TODO: Convert these to macros.
         if settings.adm_sub1.is_none() {
-            if settings.sub1.is_some() {
-                settings.adm_sub1 = settings.sub1.clone();
-                eprintln!(
-                    "{:?} is obsolete and will be removed. Please use {:?}",
-                    "sub1", "adm_sub1"
-                );
-            } else {
-                return Err(ConfigError::Message(format!(
-                    "Missing argument {}",
-                    "adm_sub1"
-                )));
-            }
+            return Err(ConfigError::Message(format!(
+                "Missing argument {}",
+                "adm_sub1"
+            )));
         }
         if settings.adm_partner_id.is_none() {
-            if settings.partner_id.is_some() {
-                settings.adm_partner_id = settings.partner_id.clone();
-                eprintln!(
-                    "{:?} is obsolete and will be removed. Please use {:?}",
-                    "partner_id", "adm_partner_id"
-                );
-            } else {
-                return Err(ConfigError::Message(format!("Missing argument {}", "$new")));
-            }
+            return Err(ConfigError::Message(format!(
+                "Missing argument {}",
+                "adm_partner_id"
+            )));
         }
         if settings.adm_settings.is_empty() {
             return Ok(Self::default());
@@ -320,7 +356,7 @@ impl TryFrom<&mut Settings> for AdmSettings {
                 })?;
             }
         }
-        AdmSettings::try_from(settings_str)
+        AdmFilterSettings::try_from(settings_str)
     }
 }
 
@@ -375,7 +411,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
                 None
             }
         };
-        for (adv, setting) in AdmSettings::try_from(settings)
+        for (adv, setting) in AdmFilterSettings::try_from(settings)
             .map_err(|e| HandlerError::internal(&e.to_string()))?
             .advertisers
         {
@@ -414,30 +450,6 @@ mod tests {
 
     use super::*;
     use crate::web::test::adm_settings;
-
-    #[test]
-    pub fn test_obsolete_settings() {
-        let mut settings = Settings::default();
-        let sub1 = "12345".to_owned();
-        let partner_id = "falafal".to_owned();
-
-        // New overrides old
-        settings.adm_sub1 = Some(sub1.clone());
-        settings.adm_partner_id = Some(partner_id.clone());
-        settings.sub1 = Some("000000".to_owned());
-        settings.partner_id = Some("banana".to_owned());
-        AdmSettings::try_from(&mut settings).unwrap();
-        assert!(settings.adm_sub1 == Some(sub1.clone()));
-        assert!(settings.adm_partner_id == Some(partner_id.clone()));
-
-        // Old defaults accepted as unspecified new
-        env::set_var("CONTILE_SUB1", &sub1);
-        env::set_var("CONTILE_PARTNER_ID", &partner_id);
-        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
-        AdmSettings::try_from(&mut settings).unwrap();
-        assert!(settings.adm_sub1 == Some(sub1));
-        assert!(settings.adm_partner_id == Some(partner_id));
-    }
 
     #[test]
     pub fn test_lower_ignore() {
@@ -496,6 +508,6 @@ mod tests {
             ]
         }}"#;
         settings.adm_settings = adm_settings.to_owned();
-        assert!(AdmSettings::try_from(&mut settings).is_err());
+        assert!(AdmFilterSettings::try_from(&mut settings).is_err());
     }
 }

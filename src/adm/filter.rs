@@ -13,7 +13,7 @@ use url::Url;
 
 use super::{
     tiles::{AdmTile, Tile},
-    AdmAdvertiserFilterSettings, AdmSettings, DEFAULT,
+    AdmAdvertiserFilterSettings, AdmFilterSettings, DEFAULT,
 };
 use crate::{
     adm::settings::PathMatching,
@@ -170,7 +170,7 @@ impl AdmFilter {
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmSettings::from_settings_bucket(bucket)
+            let adm_settings = AdmFilterSettings::from_settings_bucket(bucket)
                 .await
                 .map_err(|e| {
                     HandlerError::internal(&format!(
@@ -436,10 +436,7 @@ impl AdmFilter {
                 // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
                 // defined. In either case `None` is a valid return, but we should favor `filter` over
                 // `default`.
-                Some(Tile::from_adm_tile(
-                    tile,
-                    filter.position.or(default.position),
-                ))
+                Some(Tile::from_adm_tile(tile))
             }
             None => {
                 if !self.ignore_list.contains(&tile.name.to_lowercase()) {

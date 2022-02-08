@@ -33,7 +33,6 @@ const REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARG
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
-    pub adm_endpoint_url: String,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
@@ -47,7 +46,6 @@ impl Clone for ServerState {
     fn clone(&self) -> Self {
         Self {
             metrics: self.metrics.clone(),
-            adm_endpoint_url: self.adm_endpoint_url.clone(),
             reqwest_client: self.reqwest_client.clone(),
             tiles_cache: self.tiles_cache.clone(),
             settings: self.settings.clone(),
@@ -63,7 +61,8 @@ impl std::fmt::Debug for ServerState {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fmt.debug_struct("ServerState")
             .field("metrics", &self.metrics)
-            .field("adm_endpoint_url", &self.adm_endpoint_url)
+            .field("adm_endpoint_url", &self.settings.adm_endpoint_url)
+            .field("adm_mobile_endpoint_url", &self.settings.adm_endpoint_url)
             .field("reqwest_client", &self.reqwest_client)
             .field("tiles_cache", &self.tiles_cache)
             .finish()
@@ -126,7 +125,6 @@ impl Server {
         };
         let state = ServerState {
             metrics: Box::new(metrics.clone()),
-            adm_endpoint_url: settings.adm_endpoint_url.clone(),
             reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             settings: settings.clone(),

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    adm::DEFAULT,
+    adm::{AdmPse, DEFAULT},
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     server::ServerState,
@@ -87,7 +87,6 @@ pub struct TileResponse {
 /// The individual tile data sent to the User Agent
 /// Differs from AdmTile in:
 ///   - advertiser_url -> url
-///   - includes an optional position
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Tile {
     pub id: u64,
@@ -99,11 +98,10 @@ pub struct Tile {
     pub image_url: String,
     pub image_size: Option<u32>,
     pub impression_url: String,
-    pub position: Option<u8>,
 }
 
 impl Tile {
-    pub fn from_adm_tile(tile: AdmTile, position: Option<u8>) -> Self {
+    pub fn from_adm_tile(tile: AdmTile) -> Self {
         // Generate a base response tile from the ADM provided tile structure.
         // NOTE: the `image_size` is still required to be determined, and is
         // provided by `StoreImage.store()`
@@ -115,7 +113,6 @@ impl Tile {
             image_url: tile.image_url,
             image_size: None,
             impression_url: tile.impression_url,
-            position,
         }
     }
 }
@@ -139,11 +136,12 @@ pub async fn get_tiles(
 ) -> HandlerResult<TileResponse> {
     let settings = &state.settings;
     let image_store = &state.img_store;
+    let pse = AdmPse::appropriate_from_settings(&device_info, settings);
     let adm_url = Url::parse_with_params(
-        &state.adm_endpoint_url,
+        &pse.endpoint,
         &[
-            ("partner", settings.adm_partner_id.clone().unwrap().as_str()),
-            ("sub1", settings.adm_sub1.clone().unwrap().as_str()),
+            ("partner", pse.partner_id.as_str()),
+            ("sub1", pse.sub1.as_str()),
             ("sub2", "newtab"),
             (
                 "country-code",

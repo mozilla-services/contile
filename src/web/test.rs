@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 use url::Url;
 
 use crate::{
-    adm::{AdmFilter, AdmSettings, DEFAULT},
+    adm::{AdmFilter, AdmFilterSettings, DEFAULT},
     build_app,
     error::{HandlerError, HandlerResult},
     metrics::Metrics,
@@ -58,7 +58,6 @@ macro_rules! init_app {
             };
             let state = ServerState {
                 metrics: Box::new(metrics.clone()),
-                adm_endpoint_url: $settings.adm_endpoint_url.clone(),
                 reqwest_client: reqwest::Client::new(),
                 tiles_cache: cache::TilesCache::new(10),
                 settings: $settings.clone(),
@@ -128,7 +127,7 @@ fn init_mock_adm(response: String) -> MockAdm {
     }
 }
 
-pub fn adm_settings() -> AdmSettings {
+pub fn adm_settings() -> AdmFilterSettings {
     let adm_settings = json!({
         "Acme": {
             "advertiser_urls": [{ "host": "www.acme.biz" }],
@@ -159,7 +158,7 @@ pub fn adm_settings() -> AdmSettings {
             "include_regions": []
         }
     });
-    AdmSettings::try_from(adm_settings.to_string()).unwrap()
+    AdmFilterSettings::try_from(adm_settings.to_string()).unwrap()
 }
 
 /// Basic integration test
@@ -385,10 +384,8 @@ async fn basic_filtered() {
     // Ensure the tile order from adM is preserved
     let tile1 = &tiles[0];
     assert_eq!(tile1["name"], "Acme");
-    assert_eq!(tile1["position"], 0);
     let tile2 = &tiles[1];
     assert_eq!(tile2["name"], "Los Pollos Hermanos");
-    assert_eq!(tile2["position"], 2);
 }
 
 #[actix_rt::test]

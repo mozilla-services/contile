@@ -58,12 +58,28 @@ impl DeviceInfo {
         self.os_family == OsFamily::IOs && self.ff_version < 36
             || self.os_family != OsFamily::IOs && self.ff_version < 91
     }
+
+    /// Determine if the device is a mobile phone based on either the form factor or OS.
+    pub fn is_mobile(&self) -> bool {
+        matches!(&self.form_factor, FormFactor::Phone | FormFactor::Tablet)
+            || matches!(&self.os_family, OsFamily::Android | OsFamily::IOs)
+    }
 }
 
 /// Parse a User-Agent header into a simplified `DeviceInfo`
 pub fn get_device_info(ua: &str) -> HandlerResult<DeviceInfo> {
-    let wresult = Parser::new().parse(ua).unwrap_or_default();
+    let mut wresult = Parser::new().parse(ua).unwrap_or_default();
 
+    // NOTE: Firefox on iPads report back the Safari "desktop" UA
+    // (e.g. `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/605.1.15
+    //        (KHTML, like Gecko) Version/13.1 Safari/605.1.15)`
+    // therefore we have to accept that one. This does mean that we may presume
+    // that a mac safari UA is an iPad.
+    if wresult.name.to_lowercase() == "safari" && !ua.to_lowercase().contains("firefox/") {
+        wresult.name = "firefox";
+        wresult.category = "smartphone";
+        wresult.os = "ipad";
+    }
     // If it's not firefox, it doesn't belong here...
     if !["firefox"].contains(&wresult.name.to_lowercase().as_str()) {
         let mut err: HandlerError = HandlerErrorKind::InvalidUA.into();
@@ -162,18 +178,20 @@ mod tests {
 
     #[test]
     fn ios() {
-        assert_get_device_info!(
-            "Mozilla/5.0 (iPad; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4",
-            OsFamily::IOs,
-            FormFactor::Tablet,
-            1
-        );
-        assert_get_device_info!(
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/2.0 Mobile/12F69 Safari/600.1.4",
-            OsFamily::IOs,
-            FormFactor::Phone,
-            2
-        );
+        let ipad_ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Safari/605.1.15";
+        let macos_ua =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:95.0) Gecko/20100101 Firefox/95.0";
+        let iphone_ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_8_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/40.2 Mobile/15E148 Safari/605.1.15";
+        /*
+        // for test debugging
+        dbg!(woothee::parser::Parser::new().parse(ipad_ua).unwrap());
+        dbg!(woothee::parser::Parser::new().parse(macos_ua).unwrap());
+        dbg!(woothee::parser::Parser::new().parse(iphone_ua).unwrap());
+        */
+
+        assert_get_device_info!(ipad_ua, OsFamily::IOs, FormFactor::Tablet, 13);
+        assert_get_device_info!(iphone_ua, OsFamily::IOs, FormFactor::Phone, 40);
+        assert_get_device_info!(macos_ua, OsFamily::MacOs, FormFactor::Desktop, 95);
     }
 
     #[test]

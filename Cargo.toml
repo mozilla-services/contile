@@ -6,7 +6,7 @@ authors = [
   "jrconlin <jr+git@mozilla.com>",
   "Mozilla Services Engineering <services-engineering+code@mozilla.com>"
 ]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

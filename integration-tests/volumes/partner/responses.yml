@@ -82,6 +82,9 @@ phone:
 
 tablet:
     ios:
+      # While this is normally a valid type and the partner should return content for it, this test
+      # is about dealing with ADM returning invalid content. Contile should be able to handle this
+      # without returning a 500.
       status_code: 200
       headers: []
       content: "hello world"

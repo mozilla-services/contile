@@ -7,7 +7,7 @@ use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
-use crate::adm::AdmSettings;
+use crate::adm::AdmFilterSettings;
 use crate::server::{img_storage::StorageSettings, ServerState};
 
 static PREFIX: &str = "contile";
@@ -101,6 +101,10 @@ pub struct Settings {
     pub adm_sub1: Option<String>,
     /// adm Endpoint URL
     pub adm_endpoint_url: String,
+    /// Mobile versions of the above
+    pub adm_mobile_partner_id: Option<String>,
+    pub adm_mobile_sub1: Option<String>,
+    pub adm_mobile_endpoint_url: Option<String>,
     /// max number of tiles returned to clients (default: 2)
     pub adm_max_tiles: u8,
     /// number of tiles to query from ADM (default: 10)
@@ -121,10 +125,6 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
-
-    // OBSOLETE:
-    pub sub1: Option<String>,
-    pub partner_id: Option<String>,
     /// Percentage of overall time for fetch "jitter".
     pub jitter: u8,
 }
@@ -158,6 +158,9 @@ impl Default for Settings {
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
             adm_sub1: None,
+            adm_mobile_endpoint_url: None,
+            adm_mobile_partner_id: None,
+            adm_mobile_sub1: None,
             adm_max_tiles: 2,
             adm_query_tile_count: 10,
             adm_timeout: 5,
@@ -168,8 +171,6 @@ impl Default for Settings {
             adm_has_legacy_image: Some(
                 r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
             ),
-            sub1: Some("demofeed".to_owned()),
-            partner_id: Some("123456789".to_owned()),
             // +/- 10% of time for jitter.
             jitter: 10,
         }
@@ -191,7 +192,7 @@ impl Settings {
 
         // preflight check the storage
         let _ = StorageSettings::from(&*self);
-        AdmSettings::try_from(&mut *self)?;
+        AdmFilterSettings::try_from(&mut *self)?;
         Ok(())
     }
 
@@ -222,6 +223,8 @@ impl Settings {
                     trace!("!! Running in test mode!");
                     s.adm_endpoint_url = "http://localhost:8675/".to_owned();
                     s.debug = true;
+                    s.adm_partner_id = Some("test".to_owned());
+                    s.adm_sub1 = Some("test".to_owned());
                 }
                 // Adjust the max values if required.
                 s.verify_settings()?;
@@ -284,6 +287,8 @@ mod tests {
         let mut settings = Settings {
             fallback_country: "USA".to_owned(),
             adm_endpoint_url: "http://localhost:8080".to_owned(),
+            adm_sub1: Some("test".to_owned()),
+            adm_partner_id: Some("test".to_owned()),
             ..Default::default()
         };
         assert!(settings.verify_settings().is_err());

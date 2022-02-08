@@ -6,8 +6,8 @@ services:
     environment:
       PORT: 5000
       RESPONSES_DIR: /tmp/partner/
-      ACCEPTED_MOBILE_FORM_FACTORS: 'desktop,phone,tablet'
-      ACCEPTED_DESKTOP_FORM_FACTORS: 'desktop,phone,tablet'
+      ACCEPTED_MOBILE_FORM_FACTORS: phone,tablet
+      ACCEPTED_DESKTOP_FORM_FACTORS: desktop
     expose:
       - "5000"
     volumes:
@@ -26,8 +26,11 @@ services:
     environment:
       CONTILE_MAXMINDDB_LOC: /tmp/mmdb/GeoLite2-City-Test.mmdb
       CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp/desktop
+      CONTILE_ADM_MOBILE_ENDPOINT_URL: http://partner:5000/tilesp/mobile
       CONTILE_ADM_QUERY_TILE_COUNT: 5
       CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings.json
+      CONTILE_ADM_SUB1: sub1_test
+      CONTILE_ADM_PARTNER_ID: partner_id_test
       CONTILE_ADM_HAS_LEGACY_IMAGE: '["Example ORG","Example COM"]'
       # Timeout requests to the ADM server after this many seconds (default: 5)
       CONTILE_ADM_TIMEOUT: 2
