@@ -174,7 +174,11 @@ impl StoreImage {
         //
 
         // verify that the bucket can be read
-        let _content = Bucket::read(&settings.bucket_name)
+        let req = reqwest::Client::builder()
+            .timeout(Duration::from_secs(settings.request_timeout))
+            .build()?;
+
+        let _content = Bucket::read_with(&settings.bucket_name, &req)
             .await
             .map_err(|e| HandlerError::internal(&format!("Could not read bucket {:?}", e)))?;
 
@@ -342,9 +346,12 @@ impl StoreImage {
             }
         );
 
+        let req = reqwest::Client::builder()
+            .timeout(Duration::from_secs(self.settings.request_timeout))
+            .build()?;
         // check to see if image has already been stored.
         if let Ok(exists) =
-            cloud_storage::Object::read(&self.settings.bucket_name, &image_path).await
+            cloud_storage::Object::read_with(&self.settings.bucket_name, &image_path, &req).await
         {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
             return Ok(StoredImage {
@@ -361,6 +368,7 @@ impl StoreImage {
             &image_path,
             content_type,
             Some(&[("ifGenerationMatch", "0")]),
+            Some(req),
         )
         .await
         {

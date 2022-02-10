@@ -4,6 +4,7 @@ use std::{
     fmt::Debug,
     iter::FromIterator,
     sync::{Arc, RwLock},
+    time::Duration,
 };
 
 use actix_http::http::Uri;
@@ -58,7 +59,8 @@ pub struct AdmFilter {
     pub source: String,
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
-    pub refresh_rate: std::time::Duration,
+    pub refresh_rate: Duration,
+    pub timeout: Duration,
 }
 
 /// Parse &str into a `Url`
@@ -150,14 +152,19 @@ impl AdmFilter {
             return Ok(false);
         }
         if let Some(bucket) = &self.source_url {
+            let req = reqwest::Client::builder().timeout(self.timeout).build()?;
             let host = bucket
                 .host()
                 .ok_or_else(|| {
                     HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
                 })?
                 .to_string();
-            let obj =
-                cloud_storage::Object::read(&host, bucket.path().trim_start_matches('/')).await?;
+            let obj = cloud_storage::Object::read_with(
+                &host,
+                bucket.path().trim_start_matches('/'),
+                &req,
+            )
+            .await?;
             if let Some(updated) = self.last_updated {
                 // if the bucket is older than when we last checked, do nothing.
                 return Ok(updated <= obj.updated);
@@ -170,7 +177,7 @@ impl AdmFilter {
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(bucket)
+            let adm_settings = AdmFilterSettings::from_settings_bucket(bucket, self.timeout)
                 .await
                 .map_err(|e| {
                     HandlerError::internal(&format!(

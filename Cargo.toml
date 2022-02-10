@@ -19,7 +19,7 @@ actix-cors = "0.5"
 actix-http = "2"
 actix-rt = "1"  # 2+ breaks testing, May need actix-web 4+?
 actix-web = "3"
-actix-web-location = { version = "0.3", features = ["maxmind", "cadence"] }
+actix-web-location = { version = "0.5", features = ["actix-web-v3", "maxmind", "cadence"] }
 async-trait = "0.1"
 backtrace = "0.3"
 base64 = "0.13"
@@ -35,7 +35,7 @@ futures = "0.3"
 gethostname = "0.2.1"
 hex = "0.4"
 hostname = "0.3"
-image = "0.23"
+image = "0.24"
 lazy_static = "1.4"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
 rand ="0.8"
