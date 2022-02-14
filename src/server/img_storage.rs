@@ -100,21 +100,15 @@ impl Default for StorageSettings {
 /// Image storage container
 #[derive(Clone)]
 pub struct StoreImage {
+    // No `Default` stated for `StoreImage` because we *ALWAYS* want a timeout
+    // for the `reqwest::Client`
+    //
     // bucket isn't really needed here, since `Object` stores and manages itself,
     // but it may prove useful in future contexts.
     //
     // bucket: Option<cloud_storage::Bucket>,
     settings: StorageSettings,
     req: reqwest::Client,
-}
-
-impl Default for StoreImage {
-    fn default() -> Self {
-        Self {
-            settings: StorageSettings::default(),
-            req: reqwest::Client::new(),
-        }
-    }
 }
 
 /// Stored image information, suitable for determining the URL to present to the CDN
@@ -477,7 +471,10 @@ mod tests {
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
         let test_settings = test_storage_settings();
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(test_settings.request_timeout))
+            .build()
+            .unwrap();
         let bucket = StoreImage::check_bucket(&test_settings, &client)
             .await
             .unwrap()
@@ -493,9 +490,13 @@ mod tests {
         let test_valid_image = test_image_buffer(96, 96);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
         let test_settings = test_storage_settings();
+        let timeout = Duration::from_secs(test_settings.request_timeout);
         let bucket = StoreImage {
             settings: test_settings,
-            req: reqwest::Client::new(),
+            req: reqwest::Client::builder()
+                .connect_timeout(timeout)
+                .build()
+                .unwrap(),
         };
 
         let result = bucket
@@ -515,7 +516,10 @@ mod tests {
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
         let bucket = StoreImage {
             settings: test_storage_settings(),
-            req: reqwest::Client::new(),
+            req: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(3))
+                .build()
+                .unwrap(),
         };
 
         assert!(bucket
