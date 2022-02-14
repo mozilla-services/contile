@@ -103,7 +103,7 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>) {
+pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>, req: reqwest::Client) {
     if !filter.read().unwrap().is_cloud() {
         return;
     }
@@ -112,7 +112,7 @@ pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>) {
         let tags = crate::tags::Tags::default();
         loop {
             let mut filter = mfilter.write().unwrap();
-            match filter.requires_update().await {
+            match filter.requires_update(req.clone()).await {
                 Ok(true) => filter.update().await.unwrap_or_else(|e| {
                     filter.report(&e, &tags);
                 }),
@@ -146,13 +146,12 @@ impl AdmFilter {
     }
 
     /// check to see if the bucket has been modified since the last time we updated.
-    pub async fn requires_update(&self) -> HandlerResult<bool> {
+    pub async fn requires_update(&self, req: reqwest::Client) -> HandlerResult<bool> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
             return Ok(false);
         }
         if let Some(bucket) = &self.source_url {
-            let req = reqwest::Client::builder().timeout(self.timeout).build()?;
             let host = bucket
                 .host()
                 .ok_or_else(|| {
