@@ -292,6 +292,8 @@ impl AdmFilterSettings {
     /// Try to fetch the ADM settings from a Google Storage bucket url.
     pub async fn from_settings_bucket(
         settings_bucket: &url::Url,
+        connection_timeout: std::time::Duration,
+        request_timeout: std::time::Duration,
     ) -> Result<AdmFilterSettings, ConfigError> {
         let settings_str = settings_bucket.as_str();
         if settings_bucket.scheme() != "gs" {
@@ -307,7 +309,12 @@ impl AdmFilterSettings {
             })?
             .to_string();
         let path = settings_bucket.path().trim_start_matches('/');
-        let contents = cloud_storage::Object::download(&bucket_name, path)
+        let req = reqwest::Client::builder()
+            .connect_timeout(connection_timeout)
+            .timeout(request_timeout)
+            .build()
+            .map_err(|e| ConfigError::Message(e.to_string()))?;
+        let contents = cloud_storage::Object::download_with(&bucket_name, path, &req)
             .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
         let mut reply =
@@ -401,6 +408,8 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .to_lowercase();
         let mut all_include_regions = HashSet::new();
         let source = settings.adm_settings.clone();
+        let connect_timeout = settings.connect_timeout;
+        let request_timeout = settings.request_timeout;
         let source_url = match source.parse::<url::Url>() {
             Ok(v) => Some(v),
             Err(e) => {
@@ -438,6 +447,8 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             source,
             source_url,
             refresh_rate: std::time::Duration::from_secs(refresh_rate),
+            connect_timeout: std::time::Duration::from_secs(connect_timeout),
+            request_timeout: std::time::Duration::from_secs(request_timeout),
         })
     }
 }

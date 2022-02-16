@@ -58,6 +58,8 @@ pub struct StorageSettings {
     metrics: ImageMetricSettings,
     /// Max request time (in seconds)
     request_timeout: u64,
+    /// Max connection timeout (in seconds)
+    connection_timeout: u64,
 }
 
 /// Instantiate from [Settings]
@@ -93,6 +95,7 @@ impl Default for StorageSettings {
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
             request_timeout: 3,
+            connection_timeout: 3,
         }
     }
 }
@@ -100,21 +103,15 @@ impl Default for StorageSettings {
 /// Image storage container
 #[derive(Clone)]
 pub struct StoreImage {
+    // No `Default` stated for `StoreImage` because we *ALWAYS* want a timeout
+    // for the `reqwest::Client`
+    //
     // bucket isn't really needed here, since `Object` stores and manages itself,
     // but it may prove useful in future contexts.
     //
     // bucket: Option<cloud_storage::Bucket>,
     settings: StorageSettings,
     req: reqwest::Client,
-}
-
-impl Default for StoreImage {
-    fn default() -> Self {
-        Self {
-            settings: StorageSettings::default(),
-            req: reqwest::Client::new(),
-        }
-    }
 }
 
 /// Stored image information, suitable for determining the URL to present to the CDN
@@ -173,8 +170,7 @@ impl StoreImage {
         // to public view.
         //
 
-        // verify that the bucket can be read
-        let _content = Bucket::read(&settings.bucket_name)
+        let _content = Bucket::read_with(&settings.bucket_name, client)
             .await
             .map_err(|e| HandlerError::internal(&format!("Could not read bucket {:?}", e)))?;
 
@@ -344,7 +340,8 @@ impl StoreImage {
 
         // check to see if image has already been stored.
         if let Ok(exists) =
-            cloud_storage::Object::read(&self.settings.bucket_name, &image_path).await
+            cloud_storage::Object::read_with(&self.settings.bucket_name, &image_path, &self.req)
+                .await
         {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
             return Ok(StoredImage {
@@ -361,6 +358,7 @@ impl StoreImage {
             &image_path,
             content_type,
             Some(&[("ifGenerationMatch", "0")]),
+            Some(self.req.clone()),
         )
         .await
         {
@@ -476,7 +474,10 @@ mod tests {
         let src_img = "https://evilonastick.com/test/128px.jpg";
 
         let test_settings = test_storage_settings();
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(test_settings.request_timeout))
+            .build()
+            .unwrap();
         let bucket = StoreImage::check_bucket(&test_settings, &client)
             .await
             .unwrap()
@@ -492,9 +493,13 @@ mod tests {
         let test_valid_image = test_image_buffer(96, 96);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
         let test_settings = test_storage_settings();
+        let timeout = Duration::from_secs(test_settings.request_timeout);
         let bucket = StoreImage {
             settings: test_settings,
-            req: reqwest::Client::new(),
+            req: reqwest::Client::builder()
+                .connect_timeout(timeout)
+                .build()
+                .unwrap(),
         };
 
         let result = bucket
@@ -514,7 +519,10 @@ mod tests {
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
         let bucket = StoreImage {
             settings: test_storage_settings(),
-            req: reqwest::Client::new(),
+            req: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(3))
+                .build()
+                .unwrap(),
         };
 
         assert!(bucket

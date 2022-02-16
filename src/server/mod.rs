@@ -109,12 +109,13 @@ impl Server {
             raw_filter.update().await?
         }
         let filter = Arc::new(RwLock::new(raw_filter));
-        spawn_updater(&filter);
-        let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
+            .timeout(Duration::from_secs(settings.request_timeout))
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
+        spawn_updater(&filter, req.clone());
+        let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let img_store = StoreImage::create(&settings, &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
             serde_json::from_str(exclude_dmas).map_err(|e| {

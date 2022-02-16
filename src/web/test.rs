@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -58,7 +59,10 @@ macro_rules! init_app {
             };
             let state = ServerState {
                 metrics: Box::new(metrics.clone()),
-                reqwest_client: reqwest::Client::new(),
+                reqwest_client: reqwest::Client::builder()
+                    .connect_timeout(Duration::from_secs(3))
+                    .build()
+                    .unwrap(),
                 tiles_cache: cache::TilesCache::new(10),
                 settings: $settings.clone(),
                 filter: Arc::new(RwLock::new(

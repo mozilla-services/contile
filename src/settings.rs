@@ -89,6 +89,8 @@ pub struct Settings {
     pub exclude_dma: Option<String>,
     /// Timeout (in seconds) for only the connect phase of all outbound HTTP requests
     pub connect_timeout: u64,
+    /// default total request timeout (in seconds)
+    pub request_timeout: u64,
     /// Whether excluded countries recieve empty tile responses via an HTTP 200
     /// status code or 204s when disabled. See
     /// https://github.com/mozilla-services/contile/issues/284
@@ -153,6 +155,7 @@ impl Default for Settings {
             // exclude for: Glendive, MT(798); Alpena, MI(583); North Platte, NE (740)
             exclude_dma: Some("[798, 583, 740]".to_owned()),
             connect_timeout: 2,
+            request_timeout: 5,
             excluded_countries_200: true,
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
