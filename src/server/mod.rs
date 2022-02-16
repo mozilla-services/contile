@@ -111,6 +111,7 @@ impl Server {
         let filter = Arc::new(RwLock::new(raw_filter));
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
+            .timeout(Duration::from_secs(settings.request_timeout))
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
         spawn_updater(&filter, req.clone());

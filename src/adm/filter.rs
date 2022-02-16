@@ -60,7 +60,8 @@ pub struct AdmFilter {
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
-    pub timeout: Duration,
+    pub connect_timeout: Duration,
+    pub request_timeout: Duration,
 }
 
 /// Parse &str into a `Url`
@@ -112,7 +113,7 @@ pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>, req: reqwest::Client) {
         let tags = crate::tags::Tags::default();
         loop {
             let mut filter = mfilter.write().unwrap();
-            match filter.requires_update(req.clone()).await {
+            match filter.requires_update(&req).await {
                 Ok(true) => filter.update().await.unwrap_or_else(|e| {
                     filter.report(&e, &tags);
                 }),
@@ -146,7 +147,7 @@ impl AdmFilter {
     }
 
     /// check to see if the bucket has been modified since the last time we updated.
-    pub async fn requires_update(&self, req: reqwest::Client) -> HandlerResult<bool> {
+    pub async fn requires_update(&self, req: &reqwest::Client) -> HandlerResult<bool> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
             return Ok(false);
@@ -161,7 +162,7 @@ impl AdmFilter {
             let obj = cloud_storage::Object::read_with(
                 &host,
                 bucket.path().trim_start_matches('/'),
-                &req,
+                req,
             )
             .await?;
             if let Some(updated) = self.last_updated {
@@ -176,14 +177,18 @@ impl AdmFilter {
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(bucket, self.timeout)
-                .await
-                .map_err(|e| {
-                    HandlerError::internal(&format!(
-                        "Invalid bucket data in {:?}: {:?}",
-                        self.source, e
-                    ))
-                })?;
+            let adm_settings = AdmFilterSettings::from_settings_bucket(
+                bucket,
+                self.connect_timeout,
+                self.request_timeout,
+            )
+            .await
+            .map_err(|e| {
+                HandlerError::internal(&format!(
+                    "Invalid bucket data in {:?}: {:?}",
+                    self.source, e
+                ))
+            })?;
             for (adv, setting) in adm_settings.advertisers {
                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);

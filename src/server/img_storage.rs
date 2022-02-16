@@ -58,6 +58,8 @@ pub struct StorageSettings {
     metrics: ImageMetricSettings,
     /// Max request time (in seconds)
     request_timeout: u64,
+    /// Max connection timeout (in seconds)
+    connection_timeout: u64,
 }
 
 /// Instantiate from [Settings]
@@ -93,6 +95,7 @@ impl Default for StorageSettings {
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
             request_timeout: 3,
+            connection_timeout: 3,
         }
     }
 }
