@@ -159,12 +159,9 @@ impl AdmFilter {
                     HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
                 })?
                 .to_string();
-            let obj = cloud_storage::Object::read_with(
-                &host,
-                bucket.path().trim_start_matches('/'),
-                req,
-            )
-            .await?;
+            let obj =
+                cloud_storage::Object::read_with(&host, bucket.path().trim_start_matches('/'), req)
+                    .await?;
             if let Some(updated) = self.last_updated {
                 // if the bucket is older than when we last checked, do nothing.
                 return Ok(updated <= obj.updated);
