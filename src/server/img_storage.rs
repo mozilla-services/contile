@@ -1,18 +1,22 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
-use std::{env, io::Cursor, time::Duration};
+use std::{env, io::Cursor, sync::Arc};
 
 use actix_http::http::HeaderValue;
-use actix_web::http::uri;
-use actix_web::web::Bytes;
-use cloud_storage::{Bucket, Object};
+use actix_web::{http::uri, web::Bytes};
+use cadence::{CountedExt, StatsdClient};
+use chrono::{DateTime, Duration, Utc};
+use cloud_storage::Bucket;
+use dashmap::DashMap;
 use image::{io::Reader as ImageReader, ImageFormat};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use crate::error::{HandlerError, HandlerErrorKind, HandlerResult};
-use crate::settings::Settings;
-use crate::tags::Tags;
+use crate::{
+    error::{HandlerError, HandlerErrorKind, HandlerResult},
+    settings::Settings,
+    tags::Tags,
+};
 
 /// These values generally come from the Google console for Cloud Storage.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -51,7 +55,7 @@ pub struct StorageSettings {
     /// The external CDN host
     cdn_host: String,
     /// The bucket TTL is determined by the policy set for the given bucket when it's created.
-    bucket_ttl: u64,
+    bucket_ttl: Option<u64>,
     /// The max time to live for cached data, ~ 15 days.
     cache_ttl: u64,
     /// Max dimensions for an image
@@ -91,7 +95,7 @@ impl Default for StorageSettings {
             project_name: "topsites-nonprod".to_owned(),
             bucket_name: "moz-topsites-stage-cdn".to_owned(),
             cdn_host: "https://cdn.stage.topsites.nonprod.cloudops.mozgcp.net/".to_owned(),
-            bucket_ttl: 86400 * 15,
+            bucket_ttl: None,
             cache_ttl: 86400 * 15,
             metrics: ImageMetricSettings::default(),
             request_timeout: 3,
@@ -111,18 +115,31 @@ pub struct StoreImage {
     //
     // bucket: Option<cloud_storage::Bucket>,
     settings: StorageSettings,
+    // `Settings::tiles_ttl`
+    tiles_ttl: u32,
+    cadence_metrics: StatsdClient,
     req: reqwest::Client,
+    /// `StoredImage`s already uploaded or fetched
+    fetched_images: Arc<DashMap<uri::Uri, StoredImage>>,
 }
 
 /// Stored image information, suitable for determining the URL to present to the CDN
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StoredImage {
     pub url: uri::Uri,
-    pub object: Option<Object>,
     pub image_metrics: ImageMetrics,
+    expiry: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug, Deserialize, Default, Serialize, PartialEq)]
+impl StoredImage {
+    /// Whether this image should be refetched and checked against the Cloud
+    /// Storage Bucket
+    fn expired(&self) -> bool {
+        self.expiry <= Utc::now()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Deserialize, Default, Serialize, PartialEq)]
 pub struct ImageMetrics {
     pub width: u32,
     pub height: u32,
@@ -134,14 +151,17 @@ impl StoreImage {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
     pub async fn create(
         settings: &Settings,
+        cadence_metrics: &StatsdClient,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
         let sset = StorageSettings::from(settings);
-        Self::check_bucket(&sset, client).await
+        Self::check_bucket(&sset, settings.tiles_ttl, cadence_metrics, client).await
     }
 
     pub async fn check_bucket(
         settings: &StorageSettings,
+        tiles_ttl: u32,
+        cadence_metrics: &StatsdClient,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
         if env::var("SERVICE_ACCOUNT").is_err()
@@ -179,7 +199,10 @@ impl StoreImage {
         Ok(Some(Self {
             // bucket: Some(bucket),
             settings: settings.clone(),
+            tiles_ttl,
+            cadence_metrics: cadence_metrics.clone(),
             req: client.clone(),
+            fetched_images: Default::default(),
         }))
     }
 
@@ -214,11 +237,17 @@ impl StoreImage {
     /// We don't do any form of check to see if it matches what we got before.
     /// If you have "Storage Legacy Bucket Writer" previous content is overwritten.
     /// (e.g. set the path to be the SHA1 of the bytes or whatever.)
-
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoredImage> {
+        if let Some(image) = self.fetched_images.get(uri) {
+            if !image.expired() {
+                return Ok(image.clone());
+            }
+        }
         let (image, content_type) = self.fetch(uri).await?;
         let metrics = self.validate(uri, &image, &content_type).await?;
-        self.upload(image, &content_type, metrics).await
+        let image = self.upload(image, &content_type, metrics).await?;
+        self.fetched_images.insert(uri.to_owned(), image.clone());
+        Ok(image)
     }
 
     /// Generate a unique hash based on the content of the image
@@ -229,10 +258,14 @@ impl StoreImage {
     /// Fetch the bytes for an image based on a URI
     pub(crate) async fn fetch(&self, uri: &uri::Uri) -> HandlerResult<(Bytes, String)> {
         trace!("fetching... {:?}", &uri);
+        self.cadence_metrics.incr("image.fetch").ok();
+
         let res = self
             .req
             .get(&uri.to_string())
-            .timeout(Duration::from_secs(self.settings.request_timeout))
+            .timeout(std::time::Duration::from_secs(
+                self.settings.request_timeout,
+            ))
             .send()
             .await?
             .error_for_status()?;
@@ -339,19 +372,21 @@ impl StoreImage {
         );
 
         // check to see if image has already been stored.
+        self.cadence_metrics.incr("image.object.check").ok();
         if let Ok(exists) =
             cloud_storage::Object::read_with(&self.settings.bucket_name, &image_path, &self.req)
                 .await
         {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
-            return Ok(StoredImage {
-                url: format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
-                object: Some(exists),
+            return Ok(self.new_image(
+                format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
                 image_metrics,
-            });
+                exists.time_created,
+            ));
         }
 
         // store new data to the googles
+        self.cadence_metrics.incr("image.object.create").ok();
         match cloud_storage::Object::create_with_params(
             &self.settings.bucket_name,
             image.to_vec(),
@@ -365,14 +400,11 @@ impl StoreImage {
             Ok(mut object) => {
                 object.content_disposition = Some("inline".to_owned());
                 object.cache_control = Some(format!("public, max-age={}", self.settings.cache_ttl));
+                self.cadence_metrics.incr("image.object.update").ok();
                 object.update().await?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
-                Ok(StoredImage {
-                    url: url.parse()?,
-                    object: Some(object),
-                    image_metrics,
-                })
+                Ok(self.new_image(url.parse()?, image_metrics, object.time_created))
             }
             Err(e) => {
                 if let cloud_storage::Error::Other(ref json) = e {
@@ -388,16 +420,42 @@ impl StoreImage {
                         // 412 Precondition Failed: the image already exists, so we
                         // can continue on
                         trace!("Store Precondition Failed (412), image already exists, continuing");
+                        self.cadence_metrics
+                            .incr("image.object.already_exists")
+                            .ok();
                         let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
-                        return Ok(StoredImage {
-                            url: url.parse()?,
-                            object: None,
+                        return Ok(self.new_image(
+                            url.parse()?,
                             image_metrics,
-                        });
+                            // approximately (close enough)
+                            Utc::now(),
+                        ));
                     }
                 }
                 Err(e.into())
             }
+        }
+    }
+
+    fn new_image(
+        &self,
+        url: uri::Uri,
+        image_metrics: ImageMetrics,
+        time_created: DateTime<Utc>,
+    ) -> StoredImage {
+        // Images should not change (any image modification should result in a
+        // new url from upstream). However, poll it every `Settings::tiles_ttl`
+        // anyway, just in case
+        let mut expiry = Utc::now() + Duration::seconds(self.tiles_ttl.into());
+        if let Some(bucket_ttl) = self.settings.bucket_ttl {
+            // Take `StorageSettings::bucket_ttl` into account in the rare case
+            // it's set the image to expire earlier than now + `tiles_ttl`
+            expiry = std::cmp::min(expiry, time_created + Duration::seconds(bucket_ttl as i64));
+        }
+        StoredImage {
+            url,
+            image_metrics,
+            expiry,
         }
     }
 }
@@ -408,6 +466,7 @@ mod tests {
 
     use crate::settings::test_settings;
     use actix_http::http::Uri;
+    use cadence::{NopMetricSink, SpyMetricSink};
     use rand::Rng;
 
     fn set_env() {
@@ -427,10 +486,25 @@ mod tests {
         StorageSettings {
             project_name: project,
             bucket_name: bucket,
-            bucket_ttl: 86400 * 15,
+            bucket_ttl: None,
             cache_ttl: 86400 * (15 + 1),
             cdn_host: cdn,
             ..Default::default()
+        }
+    }
+
+    fn test_store() -> StoreImage {
+        let settings = test_storage_settings();
+        let timeout = std::time::Duration::from_secs(settings.request_timeout);
+        StoreImage {
+            settings,
+            tiles_ttl: 15 * 60,
+            cadence_metrics: StatsdClient::builder("", NopMetricSink).build(),
+            req: reqwest::Client::builder()
+                .connect_timeout(timeout)
+                .build()
+                .unwrap(),
+            fetched_images: Default::default(),
         }
     }
 
@@ -475,13 +549,20 @@ mod tests {
 
         let test_settings = test_storage_settings();
         let client = reqwest::Client::builder()
-            .connect_timeout(Duration::from_secs(test_settings.request_timeout))
+            .connect_timeout(std::time::Duration::from_secs(
+                test_settings.request_timeout,
+            ))
             .build()
             .unwrap();
-        let bucket = StoreImage::check_bucket(&test_settings, &client)
-            .await
-            .unwrap()
-            .unwrap();
+        let bucket = StoreImage::check_bucket(
+            &test_settings,
+            15 * 60,
+            &StatsdClient::builder("", NopMetricSink).build(),
+            &client,
+        )
+        .await
+        .unwrap()
+        .unwrap();
         let target = src_img.parse::<Uri>().unwrap();
         bucket.store(&target).await.expect("Store failed");
         Ok(())
@@ -492,16 +573,7 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 96);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let test_settings = test_storage_settings();
-        let timeout = Duration::from_secs(test_settings.request_timeout);
-        let bucket = StoreImage {
-            settings: test_settings,
-            req: reqwest::Client::builder()
-                .connect_timeout(timeout)
-                .build()
-                .unwrap(),
-        };
-
+        let bucket = test_store();
         let result = bucket
             .validate(&test_uri, &test_valid_image, "image/jpg")
             .await
@@ -517,14 +589,7 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 100);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let bucket = StoreImage {
-            settings: test_storage_settings(),
-            req: reqwest::Client::builder()
-                .connect_timeout(Duration::from_secs(3))
-                .build()
-                .unwrap(),
-        };
-
+        let bucket = test_store();
         assert!(bucket
             .validate(&test_uri, &test_valid_image, "image/jpg")
             .await
@@ -541,5 +606,60 @@ mod tests {
         let mut setting = test_settings();
         setting.storage = test_val.to_owned();
         let _store_set: StorageSettings = (&setting).into();
+    }
+
+    #[tokio::test]
+    async fn test_image_caching() -> Result<(), ()> {
+        if std::env::var("GOOGLE_APPLICATION_CREDENTIALS").is_err() {
+            print!("Skipping test: No credentials found.");
+            return Ok(());
+        }
+        let src_img = "https://evilonastick.com/test/128px.jpg";
+
+        let test_settings = test_storage_settings();
+        let tiles_ttl = 2;
+        let client = reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(
+                test_settings.request_timeout,
+            ))
+            .build()
+            .unwrap();
+        let (rx, sink) = SpyMetricSink::new();
+        let bucket = StoreImage::check_bucket(
+            &test_settings,
+            tiles_ttl,
+            &StatsdClient::builder("contile", sink).build(),
+            &client,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert_eq!(rx.len(), 0);
+
+        let target = src_img.parse::<Uri>().unwrap();
+        bucket.store(&target).await.expect("Store failed");
+        assert_eq!(rx.len(), 2);
+
+        bucket.store(&target).await.expect("Store failed");
+        assert_eq!(rx.len(), 2);
+
+        tokio::time::delay_for(std::time::Duration::from_secs(tiles_ttl.into())).await;
+        bucket.store(&target).await.expect("Store failed");
+        assert_eq!(rx.len(), 4);
+        let spied_metrics: Vec<String> = rx
+            .iter()
+            .take(4)
+            .map(|x| String::from_utf8(x).unwrap())
+            .collect();
+        assert_eq!(
+            spied_metrics,
+            vec![
+                "contile.image.fetch:1|c",
+                "contile.image.object.check:1|c",
+                "contile.image.fetch:1|c",
+                "contile.image.object.check:1|c",
+            ]
+        );
+        Ok(())
     }
 }

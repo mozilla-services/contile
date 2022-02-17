@@ -116,7 +116,7 @@ impl Server {
             .build()?;
         spawn_updater(&filter, req.clone());
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
-        let img_store = StoreImage::create(&settings, &req).await?;
+        let img_store = StoreImage::create(&settings, &metrics, &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
             serde_json::from_str(exclude_dmas).map_err(|e| {
                 HandlerError::internal(&format!("Invalid exclude_dma field: {:?}", e))
