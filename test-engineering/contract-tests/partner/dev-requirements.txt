@@ -48,16 +48,16 @@ pyflakes==2.4.0
     # via flake8
 pyparsing==2.4.7
     # via packaging
-pytest==6.2.5
+pytest==7.0.1
     # via -r dev-requirements.in
 requests==2.27.1
     # via -r dev-requirements.in
 toml==0.10.2
-    # via
-    #   mypy
-    #   pytest
+    # via mypy
 tomli==1.1.0
-    # via black
+    # via
+    #   black
+    #   pytest
 types-pyyaml==6.0.4
     # via -r dev-requirements.in
 typing-extensions==3.10.0.0
