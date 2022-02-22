@@ -106,8 +106,8 @@ impl Default for StorageSettings {
 
 /// Image storage container
 #[derive(Clone)]
-pub struct StoreImage {
-    // No `Default` stated for `StoreImage` because we *ALWAYS* want a timeout
+pub struct ImageStore {
+    // No `Default` stated for `ImageStore` because we *ALWAYS* want a timeout
     // for the `reqwest::Client`
     //
     // bucket isn't really needed here, since `Object` stores and manages itself,
@@ -119,8 +119,8 @@ pub struct StoreImage {
     tiles_ttl: u32,
     cadence_metrics: StatsdClient,
     req: reqwest::Client,
-    /// `StoredImage`s already uploaded or fetched
-    fetched_images: Arc<DashMap<uri::Uri, StoredImage>>,
+    /// `StoredImage`s already fetched/uploaded
+    stored_images: Arc<DashMap<uri::Uri, StoredImage>>,
 }
 
 /// Stored image information, suitable for determining the URL to present to the CDN
@@ -147,7 +147,7 @@ pub struct ImageMetrics {
 }
 
 /// Store a given image into Google Storage
-impl StoreImage {
+impl ImageStore {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
     pub async fn create(
         settings: &Settings,
@@ -202,7 +202,7 @@ impl StoreImage {
             tiles_ttl,
             cadence_metrics: cadence_metrics.clone(),
             req: client.clone(),
-            fetched_images: Default::default(),
+            stored_images: Default::default(),
         }))
     }
 
@@ -233,21 +233,20 @@ impl StoreImage {
 
     /// Store an image fetched from the passed `uri` into Google Cloud Storage
     ///
-    /// This will absolutely fetch and store the img into the bucket.
-    /// We don't do any form of check to see if it matches what we got before.
-    /// If you have "Storage Legacy Bucket Writer" previous content is overwritten.
-    /// (e.g. set the path to be the SHA1 of the bytes or whatever.)
+    /// This will fetch and store the img into the bucket if necessary (fetch
+    /// results are cached for a short time).
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoredImage> {
-        if let Some(image) = self.fetched_images.get(uri) {
-            if !image.expired() {
-                return Ok(image.clone());
+        if let Some(stored_image) = self.stored_images.get(uri) {
+            if !stored_image.expired() {
+                return Ok(stored_image.clone());
             }
         }
         let (image, content_type) = self.fetch(uri).await?;
         let metrics = self.validate(uri, &image, &content_type).await?;
-        let image = self.upload(image, &content_type, metrics).await?;
-        self.fetched_images.insert(uri.to_owned(), image.clone());
-        Ok(image)
+        let stored_image = self.upload(image, &content_type, metrics).await?;
+        self.stored_images
+            .insert(uri.to_owned(), stored_image.clone());
+        Ok(stored_image)
     }
 
     /// Generate a unique hash based on the content of the image
@@ -493,10 +492,10 @@ mod tests {
         }
     }
 
-    fn test_store() -> StoreImage {
+    fn test_store() -> ImageStore {
         let settings = test_storage_settings();
         let timeout = std::time::Duration::from_secs(settings.request_timeout);
-        StoreImage {
+        ImageStore {
             settings,
             tiles_ttl: 15 * 60,
             cadence_metrics: StatsdClient::builder("", NopMetricSink).build(),
@@ -504,7 +503,7 @@ mod tests {
                 .connect_timeout(timeout)
                 .build()
                 .unwrap(),
-            fetched_images: Default::default(),
+            stored_images: Default::default(),
         }
     }
 
@@ -554,7 +553,7 @@ mod tests {
             ))
             .build()
             .unwrap();
-        let bucket = StoreImage::check_bucket(
+        let img_store = ImageStore::check_bucket(
             &test_settings,
             15 * 60,
             &StatsdClient::builder("", NopMetricSink).build(),
@@ -564,7 +563,7 @@ mod tests {
         .unwrap()
         .unwrap();
         let target = src_img.parse::<Uri>().unwrap();
-        bucket.store(&target).await.expect("Store failed");
+        img_store.store(&target).await.expect("Store failed");
         Ok(())
     }
 
@@ -573,8 +572,8 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 96);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let bucket = test_store();
-        let result = bucket
+        let img_store = test_store();
+        let result = img_store
             .validate(&test_uri, &test_valid_image, "image/jpg")
             .await
             .unwrap();
@@ -589,8 +588,8 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 100);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let bucket = test_store();
-        assert!(bucket
+        let img_store = test_store();
+        assert!(img_store
             .validate(&test_uri, &test_valid_image, "image/jpg")
             .await
             .is_err());
@@ -625,7 +624,7 @@ mod tests {
             .build()
             .unwrap();
         let (rx, sink) = SpyMetricSink::new();
-        let bucket = StoreImage::check_bucket(
+        let img_store = ImageStore::check_bucket(
             &test_settings,
             tiles_ttl,
             &StatsdClient::builder("contile", sink).build(),
@@ -637,14 +636,14 @@ mod tests {
         assert_eq!(rx.len(), 0);
 
         let target = src_img.parse::<Uri>().unwrap();
-        bucket.store(&target).await.expect("Store failed");
+        img_store.store(&target).await.expect("Store failed");
         assert_eq!(rx.len(), 2);
 
-        bucket.store(&target).await.expect("Store failed");
+        img_store.store(&target).await.expect("Store failed");
         assert_eq!(rx.len(), 2);
 
         tokio::time::delay_for(std::time::Duration::from_secs(tiles_ttl.into())).await;
-        bucket.store(&target).await.expect("Store failed");
+        img_store.store(&target).await.expect("Store failed");
         assert_eq!(rx.len(), 4);
         let spied_metrics: Vec<String> = rx
             .iter()
