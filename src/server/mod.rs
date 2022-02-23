@@ -12,7 +12,7 @@ use crate::{
     adm::{spawn_updater, AdmFilter},
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
-    server::{img_storage::StoreImage, location::location_config_from_settings},
+    server::{img_storage::ImageStore, location::location_config_from_settings},
     settings::Settings,
     web::{dockerflow, handlers, middleware},
 };
@@ -37,7 +37,7 @@ pub struct ServerState {
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
     pub filter: Arc<RwLock<AdmFilter>>,
-    pub img_store: Option<StoreImage>,
+    pub img_store: Option<ImageStore>,
     pub excluded_dmas: Option<Vec<u16>>,
     pub start_up: Instant,
 }
@@ -116,7 +116,7 @@ impl Server {
             .build()?;
         spawn_updater(&filter, req.clone());
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
-        let img_store = StoreImage::create(&settings, &req).await?;
+        let img_store = ImageStore::create(&settings, &metrics, &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
             serde_json::from_str(exclude_dmas).map_err(|e| {
                 HandlerError::internal(&format!("Invalid exclude_dma field: {:?}", e))

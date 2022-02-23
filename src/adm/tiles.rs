@@ -104,7 +104,7 @@ impl Tile {
     pub fn from_adm_tile(tile: AdmTile) -> Self {
         // Generate a base response tile from the ADM provided tile structure.
         // NOTE: the `image_size` is still required to be determined, and is
-        // provided by `StoreImage.store()`
+        // provided by `ImageStore.store()`
         Self {
             id: tile.id,
             name: tile.name,
