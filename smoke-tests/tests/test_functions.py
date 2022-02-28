@@ -75,6 +75,7 @@ def fixture_client_functions(
 ):
     """Start and terminate new subprocesses for the functions."""
 
+    # See https://cloud.google.com/functions/docs/testing/test-http#integration_tests
     p_clients = [
         subprocess.Popen(
             [
@@ -107,6 +108,7 @@ def fixture_runner_function(
 ):
     """Start and terminate new subprocesses for the functions."""
 
+    # See https://cloud.google.com/functions/docs/testing/test-http#integration_tests
     p_runner = subprocess.Popen(
         [
             "functions-framework",

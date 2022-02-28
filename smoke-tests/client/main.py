@@ -4,7 +4,7 @@
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Dict, Optional, Union
 
 import requests
 from flask import Request, Response, abort, jsonify
@@ -14,7 +14,7 @@ LOCATION_ENDPOINT: str = "__loc_test__"
 
 
 @dataclass
-class LocationData:
+class LocResponseData:
     """Location data returned by Contile."""
 
     country: str
@@ -41,14 +41,18 @@ class RequestData:
     expected_region: str
 
 
+# Type alias for location data in errors
+LocationData = Dict[str, Optional[str]]
+
+
 @dataclass
 class Error:
     """Information about an error that occured."""
 
     url: str
     message: str
-    want: Any
-    got: Any
+    want: Union[LocationData, int]
+    got: Union[LocationData, int]
     extra: Dict = field(default_factory=dict)
 
 
@@ -88,18 +92,18 @@ def run_geo_smoke_test(request: Request):
         )
         return jsonify(asdict(ResponseData(error=error)))
 
-    loc_data = LocationData(**loc_response.json())
+    loc_response_data = LocResponseData(**loc_response.json())
 
-    want: Dict = {
+    want: LocationData = {
         "country": request_data.expected_country,
         "region": request_data.expected_region,
         "provider": "maxmind",
     }
 
-    got: Dict = {
-        "country": loc_data.country,
-        "region": loc_data.region,
-        "provider": loc_data.provider,
+    got: LocationData = {
+        "country": loc_response_data.country,
+        "region": loc_response_data.region,
+        "provider": loc_response_data.provider,
     }
 
     if got != want:
@@ -108,7 +112,7 @@ def run_geo_smoke_test(request: Request):
             message="Unexpected geolocation information",
             want=want,
             got=got,
-            extra={"ip": loc_data.ip},
+            extra={"ip": loc_response_data.ip},
         )
         return jsonify(asdict(ResponseData(error=error)))
 
