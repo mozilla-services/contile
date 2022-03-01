@@ -1,3 +1,31 @@
+<a name="1.7.0"></a>
+## 1.7.0 (2022-02-25)
+
+
+#### Chore
+
+*   cargo update to resolve RUSTSEC-2022-0006 (#352) ([0c245dda](https://github.com/mozilla-services/contile/commit/0c245ddaf1ebe46987ee0b93873831fdecfb64ba))
+
+#### Bug Fixes
+
+*   add timeouts for reqwest calls (#355) ([ac91d920](https://github.com/mozilla-services/contile/commit/ac91d920c3886845161d42a0eec12c7e8f5d4059))
+*   report error from image library (#349) ([8d13e883](https://github.com/mozilla-services/contile/commit/8d13e883f4f2e8cd7153922f82bd0a5b694d522b))
+
+#### Features
+
+*   add a simple image cache to reduce image fetches (#359) ([6c4928e9](https://github.com/mozilla-services/contile/commit/6c4928e930b61f143efe302cf43f2357f72230e6), closes [#357](https://github.com/mozilla-services/contile/issues/357))
+*   Add support for multiple ADM endpoints (#346) ([80d7dca4](https://github.com/mozilla-services/contile/commit/80d7dca40f2e8851efa74dab68436f7ed313099a))
+*   move cleanup of temp cache states into a ScopeGuard (#351) ([9122ec04](https://github.com/mozilla-services/contile/commit/9122ec04d0afa7a8f424c378ebacda4ac9a99c95), closes [#342](https://github.com/mozilla-services/contile/issues/342))
+*   Return JSON error messages (#353) ([fe2c325c](https://github.com/mozilla-services/contile/commit/fe2c325c627ceb8bec4e4eff8ef40a1065372743), closes [#177](https://github.com/mozilla-services/contile/issues/177))
+*   Make the partner timeouts "softer" during initial cache loading. (#337) ([99cacad4](https://github.com/mozilla-services/contile/commit/99cacad4e7357b2a84a0daf4965ecddc2050e4eb), closes [#336](https://github.com/mozilla-services/contile/issues/336))
+*   Read ADM settings data from a Google Storage bucket. (#331) ([5e85c8fe](https://github.com/mozilla-services/contile/commit/5e85c8fe424dd0c57c815bdb1decccec625bfcdf), closes [#324](https://github.com/mozilla-services/contile/issues/324))
+
+#### Test
+
+*   upgrade contile-integration-tests Docker images 🤖 (#350) ([281c2864](https://github.com/mozilla-services/contile/commit/281c286417a9abd2948b8db1665fab02baa9c640))
+
+
+
 <a name="1.6.0"></a>
 ## 1.6.0 (2021-12-08)
 
