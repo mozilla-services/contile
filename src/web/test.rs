@@ -8,6 +8,7 @@ use actix_web::{
     http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
     HttpRequest, HttpResponse, HttpServer,
 };
+use cadence::{SpyMetricSink, StatsdClient};
 use futures::{channel::mpsc, StreamExt};
 use serde_json::{json, Value};
 use url::Url;
@@ -16,7 +17,6 @@ use crate::{
     adm::{AdmFilter, AdmFilterSettings, DEFAULT},
     build_app,
     error::{HandlerError, HandlerResult},
-    metrics::Metrics,
     server::{cache, location::location_config_from_settings, ServerState},
     settings::{test_settings, Settings},
     web::{dockerflow, handlers, middleware},
@@ -27,6 +27,8 @@ const UA_91: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/91.0";
 const UA_90: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/90.0";
+const UA_IPHONE: &str =
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_8_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/40.2 Mobile/15E148 Safari/605.1.15";
 const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
 const TEST_ADDR: &str = "216.160.83.56";
 
@@ -41,17 +43,19 @@ fn get_test_settings() -> Settings {
     }
 }
 
-macro_rules! init_app {
+/// Create a test application with a `SpyMetricSink`
+macro_rules! init_app_with_spy {
     () => {
         async {
-            let settings = get_test_settings();
-            init_app!(settings).await
+            let mut settings = get_test_settings();
+            init_app_with_spy!(settings).await
         }
     };
     ($settings:expr) => {
         async {
             crate::logging::init_logging(false).unwrap();
-            let metrics = Metrics::sink();
+            let (spy, sink) = SpyMetricSink::new();
+            let metrics = &StatsdClient::builder("contile", sink).build();
             let excluded_dmas = if let Some(exclude_dmas) = &$settings.exclude_dma {
                 serde_json::from_str(exclude_dmas).expect("Invalid exclude_dma field")
             } else {
@@ -74,9 +78,20 @@ macro_rules! init_app {
             };
             let location_config = location_config_from_settings(&$settings, &metrics);
 
-            test::init_service(build_app!(state, location_config)).await
+            let service = test::init_service(build_app!(state, location_config)).await;
+            (service, spy)
         }
     };
+}
+
+/// Create a test application, ignoring the `SpyMetricSink`
+macro_rules! init_app {
+    ($( $args:expr )*) => {
+        async {
+            let (app, _) = init_app_with_spy!($( $args )*).await;
+            app
+        }
+    }
 }
 
 struct MockAdm {
@@ -634,9 +649,7 @@ async fn include_regions() {
 
 #[actix_rt::test]
 async fn test_loc() {
-    let mut settings = get_test_settings();
-
-    let mut app = init_app!(settings).await;
+    let mut app = init_app!().await;
 
     let req = test::TestRequest::get()
         .uri("/__loc_test__")
@@ -649,4 +662,54 @@ async fn test_loc() {
     let result: Value = test::read_body_json(resp).await;
     assert_eq!(result["country"], "US");
     assert_eq!(result["region"], "WA");
+}
+
+#[actix_rt::test]
+async fn test_metrics() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: json!(adm_settings()).to_string(),
+        ..get_test_settings()
+    };
+    let (mut app, spy) = init_app_with_spy!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_91)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    // Find all metric lines with matching prefixes
+    let find_metrics = |prefixes: &[&str]| -> Vec<_> {
+        spy.try_iter()
+            .filter_map(|m| {
+                let m = String::from_utf8(m).unwrap();
+                prefixes.iter().any(|name| m.starts_with(name)).then(|| m)
+            })
+            .collect()
+    };
+
+    let prefixes = &["contile.tiles.get:1", "contile.tiles.adm.request:1"];
+    let metrics = find_metrics(prefixes);
+    assert_eq!(metrics.len(), 2);
+    let get_metric = &metrics[0];
+    assert!(get_metric.contains("ua.form_factor:desktop"));
+    assert!(get_metric.contains("ua.os.family:windows"));
+    assert!(!&metrics[1].contains("endpoint:mobile"));
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .header(header::USER_AGENT, UA_IPHONE)
+        .to_request();
+    let resp = test::call_service(&mut app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let metrics = find_metrics(prefixes);
+    assert_eq!(metrics.len(), 2);
+    let get_metric = &metrics[0];
+    assert!(get_metric.contains("ua.form_factor:phone"));
+    assert!(get_metric.contains("ua.os.family:ios"));
+    assert!(&metrics[1].contains("endpoint:mobile"));
 }

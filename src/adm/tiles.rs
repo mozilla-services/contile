@@ -175,9 +175,12 @@ pub async fn get_tiles(
             .into_string()
             .unwrap_or_else(|_| "Unknown".to_owned()),
     );
+    if device_info.is_mobile() {
+        tags.add_tag("endpoint", "mobile");
+    }
     tags.add_extra("adm_url", adm_url);
 
-    metrics.incr("tiles.adm.request");
+    metrics.incr_with_tags("tiles.adm.request", Some(tags));
     let response: AdmTileResponse = match state.settings.test_mode {
         crate::settings::TestModes::TestFakeResponse => {
             let default = HeaderValue::from_str(DEFAULT).unwrap();

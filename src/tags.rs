@@ -18,59 +18,8 @@ use serde::{
 };
 use serde_json::value::Value;
 use slog::{Key, Record, KV};
-use woothee::parser::{Parser, WootheeResult};
 
-use crate::settings::Settings;
-
-/*
-/// List of valid user-agent attributes to keep, anything not in this
-/// list is considered 'Other'. We log the user-agent on connect always
-/// to retain the full string, but for DD more tags are expensive so we
-/// limit to these.
-/// Note: We currently limit to only Firefox UA.
-//
-// const VALID_UA_BROWSER: &[&str] = &["Chrome", "Firefox", "Safari", "Opera"];
-*/
-
-/// See dataset.rs in https://github.com/woothee/woothee-rust for the
-/// full list (WootheeResult's 'os' field may fall back to its 'name'
-/// field). Windows has many values and we only care that its Windows
-const VALID_UA_OS: &[&str] = &["Firefox OS", "Linux", "Mac OSX"];
-
-/// Primative User Agent parser.
-///
-/// We only care about a subset of the results for this (to avoid cardinality with
-/// metrics and logging).
-pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str) {
-    let parser = Parser::new();
-    let wresult = parser.parse(agent).unwrap_or_else(|| WootheeResult {
-        name: "",
-        category: "",
-        os: "",
-        os_version: "".into(),
-        browser_type: "",
-        version: "",
-        vendor: "",
-    });
-
-    // Determine a base os/browser for metrics' tags
-    let metrics_os = if wresult.os.starts_with("Windows") {
-        "Windows"
-    } else if VALID_UA_OS.contains(&wresult.os) {
-        wresult.os
-    } else {
-        "Other"
-    };
-    // We currently limit to only Firefox UA.
-    /*
-    let metrics_browser = if VALID_UA_BROWSER.contains(&wresult.name) {
-        wresult.name
-    } else {
-        "Other"
-    };
-    */
-    (wresult, metrics_os)
-}
+use crate::{settings::Settings, web::get_device_info};
 
 /// Tags are a set of meta information passed along with sentry errors and metrics.
 ///
@@ -101,13 +50,6 @@ impl Serialize for Tags {
     }
 }
 
-/// Insert a into a hashmap only if the `val` is not empty.
-fn insert_if_not_empty(label: &str, val: &str, tags: &mut HashMap<String, String>) {
-    if !val.is_empty() {
-        tags.insert(label.to_owned(), val.to_owned());
-    }
-}
-
 impl Tags {
     pub fn from_head(req_head: &RequestHead, settings: &Settings) -> Self {
         // Return an Option<> type because the later consumers (HandlerErrors) presume that
@@ -116,11 +58,13 @@ impl Tags {
         let mut extra = HashMap::new();
         if let Some(ua) = req_head.headers().get(USER_AGENT) {
             if let Ok(uas) = ua.to_str() {
-                // if you wanted to parse out the user agent using some out-of-scope user agent parser like woothee
-                let (ua_result, metrics_os) = parse_user_agent(uas);
-                insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
-                insert_if_not_empty("ua.os.ver", &ua_result.os_version.to_owned(), &mut tags);
-                insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
+                if let Ok(device_info) = get_device_info(uas) {
+                    tags.insert("ua.os.family".to_owned(), device_info.os_family.to_string());
+                    tags.insert(
+                        "ua.form_factor".to_owned(),
+                        device_info.form_factor.to_string(),
+                    );
+                }
                 extra.insert("ua".to_owned(), uas.to_string());
             }
         }

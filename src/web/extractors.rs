@@ -5,8 +5,7 @@
 
 use actix_web::{
     dev::Payload,
-    http::header,
-    http::{HeaderName, HeaderValue},
+    http::{header, HeaderValue},
     Error, FromRequest, HttpRequest,
 };
 use futures::future::{self, FutureExt, LocalBoxFuture};
@@ -19,7 +18,6 @@ use crate::{
 
 lazy_static! {
     static ref EMPTY_HEADER: HeaderValue = HeaderValue::from_static("");
-    static ref X_FORWARDED_FOR: HeaderName = HeaderName::from_static("x-forwarded-for");
 }
 
 impl FromRequest for DeviceInfo {
