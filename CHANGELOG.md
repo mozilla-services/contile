@@ -1,3 +1,23 @@
+<a name="1.8.0"></a>
+## 1.8.0 (2022-03-14)
+
+
+#### Chore
+
+* **deps:**
+  *  bump jinja2 from 2.11.2 to 2.11.3 in /smoke-tests/runner (#366) ([57d1ce09](https://github.com/mozilla-services/contile/commit/57d1ce0948b573f40134d9da93d9303eb2fa197b))
+  *  bump jinja2 from 2.11.2 to 2.11.3 in /smoke-tests/client (#365) ([16789acc](https://github.com/mozilla-services/contile/commit/16789acc70f9a91d795228d06bfd554a319c2fd0))
+
+#### Features
+
+*   include os-family and form-factor as metric tags (#371) ([25a551bf](https://github.com/mozilla-services/contile/commit/25a551bfffe04def158b1a9b06ac0acc71f6aea4), closes [#369](https://github.com/mozilla-services/contile/issues/369))
+
+#### Test
+
+*   add Cloud Function based geo smoke-tests (#364) ([11203995](https://github.com/mozilla-services/contile/commit/112039955818219891ecb1511cfbdbb49948578c))
+
+
+
 <a name="1.7.0"></a>
 ## 1.7.0 (2022-02-25)
 
