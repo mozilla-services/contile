@@ -255,9 +255,8 @@ mod tests {
 
         let tags = Tags::from_head(&rh, &settings);
 
-        assert_eq!(tags.tags.get("ua.os.ver"), Some(&"NT 10.0".to_owned()));
-        assert_eq!(tags.tags.get("ua.os.family"), Some(&"Windows".to_owned()));
-        assert_eq!(tags.tags.get("ua.browser.ver"), Some(&"72.0".to_owned()));
+        assert_eq!(tags.tags.get("ua.os.family"), Some(&"windows".to_owned()));
+        assert_eq!(tags.tags.get("ua.form_factor"), Some(&"desktop".to_owned()));
         assert_eq!(tags.tags.get("uri.method"), Some(&"GET".to_owned()));
     }
 

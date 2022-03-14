@@ -646,8 +646,7 @@ mod tests {
         img_store.store(&target).await.expect("Store failed");
         assert_eq!(rx.len(), 4);
         let spied_metrics: Vec<String> = rx
-            .iter()
-            .take(4)
+            .try_iter()
             .map(|x| String::from_utf8(x).unwrap())
             .collect();
         assert_eq!(
