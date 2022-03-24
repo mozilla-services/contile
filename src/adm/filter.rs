@@ -346,7 +346,7 @@ impl AdmFilter {
         Ok(())
     }
 
-    /// Check the impression URL to see if it's valid.
+    /// Check the image URL to see if it's valid.
     ///
     /// This extends `filter_and_process`
     fn check_img_hosts(
@@ -355,6 +355,8 @@ impl AdmFilter {
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
+        // if no hosts are defined, then accept all (this allows
+        // for backward compatibility)
         if filter.img_hosts.is_empty() {
             return Ok(());
         }
