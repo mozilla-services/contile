@@ -349,7 +349,7 @@ impl AdmFilter {
     /// Check the image URL to see if it's valid.
     ///
     /// This extends `filter_and_process`
-    fn check_img_hosts(
+    fn check_image_hosts(
         &self,
         filter: &AdmAdvertiserFilterSettings,
         tile: &mut AdmTile,
@@ -357,13 +357,13 @@ impl AdmFilter {
     ) -> HandlerResult<()> {
         // if no hosts are defined, then accept all (this allows
         // for backward compatibility)
-        if filter.img_hosts.is_empty() {
+        if filter.image_hosts.is_empty() {
             return Ok(());
         }
         let url = &tile.image_url;
         let species = "Image";
         let parsed = parse_url(url, species, &tile.name, tags)?;
-        check_url(parsed, species, &filter.img_hosts)?;
+        check_url(parsed, species, &filter.image_hosts)?;
         Ok(())
     }
 
@@ -433,7 +433,7 @@ impl AdmFilter {
                 } else {
                     filter
                 };
-                let img_filter = if filter.img_hosts.is_empty() {
+                let img_filter = if filter.image_hosts.is_empty() {
                     default
                 } else {
                     filter
@@ -456,7 +456,7 @@ impl AdmFilter {
                     self.report(&e, tags);
                     return None;
                 }
-                if let Err(e) = self.check_img_hosts(img_filter, &mut tile, tags) {
+                if let Err(e) = self.check_image_hosts(img_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad img");
                     metrics.incr_with_tags("filter.adm.err.invalid_img_host", Some(tags));
                     self.report(&e, tags);
@@ -721,19 +721,19 @@ mod tests {
             .split('.')
             .map(String::from)
             .collect();
-        settings.img_hosts = vec![host_bits];
+        settings.image_hosts = vec![host_bits];
         tile.image_url = "https://example.biz".to_owned();
         assert!(filter
-            .check_img_hosts(&settings, &mut tile, &mut tags)
+            .check_image_hosts(&settings, &mut tile, &mut tags)
             .is_err());
         tile.image_url = "https://example.org".to_owned();
         assert!(filter
-            .check_img_hosts(&settings, &mut tile, &mut tags)
+            .check_image_hosts(&settings, &mut tile, &mut tags)
             .is_ok());
         // check that sub-hosts are not rejected.
         tile.image_url = "https://cdn.example.org".to_owned();
         assert!(filter
-            .check_img_hosts(&settings, &mut tile, &mut tags)
+            .check_image_hosts(&settings, &mut tile, &mut tags)
             .is_ok());
     }
 }
