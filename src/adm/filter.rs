@@ -457,13 +457,13 @@ impl AdmFilter {
                     return None;
                 }
                 if let Err(e) = self.check_image_hosts(img_filter, &mut tile, tags) {
-                    trace!("Rejecting tile: bad img");
-                    metrics.incr_with_tags("filter.adm.err.invalid_img_host", Some(tags));
+                    trace!("Rejecting tile: bad image");
+                    metrics.incr_with_tags("filter.adm.err.invalid_image_host", Some(tags));
                     self.report(&e, tags);
                     return None;
                 }
                 if let Err(e) = tile.image_url.parse::<Uri>() {
-                    trace!("Rejecting tile: bad img: {:?}", e);
+                    trace!("Rejecting tile: bad image: {:?}", e);
                     metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
