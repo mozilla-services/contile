@@ -233,7 +233,7 @@ impl ImageStore {
 
     /// Store an image fetched from the passed `uri` into Google Cloud Storage
     ///
-    /// This will fetch and store the img into the bucket if necessary (fetch
+    /// This will fetch and store the image into the bucket if necessary (fetch
     /// results are cached for a short time).
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoredImage> {
         if let Some(stored_image) = self.stored_images.get(uri) {

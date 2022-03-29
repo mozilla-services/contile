@@ -129,6 +129,12 @@ pub struct AdmAdvertiserFilterSettings {
         default
     )]
     pub(crate) click_hosts: Vec<Vec<String>>,
+    #[serde(
+        deserialize_with = "deserialize_hosts",
+        serialize_with = "serialize_hosts",
+        default
+    )]
+    pub(crate) image_hosts: Vec<Vec<String>>,
     /// valid position for the tile
     pub(crate) position: Option<u8>,
     /// Optional set of valid countries for the tile (e.g ["US", "GB"])

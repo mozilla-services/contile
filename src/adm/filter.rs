@@ -346,6 +346,27 @@ impl AdmFilter {
         Ok(())
     }
 
+    /// Check the image URL to see if it's valid.
+    ///
+    /// This extends `filter_and_process`
+    fn check_image_hosts(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        // if no hosts are defined, then accept all (this allows
+        // for backward compatibility)
+        if filter.image_hosts.is_empty() {
+            return Ok(());
+        }
+        let url = &tile.image_url;
+        let species = "Image";
+        let parsed = parse_url(url, species, &tile.name, tags)?;
+        check_url(parsed, species, &filter.image_hosts)?;
+        Ok(())
+    }
+
     /// Filter and process tiles from ADM:
     ///
     /// - Returns None for tiles that shouldn't be shown to the client
@@ -412,6 +433,11 @@ impl AdmFilter {
                 } else {
                     filter
                 };
+                let img_filter = if filter.image_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
@@ -430,9 +456,14 @@ impl AdmFilter {
                     self.report(&e, tags);
                     return None;
                 }
-
+                if let Err(e) = self.check_image_hosts(img_filter, &mut tile, tags) {
+                    trace!("Rejecting tile: bad image");
+                    metrics.incr_with_tags("filter.adm.err.invalid_image_host", Some(tags));
+                    self.report(&e, tags);
+                    return None;
+                }
                 if let Err(e) = tile.image_url.parse::<Uri>() {
-                    trace!("Rejecting tile: bad img: {:?}", e);
+                    trace!("Rejecting tile: bad image: {:?}", e);
                     metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
@@ -565,7 +596,7 @@ mod tests {
             name: "test".to_owned(),
             advertiser_url: "https://acme.biz/ca/foobar".to_owned(),
             click_url: "https://example.com/foo".to_owned(),
-            image_url: "".to_owned(),
+            image_url: "https://example.org/i/cat.jpg".to_owned(),
             impression_url: "https://example.net".to_owned(),
             position: None,
         };
@@ -640,7 +671,7 @@ mod tests {
             ],
             "position": 0
         }"#;
-        let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
+        let mut settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
         // Good, matches hosts
         tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
@@ -682,6 +713,27 @@ mod tests {
         tile.advertiser_url = "https://acme.biz/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
+
+        // replicate settings breaking hosts into component bits.
+        let host_bits: Vec<String> = "example.org"
+            .to_owned()
+            .split('.')
+            .map(String::from)
+            .collect();
+        settings.image_hosts = vec![host_bits];
+        tile.image_url = "https://example.biz".to_owned();
+        assert!(filter
+            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .is_err());
+        tile.image_url = "https://example.org".to_owned();
+        assert!(filter
+            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .is_ok());
+        // check that sub-hosts are not rejected.
+        tile.image_url = "https://cdn.example.org".to_owned();
+        assert!(filter
+            .check_image_hosts(&settings, &mut tile, &mut tags)
             .is_ok());
     }
 }
