@@ -14,7 +14,7 @@ gunicorn==20.1.0
     # via -r requirements.in
 h11==0.12.0
     # via uvicorn
-httptools==0.2.0
+httptools==0.4.0
     # via uvicorn
 pydantic==1.8.2
     # via fastapi
@@ -28,7 +28,7 @@ starlette==0.14.2
     # via fastapi
 typing-extensions==3.10.0.0
     # via pydantic
-uvicorn[standard]==0.17.5
+uvicorn[standard]==0.17.6
     # via -r requirements.in
 uvloop==0.15.2
     # via uvicorn
