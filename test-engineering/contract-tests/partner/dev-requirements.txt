@@ -6,7 +6,7 @@
 #
 attrs==21.2.0
     # via pytest
-black==22.1.0
+black==22.3.0
     # via -r dev-requirements.in
 certifi==2021.5.30
     # via requests
