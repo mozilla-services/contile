@@ -280,7 +280,7 @@ impl AdmFilter {
 
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &filter.click_hosts)? {
-            trace!("bad url: url={:?}", url.to_string());
+            trace!("bad url: url={:?}", url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
@@ -290,7 +290,7 @@ impl AdmFilter {
         }
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
-                trace!("missing param: key={:?} url={:?}", &key, url.to_string());
+                trace!("missing param: key={:?} url={:?}", &key, url);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -302,7 +302,7 @@ impl AdmFilter {
         }
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
-                trace!("invalid param key={:?} url={:?}", &key, url.to_string());
+                trace!("invalid param key={:?} url={:?}", &key, url);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -333,7 +333,7 @@ impl AdmFilter {
             .collect::<Vec<String>>();
         query_keys.sort();
         if query_keys != vec!["id"] {
-            trace!("missing param key=id url={:?}", url.to_string());
+            trace!("missing param key=id url={:?}", url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
