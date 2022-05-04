@@ -14,3 +14,4 @@ Werkzeug==1.0.1
 
 # Custom packages
 requests==2.26.0
+google-auth==2.6.2
