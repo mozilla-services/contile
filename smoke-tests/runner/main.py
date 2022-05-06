@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List
 
+import google.auth.transport.requests
+import google.oauth2.id_token
 import requests
 from flask import Request, Response, abort, jsonify
 
@@ -60,6 +62,15 @@ class ResponseData:
     results: Dict = field(default_factory=dict)
 
 
+def get_id_token(audience):
+    """Fetch an oauth2 ID token for triggering other functions."""
+
+    auth_req = google.auth.transport.requests.Request()
+    id_token = google.oauth2.id_token.fetch_id_token(auth_req, audience)
+
+    return id_token
+
+
 def run_geo_smoke_tests(request: Request):
     """Triggered by HTTP Cloud Function."""
 
@@ -87,6 +98,7 @@ def run_geo_smoke_tests(request: Request):
         response_data.results[env.name] = {}
         for client in Clients:
             url = os.environ[f"CLIENT_URL_{client.name}"]
+            id_token = get_id_token(url)
             response = requests.post(
                 url,
                 json={
@@ -94,6 +106,7 @@ def run_geo_smoke_tests(request: Request):
                     "expected_country": client.value.country,
                     "expected_region": client.value.region,
                 },
+                headers={"Authorization": f"Bearer {id_token}"},
             )
             response_data.results[env.name][client.name] = ClientResponse(
                 status_code=response.status_code, content=response.text
