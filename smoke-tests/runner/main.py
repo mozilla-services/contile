@@ -7,11 +7,10 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List
 
-import requests
-from flask import Request, Response, abort, jsonify
-
 import google.auth.transport.requests
 import google.oauth2.id_token
+import requests
+from flask import Request, Response, abort, jsonify
 
 
 @dataclass
@@ -105,9 +104,7 @@ def run_geo_smoke_tests(request: Request):
                     "expected_country": client.value.country,
                     "expected_region": client.value.region,
                 },
-                headers={
-                    "Authorization": f"Bearer {id_token}"
-                },
+                headers={"Authorization": f"Bearer {id_token}"},
             )
             response_data.results[env.name][client.name] = ClientResponse(
                 status_code=response.status_code, content=response.text
