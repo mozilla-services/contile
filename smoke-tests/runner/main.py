@@ -63,6 +63,8 @@ class ResponseData:
 
 
 def get_id_token(audience):
+    """Fetch an oauth2 ID token for triggering other functions."""
+
     auth_req = google.auth.transport.requests.Request()
     id_token = google.oauth2.id_token.fetch_id_token(auth_req, audience)
 
