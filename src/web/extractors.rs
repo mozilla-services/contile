@@ -5,7 +5,7 @@
 
 use actix_web::{
     dev::Payload,
-    http::{header, HeaderValue},
+    http::header::{self, HeaderValue},
     Error, FromRequest, HttpRequest,
 };
 use futures::future::{self, FutureExt, LocalBoxFuture};
@@ -21,7 +21,6 @@ lazy_static! {
 }
 
 impl FromRequest for DeviceInfo {
-    type Config = ();
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
@@ -41,7 +40,6 @@ impl FromRequest for DeviceInfo {
 }
 
 impl FromRequest for Metrics {
-    type Config = ();
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 

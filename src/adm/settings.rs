@@ -320,7 +320,13 @@ impl AdmFilterSettings {
             .timeout(request_timeout)
             .build()
             .map_err(|e| ConfigError::Message(e.to_string()))?;
-        let contents = cloud_storage::Object::download_with(&bucket_name, path, &req)
+        let storage_client = cloud_storage::Client::builder()
+            .client(req)
+            .build()
+            .map_err(|e| ConfigError::Message(e.to_string()))?;
+        let contents = storage_client
+            .object()
+            .download(&bucket_name, path)
             .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
         let mut reply =

@@ -284,7 +284,7 @@ pub fn test_settings() -> Settings {
 mod tests {
     use crate::{error::HandlerResult, settings::Settings};
 
-    #[actix_rt::test]
+    #[actix_web::test]
     async fn test_fallback_loc() -> HandlerResult<()> {
         // From a bad setting
         let mut settings = Settings {

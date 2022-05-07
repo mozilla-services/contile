@@ -62,7 +62,7 @@ pub async fn get_tiles(
         let response = if settings.excluded_countries_200 {
             HttpResponse::Ok()
                 .content_type("application/json")
-                .body(&*EMPTY_TILES)
+                .body(EMPTY_TILES.as_str())
         } else {
             HttpResponse::NoContent().finish()
         };
@@ -193,7 +193,7 @@ fn content_response(content: &cache::TilesContent) -> HttpResponse {
     match content {
         cache::TilesContent::Json(json) => HttpResponse::Ok()
             .content_type("application/json")
-            .body(json),
+            .body(json.to_owned()),
         cache::TilesContent::Empty => HttpResponse::NoContent().finish(),
     }
 }

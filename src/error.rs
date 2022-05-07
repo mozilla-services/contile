@@ -7,10 +7,7 @@ use std::result;
 use actix_web::http::uri::InvalidUri;
 
 use actix_web::{
-    dev::{HttpResponseBuilder, ServiceResponse},
-    error::ResponseError,
-    http::StatusCode,
-    middleware::errhandlers::ErrorHandlerResponse,
+    dev::ServiceResponse, error::ResponseError, http::StatusCode, middleware::ErrorHandlerResponse,
     HttpResponse, Result,
 };
 use serde_json::json;
@@ -201,11 +198,16 @@ impl Error for HandlerError {
 impl HandlerError {
     pub fn render_404<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
         // Replace the outbound error message with our own.
-        let resp = HttpResponseBuilder::new(StatusCode::NOT_FOUND).json(0);
-        Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
-            res.request().clone(),
-            resp.into_body(),
-        )))
+        let status = StatusCode::NOT_FOUND;
+        let resp = HttpResponse::build(status).json(json!({
+            "code": status.as_u16(),
+            "errno": status.as_u16(),
+            "error": status.to_string(),
+        }));
+
+        let (req, _) = res.into_parts();
+        let resp = ServiceResponse::new(req, resp).map_into_right_body();
+        Ok(ErrorHandlerResponse::Response(resp))
     }
 }
 
@@ -236,8 +238,7 @@ impl fmt::Display for HandlerError {
 
 impl ResponseError for HandlerError {
     fn error_response(&self) -> HttpResponse {
-        let mut resp = HttpResponse::build(self.status_code());
-        resp.json(json!({
+        HttpResponse::build(self.status_code()).json(json!({
             "code": self.kind().http_status().as_u16(),
             "errno": self.kind().errno(),
             "error": self.kind().as_response_string(),

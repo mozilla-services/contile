@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use actix_http::http::header::{HeaderMap, HeaderValue};
+use actix_web::http::header::{HeaderMap, HeaderValue};
 use actix_web_location::Location;
 use serde::{Deserialize, Serialize};
 use url::Url;

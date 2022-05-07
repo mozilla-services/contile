@@ -35,7 +35,7 @@ pub fn service(config: &mut web::ServiceConfig) {
 
 /// Used by the load balancer to indicate that the server can respond to
 /// requests. Should just return OK.
-fn lbheartbeat() -> HttpResponse {
+async fn lbheartbeat() -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/json")
         .body("{}")
@@ -43,14 +43,14 @@ fn lbheartbeat() -> HttpResponse {
 
 /// Return the contents of the `version.json` file created by CircleCI and stored
 /// in the Docker root (or the TBD version stored in the Git repo).
-fn version() -> HttpResponse {
+async fn version() -> HttpResponse {
     HttpResponse::Ok()
         .content_type("application/json")
         .body(include_str!("../../version.json"))
 }
 
 /// Returns a status message indicating the current state of the server
-fn heartbeat(state: web::Data<ServerState>) -> HttpResponse {
+async fn heartbeat(state: web::Data<ServerState>) -> HttpResponse {
     let mut checklist = HashMap::new();
     checklist.insert(
         "version".to_owned(),
@@ -108,6 +108,6 @@ async fn loc_test(req: HttpRequest, location: Location) -> Result<HttpResponse, 
 async fn document_boot(state: web::Data<ServerState>) -> Result<HttpResponse, HandlerError> {
     let settings = &state.settings;
     return Ok(HttpResponse::Found()
-        .header("Location", settings.documentation_url.clone())
+        .insert_header(("Location", settings.documentation_url.clone()))
         .finish());
 }
