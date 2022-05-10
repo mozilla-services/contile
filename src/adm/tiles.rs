@@ -224,6 +224,7 @@ pub async fn get_tiles(
                         HandlerErrorKind::AdmServerError().into()
                     };
                     // ADM servers are down, or improperly configured
+                    err.tags = tags.clone();
                     err.tags.add_extra("error", &e.to_string());
                     err
                 })?
@@ -232,10 +233,13 @@ pub async fn get_tiles(
                 .await
                 .map_err(|e| {
                     // ADM servers are not returning correct information
-                    HandlerErrorKind::BadAdmResponse(format!(
+                    let mut e: HandlerError = HandlerErrorKind::BadAdmResponse(format!(
                         "ADM provided invalid response: {:?}",
                         e
                     ))
+                    .into();
+                    e.tags = tags.clone();
+                    e
                 })?
         }
     };
