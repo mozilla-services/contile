@@ -58,7 +58,7 @@ impl DeviceInfo {
     /// remote settings. Currently, that's limited to just desktop devices that
     /// are before v. 91
     pub fn legacy_only(&self) -> bool {
-        self.os_family != OsFamily::IOs && self.ff_version < 91
+        self.ff_version < 91
     }
 
     /// Determine if the device is a mobile phone based on either the form factor or OS.

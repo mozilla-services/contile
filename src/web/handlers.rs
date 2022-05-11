@@ -90,14 +90,6 @@ pub async fn get_tiles(
     }
 
     let mut expired = false;
-    // Theoretically, there can be problems with very old iOS devices
-    // potentially getting no tiles because of their very low version
-    // numbers. This metric is only to test if we're getting any of those
-    // sorts of devices. We shouldn't by this point, but it's a good idea
-    // to check.
-    if device_info.os_family == crate::web::OsFamily::IOs && device_info.ff_version < 36 {
-        metrics.incr_with_tags("tiles.get.old_phone", Some(&tags));
-    }
 
     if settings.test_mode != crate::settings::TestModes::TestFakeResponse {
         // First make a cheap read from the cache
