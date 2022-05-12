@@ -213,7 +213,7 @@ pub async fn get_tiles(
                     // We still want to track this as a server error later.
                     //
                     // TODO: Remove this after the shared cache is implemented.
-                    let mut err: HandlerError = if e.is_timeout()
+                    let err: HandlerError = if e.is_timeout()
                         && Instant::now()
                             .checked_duration_since(state.start_up)
                             .unwrap_or_else(|| Duration::from_secs(0))
@@ -224,7 +224,8 @@ pub async fn get_tiles(
                         HandlerErrorKind::AdmServerError().into()
                     };
                     // ADM servers are down, or improperly configured
-                    err.tags.add_extra("error", &e.to_string());
+                    // be sure to write the error to the provided mut tags.
+                    tags.add_extra("error", &e.to_string());
                     err
                 })?
                 .error_for_status()?
@@ -232,10 +233,13 @@ pub async fn get_tiles(
                 .await
                 .map_err(|e| {
                     // ADM servers are not returning correct information
-                    HandlerErrorKind::BadAdmResponse(format!(
+                    let err: HandlerError = HandlerErrorKind::BadAdmResponse(format!(
                         "ADM provided invalid response: {:?}",
                         e
                     ))
+                    .into();
+                    tags.add_extra("error", &e.to_string());
+                    err
                 })?
         }
     };

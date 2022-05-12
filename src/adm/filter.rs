@@ -410,7 +410,7 @@ impl AdmFilter {
                     return None;
                 }
                 // match to the version that we switched over from built in image management
-                // to CDN image fetch. Note: iOS does not use the standard firefox version number
+                // to CDN image fetch.
 
                 if device_info.legacy_only()
                     && !self.legacy_list.contains(&tile.name.to_lowercase())
