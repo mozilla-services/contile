@@ -204,22 +204,17 @@ impl Settings {
         filename: &Option<String>,
         debug: bool,
     ) -> Result<Self, ConfigError> {
-        let mut s = Config::default();
-
+        let mut builder = Config::builder();
         // Merge the config file if supplied
         if let Some(config_filename) = filename {
-            s.merge(File::with_name(config_filename))?;
+            builder = builder.add_source(File::with_name(config_filename));
         }
-
         // Merge the environment overrides
-        // While the prefix is currently case insensitive, it's traditional that
-        // environment vars be UPPERCASE, this ensures that will continue should
-        // Environment ever change their policy about case insensitivity.
-        // This will accept environment variables specified as
-        // `SYNC_FOO__BAR_VALUE="gorp"` as `foo.bar_value = "gorp"`
-        s.merge(Environment::with_prefix(&PREFIX.to_uppercase()).separator("__"))?;
+        let s = builder
+            .add_source(Environment::with_prefix(&PREFIX.to_uppercase()))
+            .build()?;
 
-        Ok(match s.try_into::<Self>() {
+        Ok(match s.try_deserialize::<Self>() {
             Ok(mut s) => {
                 trace!("raw Settings: {:?}", &s);
                 if debug || s.test_mode != TestModes::NoTest {
