@@ -60,8 +60,6 @@ pub struct AdmFilter {
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
-    pub connect_timeout: Duration,
-    pub request_timeout: Duration,
 }
 
 /// Parse &str into a `Url`
@@ -104,23 +102,20 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>, req: reqwest::Client) -> HandlerResult<()> {
+pub fn spawn_updater(
+    filter: &Arc<RwLock<AdmFilter>>,
+    storage_client: cloud_storage::Client,
+) -> HandlerResult<()> {
     if !filter.read().unwrap().is_cloud() {
         return Ok(());
     }
-    let storage_client = cloud_storage::Client::builder()
-        .client(req)
-        .build()
-        .map_err(|e| {
-            HandlerError::internal(&format!("Couldn't build cloud_storage::Client: {}", e))
-        })?;
     let mfilter = filter.clone();
     rt::spawn(async move {
         let tags = crate::tags::Tags::default();
         loop {
             let mut filter = mfilter.write().unwrap();
             match filter.requires_update(&storage_client).await {
-                Ok(true) => filter.update().await.unwrap_or_else(|e| {
+                Ok(true) => filter.update(&storage_client).await.unwrap_or_else(|e| {
                     filter.report(&e, &tags);
                 }),
                 Ok(false) => {}
@@ -183,20 +178,16 @@ impl AdmFilter {
     }
 
     /// Try to update the ADM filter data from the remote bucket.
-    pub async fn update(&mut self) -> HandlerResult<()> {
+    pub async fn update(&mut self, storage_client: &cloud_storage::Client) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(
-                bucket,
-                self.connect_timeout,
-                self.request_timeout,
-            )
-            .await
-            .map_err(|e| {
-                HandlerError::internal(&format!(
-                    "Invalid bucket data in {:?}: {:?}",
-                    self.source, e
-                ))
-            })?;
+            let adm_settings = AdmFilterSettings::from_settings_bucket(storage_client, bucket)
+                .await
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Invalid bucket data in {:?}: {:?}",
+                        self.source, e
+                    ))
+                })?;
             for (adv, setting) in adm_settings.advertisers {
                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);

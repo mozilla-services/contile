@@ -107,18 +107,21 @@ impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
         let metrics = Arc::new(metrics_from_opts(&settings)?);
-        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
-        // try to update from the bucket if possible.
-        if raw_filter.is_cloud() {
-            raw_filter.update().await?
-        }
-        let filter = Arc::new(RwLock::new(raw_filter));
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
             .timeout(Duration::from_secs(settings.request_timeout))
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
-        spawn_updater(&filter, req.clone())?;
+        let storage_client = cloud_storage::Client::builder()
+            .client(req.clone())
+            .build()?;
+        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        // try to update from the bucket if possible.
+        if raw_filter.is_cloud() {
+            raw_filter.update(&storage_client).await?
+        }
+        let filter = Arc::new(RwLock::new(raw_filter));
+        spawn_updater(&filter, storage_client)?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let img_store = ImageStore::create(&settings, Arc::clone(&metrics), &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {

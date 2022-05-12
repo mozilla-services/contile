@@ -5,7 +5,7 @@
 
 use actix_web::{
     dev::Payload,
-    http::header::{self, HeaderValue},
+    http::header::{HeaderValue, USER_AGENT},
     Error, FromRequest, HttpRequest,
 };
 use futures::future::{self, FutureExt, LocalBoxFuture};
@@ -29,7 +29,7 @@ impl FromRequest for DeviceInfo {
         async move {
             let ua = req
                 .headers()
-                .get(header::USER_AGENT)
+                .get(USER_AGENT)
                 .unwrap_or(&EMPTY_HEADER)
                 .to_str()
                 .unwrap_or_default();
