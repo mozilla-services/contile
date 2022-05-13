@@ -7,7 +7,7 @@ use std::{
     time::Duration,
 };
 
-use actix_http::http::Uri;
+use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
 use lazy_static::lazy_static;
 use url::Url;
@@ -60,8 +60,6 @@ pub struct AdmFilter {
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
-    pub connect_timeout: Duration,
-    pub request_timeout: Duration,
 }
 
 /// Parse &str into a `Url`
@@ -104,17 +102,20 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>, req: reqwest::Client) {
+pub fn spawn_updater(
+    filter: &Arc<RwLock<AdmFilter>>,
+    storage_client: cloud_storage::Client,
+) -> HandlerResult<()> {
     if !filter.read().unwrap().is_cloud() {
-        return;
+        return Ok(());
     }
     let mfilter = filter.clone();
-    actix_rt::spawn(async move {
+    rt::spawn(async move {
         let tags = crate::tags::Tags::default();
         loop {
             let mut filter = mfilter.write().unwrap();
-            match filter.requires_update(&req).await {
-                Ok(true) => filter.update().await.unwrap_or_else(|e| {
+            match filter.requires_update(&storage_client).await {
+                Ok(true) => filter.update(&storage_client).await.unwrap_or_else(|e| {
                     filter.report(&e, &tags);
                 }),
                 Ok(false) => {}
@@ -122,9 +123,10 @@ pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>, req: reqwest::Client) {
                     filter.report(&e, &tags);
                 }
             }
-            actix_rt::time::delay_for(filter.refresh_rate).await;
+            rt::time::sleep(filter.refresh_rate).await;
         }
     });
+    Ok(())
 }
 
 /// Filter a given tile data set provided by ADM and validate the various elements
@@ -147,7 +149,10 @@ impl AdmFilter {
     }
 
     /// check to see if the bucket has been modified since the last time we updated.
-    pub async fn requires_update(&self, req: &reqwest::Client) -> HandlerResult<bool> {
+    pub async fn requires_update(
+        &self,
+        storage_client: &cloud_storage::Client,
+    ) -> HandlerResult<bool> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
             return Ok(false);
@@ -159,9 +164,10 @@ impl AdmFilter {
                     HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
                 })?
                 .to_string();
-            let obj =
-                cloud_storage::Object::read_with(&host, bucket.path().trim_start_matches('/'), req)
-                    .await?;
+            let obj = storage_client
+                .object()
+                .read(&host, bucket.path().trim_start_matches('/'))
+                .await?;
             if let Some(updated) = self.last_updated {
                 // if the bucket is older than when we last checked, do nothing.
                 return Ok(updated <= obj.updated);
@@ -172,20 +178,16 @@ impl AdmFilter {
     }
 
     /// Try to update the ADM filter data from the remote bucket.
-    pub async fn update(&mut self) -> HandlerResult<()> {
+    pub async fn update(&mut self, storage_client: &cloud_storage::Client) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(
-                bucket,
-                self.connect_timeout,
-                self.request_timeout,
-            )
-            .await
-            .map_err(|e| {
-                HandlerError::internal(&format!(
-                    "Invalid bucket data in {:?}: {:?}",
-                    self.source, e
-                ))
-            })?;
+            let adm_settings = AdmFilterSettings::from_settings_bucket(storage_client, bucket)
+                .await
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Invalid bucket data in {:?}: {:?}",
+                        self.source, e
+                    ))
+                })?;
             for (adv, setting) in adm_settings.advertisers {
                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);

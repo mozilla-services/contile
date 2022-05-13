@@ -16,8 +16,7 @@ use slog_mozlog_json::MozLogJson;
 /// the `human_logs` setting (see [crate::settings::Settings])
 pub fn init_logging(json: bool) -> HandlerResult<()> {
     let logger = if json {
-        let hostname = hostname::get()
-            .expect("Couldn't get hostname")
+        let hostname = gethostname::gethostname()
             .into_string()
             .expect("Couldn't get hostname");
 

@@ -5,7 +5,7 @@
 
 use actix_web::{
     dev::Payload,
-    http::{header, HeaderValue},
+    http::header::{HeaderValue, USER_AGENT},
     Error, FromRequest, HttpRequest,
 };
 use futures::future::{self, FutureExt, LocalBoxFuture};
@@ -21,7 +21,6 @@ lazy_static! {
 }
 
 impl FromRequest for DeviceInfo {
-    type Config = ();
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
@@ -30,7 +29,7 @@ impl FromRequest for DeviceInfo {
         async move {
             let ua = req
                 .headers()
-                .get(header::USER_AGENT)
+                .get(USER_AGENT)
                 .unwrap_or(&EMPTY_HEADER)
                 .to_str()
                 .unwrap_or_default();
@@ -41,7 +40,6 @@ impl FromRequest for DeviceInfo {
 }
 
 impl FromRequest for Metrics {
-    type Config = ();
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 
