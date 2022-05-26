@@ -51,9 +51,9 @@ GOOGLE_APPLICATION_CREDENTIALS={path to your credential.json file} \
     cargo test
 ```
 
-#### Integration tests
+#### Contract tests
 
-Integration tests are currently run using Docker images. This is so that they can be run as
+Contract tests are currently run using Docker images. This is so that they can be run as
 part of our automated continuous integration (CI) testing. Running these tests outside of
 Docker is possible, but requires some additional work. See [Contile Integration Tests](https://github.com/mozilla-services/contile-integration-tests) for details.
 
