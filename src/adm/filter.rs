@@ -3,13 +3,14 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
     iter::FromIterator,
-    sync::{Arc, RwLock},
+    sync::Arc,
     time::Duration,
 };
 
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
 use lazy_static::lazy_static;
+use tokio::sync::RwLock;
 use url::Url;
 
 use super::{
@@ -102,25 +103,25 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-pub fn spawn_updater(
+pub async fn spawn_updater(
     filter: &Arc<RwLock<AdmFilter>>,
     storage_client: cloud_storage::Client,
 ) -> HandlerResult<()> {
-    if !filter.read().unwrap().is_cloud() {
+    if !filter.read().await.is_cloud() {
         return Ok(());
     }
     let mfilter = filter.clone();
     rt::spawn(async move {
-        let tags = crate::tags::Tags::default();
+        let mut tags = crate::tags::Tags::default();
         loop {
-            let mut filter = mfilter.write().unwrap();
+            let mut filter = mfilter.write().await;
             match filter.requires_update(&storage_client).await {
                 Ok(true) => filter.update(&storage_client).await.unwrap_or_else(|e| {
-                    filter.report(&e, &tags);
+                    filter.report(&e, &mut tags);
                 }),
                 Ok(false) => {}
                 Err(e) => {
-                    filter.report(&e, &tags);
+                    filter.report(&e, &mut tags);
                 }
             }
             rt::time::sleep(filter.refresh_rate).await;
@@ -140,7 +141,7 @@ impl AdmFilter {
     }
 
     /// Report the error directly to sentry
-    fn report(&self, error: &HandlerError, tags: &Tags) {
+    fn report(&self, error: &HandlerError, tags: &mut Tags) {
         // trace!(&error, &tags);
         // TODO: if not error.is_reportable, just add to metrics.
         let mut merged_tags = error.tags.clone();
