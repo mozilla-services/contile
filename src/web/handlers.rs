@@ -51,7 +51,7 @@ pub async fn get_tiles(
     if !state
         .filter
         .read()
-        .unwrap()
+        .await
         .all_include_regions
         .contains(&location.country())
     {

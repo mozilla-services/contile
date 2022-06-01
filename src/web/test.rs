@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 use actix_cors::Cors;
@@ -15,6 +15,7 @@ use actix_web::{
 use cadence::{SpyMetricSink, StatsdClient};
 use futures::{channel::mpsc, StreamExt};
 use serde_json::{json, Value};
+use tokio::sync::RwLock;
 use url::Url;
 
 use crate::{
