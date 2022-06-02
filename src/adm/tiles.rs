@@ -248,20 +248,17 @@ pub async fn get_tiles(
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
-    let filtered: Vec<Tile> = response
-        .tiles
-        .into_iter()
-        .filter_map(|tile| {
-            state.filter.read().unwrap().filter_and_process(
-                tile,
-                location,
-                &device_info,
-                tags,
-                metrics,
-            )
-        })
-        .take(settings.adm_max_tiles as usize)
-        .collect();
+    let filtered: Vec<Tile> = {
+        let filter = state.filter.read().await;
+        response
+            .tiles
+            .into_iter()
+            .filter_map(|tile| {
+                filter.filter_and_process(tile, location, &device_info, tags, metrics)
+            })
+            .take(settings.adm_max_tiles as usize)
+            .collect()
+    };
 
     let mut tiles: Vec<Tile> = Vec::new();
     for mut tile in filtered {

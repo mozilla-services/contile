@@ -1,6 +1,7 @@
 //! Main application server
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 use actix_cors::Cors;
 use actix_web::{
@@ -121,7 +122,7 @@ impl Server {
             raw_filter.update(&storage_client).await?
         }
         let filter = Arc::new(RwLock::new(raw_filter));
-        spawn_updater(&filter, storage_client)?;
+        spawn_updater(&filter, storage_client).await?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let img_store = ImageStore::create(&settings, Arc::clone(&metrics), &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
