@@ -81,6 +81,7 @@ def run_geo_smoke_test(request: Request):
 
     location_url = f"{env.value}{LOCATION_ENDPOINT}"
 
+    # Send a HTTP request to the Contile "location test" API endpoint
     loc_response = requests.get(location_url)
 
     if loc_response.status_code != 200:
