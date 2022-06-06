@@ -17,11 +17,14 @@ RUN groupadd --gid 10001 app && \
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+ENV PYTHON_VENV=venv
+RUN python -m venv ${PYTHON_VENV}
+ENV PATH="${PYTHON_VENV}/bin:${PATH}"
 
-RUN python -m venv venv
-RUN venv/bin/python -m pip install -U pip
-RUN venv/bin/python -m pip install -r requirements.txt
+RUN python -m pip install --upgrade pip
+
+COPY requirements.txt requirements.txt
+RUN python -m pip install -r requirements.txt
 
 COPY config/ config/
 
