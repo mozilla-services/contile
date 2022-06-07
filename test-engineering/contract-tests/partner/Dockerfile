@@ -23,8 +23,8 @@ ENV PATH="${PYTHON_VENV}/bin:${PATH}"
 
 RUN python -m pip install --upgrade pip
 
-COPY requirements.txt requirements.txt
-RUN python -m pip install -r requirements.txt
+COPY requirements.txt /tmp/requirements.txt
+RUN python -m pip install -r /tmp/requirements.txt
 
 COPY config/ config/
 
