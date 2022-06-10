@@ -1,0 +1,94 @@
+# These environment variables must be set in CircleCI UI
+#
+# DOCKERHUB_REPO_PARTNER - Name of the partner Docker image: format <username>/<repo>
+# DOCKERHUB_REPO_CLIENT - Name of the client Docker image: format <username>/<repo>
+# DOCKER_LOGIN - Docker username
+# DOCKER_PASSWORD - Docker password
+
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.1.1
+
+jobs:
+  run_checks:
+    docker:
+      - image: python:3.8
+    working_directory: "~/project/<< parameters.component >>"
+    parameters:
+      tox_env:
+        type: string
+      component:
+        type: string
+    steps:
+      - checkout:
+          path: ~/project/
+      - run:
+          name: Install tox
+          command: |
+            python -m pip install --upgrade pip
+            python -m pip install tox
+      - run:
+          name: Run tox
+          command: |
+            tox -e << parameters.tox_env >>
+
+workflows:
+  version: 2
+  checks-and-docker-publish:
+    jobs:
+      - run_checks:
+          name: Run << matrix.tox_env >> checks for client 🤖
+          component: client
+          matrix:
+            alias: run_checks_client
+            parameters:
+              tox_env: [black, flake8, mypy]
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+
+      - run_checks:
+          name: Run << matrix.tox_env >> checks for partner 📋
+          component: partner
+          matrix:
+            alias: run_checks_partner
+            parameters:
+              tox_env: [black, flake8, mypy, py38]
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+
+      - docker/publish:
+          name: Publish Docker image for client 🤖
+          path: client
+          docker-context: client
+          image: $DOCKERHUB_REPO_CLIENT
+          tag: $CIRCLE_TAG,latest
+          requires:
+            - run_checks_client
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+            branches:
+              # Ignore for all the branches and run only for tags
+              ignore: /.*/
+
+      - docker/publish:
+          name: Publish Docker image for partner 📋
+          path: partner
+          docker-context: partner
+          image: $DOCKERHUB_REPO_PARTNER
+          tag: $CIRCLE_TAG,latest
+          requires:
+            - run_checks_partner
+          filters:
+            tags:
+              # Only run this for tags using version identifiers (YY.MINOR.MICRO)
+              only: /^\d+\.\d+\.\d+$/
+            branches:
+               # Ignore for all the branches and run only for tags
+              ignore: /.*/

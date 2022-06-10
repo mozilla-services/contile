@@ -1,0 +1,14 @@
+# These owners will be the default owners for everything in the repo. Unless a
+# later match takes precedence, the following users will be requested for review
+# when someone opens a pull request.
+* @hackebrot @ashrivastava-qa
+
+# The following users own the partner API endpoint and its models
+/partner/app/main.py    @hackebrot @ashrivastava-qa @ncloudioj
+/partner/app/models.py  @hackebrot @ashrivastava-qa @ncloudioj
+
+# The following users own the models for contile tiles responses
+/client/tests/models.py @hackebrot @ashrivastava-qa @pjenvey @jrconlin
+
+# The following users own the repository documentation
+/README.md @mozilla-services/context-services
