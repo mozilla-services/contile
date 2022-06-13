@@ -87,6 +87,12 @@ pub enum HandlerErrorKind {
 
     #[error("Cloud Storage error: {}", _0)]
     CloudStorage(#[from] cloud_storage::Error),
+
+    // Nothing to serve. We typically send a 204 for empty tiles,
+    // but optionally send a 200 to resolve
+    // https://github.com/mozilla-services/contile/issues/284
+    #[error("No tiles for advertiser: {}", _0)]
+    NoTilesForCountry(String),
 }
 
 /// A set of Error Context utilities
@@ -97,6 +103,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::Validation(_) => StatusCode::BAD_REQUEST,
             HandlerErrorKind::AdmServerError() => StatusCode::SERVICE_UNAVAILABLE,
             HandlerErrorKind::AdmLoadError() => StatusCode::NO_CONTENT,
+            HandlerErrorKind::NoTilesForCountry(_) => StatusCode::OK,
             HandlerErrorKind::BadAdmResponse(_)
             | HandlerErrorKind::InvalidHost(_, _)
             | HandlerErrorKind::UnexpectedHost(_, _)
@@ -125,6 +132,7 @@ impl HandlerErrorKind {
             HandlerErrorKind::BadImage(_) => 605,
             HandlerErrorKind::CloudStorage(_) => 620,
             HandlerErrorKind::InvalidUA => 700,
+            HandlerErrorKind::NoTilesForCountry(_) => 0,
         }
     }
 
@@ -145,6 +153,8 @@ impl HandlerErrorKind {
     pub fn as_response_string(&self) -> String {
         match self {
             HandlerErrorKind::General(_) | HandlerErrorKind::Internal(_) => self.to_string(),
+            // Not really an error
+            HandlerErrorKind::NoTilesForCountry(_) => "".to_string(),
             HandlerErrorKind::Reqwest(_) => {
                 "An error occurred while trying to request data".to_string()
             }

@@ -35,9 +35,6 @@ impl std::fmt::Display for TestModes {
     }
 }
 
-// TODO: Call this `EnvSettings` that serializes into
-// real `Settings`?
-//
 /// Configuration settings and options
 ///
 /// Each of these can be specified as an environment variable by
@@ -127,6 +124,8 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
+    /// a JSON structure of the default ADM settings
+    pub adm_defaults: Option<String>,
     /// Percentage of overall time for fetch "jitter".
     pub jitter: u8,
 }
@@ -174,6 +173,7 @@ impl Default for Settings {
             adm_has_legacy_image: Some(
                 r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
             ),
+            adm_defaults: None,
             // +/- 10% of time for jitter.
             jitter: 10,
         }

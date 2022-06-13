@@ -1,23 +1,5 @@
-{"DEFAULT": {
-    "advertiser_urls": [{ "host": "example.com" }],
-    "impression_hosts": ["example.net"],
-    "click_hosts":["example.com"],
-    "include_regions": [
-        "US",
-        "GB",
-        "IT",
-        "AU",
-        "CA",
-        "DE",
-        "FR",
-        "ES",
-        "IN",
-        "MX",
-        "CN"
-    ]
-},
-"Acme": {
-    "advertiser_urls": [
+{"Acme": {
+    "US": [
         { "host": "www.acme.biz",
             "paths": [
                 {
@@ -27,18 +9,17 @@
             ]
         },
         { "host": "acme.biz" }
-    ],
-    "position": 0
+    ]
 },
 "Dunder Mifflin": {
-    "advertiser_urls": [
+    "US": [
         { "host": "www.dunderm.biz" },
         { "host": "dunderm.biz" }
     ],
     "position": 1
 },
 "Los Pollos Hermanos": {
-    "advertiser_urls": [
+    "MX": [
         { "host": "www.lph-nm.biz" },
         { "host": "lph-mx.co.mx" }
     ]

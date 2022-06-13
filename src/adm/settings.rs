@@ -9,6 +9,7 @@ use std::{
 
 use config::ConfigError;
 use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value;
 
 use super::AdmFilter;
 use crate::{
@@ -16,10 +17,6 @@ use crate::{
     settings::Settings,
     web::DeviceInfo,
 };
-
-/// The name of the "Default" node, which is used as a fall back if no data
-/// is defined for a given partner.
-pub(crate) const DEFAULT: &str = "DEFAULT";
 
 /// The AdvertiserUrlFilter describes the filtering rule for the `advertiser_url`.
 ///
@@ -57,9 +54,10 @@ pub(crate) const DEFAULT: &str = "DEFAULT";
 ///     matches. In particular, when loading filters from the settings file,
 ///     Contile will panic if it detects that a prefix filter doesn't have
 ///     the trailing '/' in the `"value"`.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AdvertiserUrlFilter {
     pub(crate) host: String,
+    #[serde(skip_serializing_if = "check_paths")]
     pub(crate) paths: Option<Vec<PathFilter>>,
 }
 
@@ -68,6 +66,14 @@ pub struct AdvertiserUrlFilter {
 pub enum PathMatching {
     Prefix,
     Exact,
+}
+
+fn check_paths(paths: &Option<Vec<PathFilter>>) -> bool {
+    if let Some(s_paths) = paths {
+        return s_paths.is_empty();
+    } else {
+        return true;
+    }
 }
 
 impl TryFrom<&str> for PathMatching {
@@ -112,39 +118,18 @@ pub struct PathFilter {
 /// defined in DEFAULT.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    /// Required set of valid hosts and paths for the `advertiser_url`
-    #[serde(default)]
-    pub(crate) advertiser_urls: Vec<AdvertiserUrlFilter>,
-    /// Optional set of valid hosts for the `impression_url`
-    #[serde(
-        deserialize_with = "deserialize_hosts",
-        serialize_with = "serialize_hosts",
-        default
-    )]
-    pub(crate) impression_hosts: Vec<Vec<String>>,
-    /// Optional set of valid hosts for the `click_url`
-    #[serde(
-        deserialize_with = "deserialize_hosts",
-        serialize_with = "serialize_hosts",
-        default
-    )]
-    pub(crate) click_hosts: Vec<Vec<String>>,
-    #[serde(
-        deserialize_with = "deserialize_hosts",
-        serialize_with = "serialize_hosts",
-        default
-    )]
-    pub(crate) image_hosts: Vec<Vec<String>>,
-    /// valid position for the tile
-    pub(crate) position: Option<u8>,
-    /// Optional set of valid countries for the tile (e.g ["US", "GB"])
-    /// TODO: could support country + subdivision, e.g. "USOK"
-    #[serde(default)]
-    pub(crate) include_regions: Vec<String>,
-    pub(crate) ignore_advertisers: Option<Vec<String>>,
-    pub(crate) ignore_dmas: Option<Vec<u8>>,
+    // TODO: handle country and path parsing.
+    pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>,
     #[serde(default)]
     pub(crate) delete: bool,
+}
+
+fn break_hosts(host: String) -> Vec<String> {
+    host.split('.').map(ToOwned::to_owned).collect()
+}
+
+fn make_host(split_host: &[String]) -> String {
+    split_host.join(".")
 }
 
 /// Parse JSON:
@@ -155,12 +140,8 @@ fn deserialize_hosts<'de, D>(d: D) -> Result<Vec<Vec<String>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Deserialize::deserialize(d).map(|hosts: Vec<String>| {
-        hosts
-            .into_iter()
-            .map(|host| -> Vec<_> { host.split('.').map(ToOwned::to_owned).collect() })
-            .collect()
-    })
+    Deserialize::deserialize(d)
+        .map(|hosts: Vec<String>| hosts.into_iter().map(break_hosts).collect())
 }
 
 /// Serialize:
@@ -171,10 +152,7 @@ fn serialize_hosts<S>(hosts: &[Vec<String>], s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let hosts: Vec<_> = hosts
-        .iter()
-        .map(|split_host| split_host.join("."))
-        .collect();
+    let hosts: Vec<_> = hosts.iter().map(|v| make_host(v)).collect();
     let mut seq = s.serialize_seq(Some(hosts.len()))?;
     for host in hosts {
         seq.serialize_element(&host)?;
@@ -230,6 +208,40 @@ impl AdmPse {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Default, Serialize)]
+pub struct AdmDefaults {
+    /// Required set of valid hosts and paths for the `advertiser_url`
+    #[serde(default)]
+    pub(crate) advertiser_urls: Vec<AdvertiserUrlFilter>,
+    /// Optional set of valid hosts for the `impression_url`
+    #[serde(
+        deserialize_with = "deserialize_hosts",
+        serialize_with = "serialize_hosts",
+        default
+    )]
+    pub(crate) impression_hosts: Vec<Vec<String>>,
+    /// Optional set of valid hosts for the `click_url`
+    #[serde(
+        deserialize_with = "deserialize_hosts",
+        serialize_with = "serialize_hosts",
+        default
+    )]
+    pub(crate) click_hosts: Vec<Vec<String>>,
+    #[serde(
+        deserialize_with = "deserialize_hosts",
+        serialize_with = "serialize_hosts",
+        default
+    )]
+    pub(crate) image_hosts: Vec<Vec<String>>,
+    /// valid position for the tile
+    pub(crate) position: Option<u8>,
+    /// Optional set of valid countries for the tile (e.g ["US", "GB"])
+    //#[serde(default)]
+    //pub(crate) include_regions: Vec<String>,
+    pub(crate) ignore_advertisers: Option<Vec<String>>,
+    pub(crate) ignore_dmas: Option<Vec<u8>>,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct AdmFilterSettings {
     bucket: Option<url::Url>,
@@ -249,8 +261,39 @@ impl Serialize for AdmFilterSettings {
 impl TryFrom<String> for AdmFilterSettings {
     type Error = ConfigError;
 
+    /// Parse a JSON string containing the ADM settings. These will be generated by shepherd and
+    /// would have a format similar to the following:
+    /// ```json
+    /// {
+    ///     "Example": {
+    ///         "US": [
+    ///             {"host": "www.example.com",
+    ///              "paths": [
+    ///                 {"value": "/here",
+    ///                  "matching": "exact"}
+    ///              ]
+    ///             }
+    ///         ],
+    ///        "MX": [
+    ///             {"host": "www.example.mx",
+    ///              "paths": [
+    ///                 {"value": "/aqui",
+    ///                  "matching": "exact"}
+    ///              ]
+    ///             }
+    ///         ]
+    ///     },
+    ///     "Obsolete": {
+    ///         "delete": True
+    ///     }
+    /// }
+    /// ```
+    /// See [AdmFilter] for details.
+    ///
+    /// The data can be read from a Google Cloud Storage bucket by passing a `gs://...` URL. The data will be read and
+    /// updated later by the automatic bucket reader, so we skip processing of that for now.
     fn try_from(settings_str: String) -> Result<Self, Self::Error> {
-        // don't try to serialize bucket values quite yet.
+        // don't try to serialize bucket values quite yet. We'll set the values from the automatic refresh routine.
         if settings_str.starts_with("gs://") {
             return Ok(Self {
                 bucket: Some(settings_str.parse::<url::Url>().map_err(|err| {
@@ -262,33 +305,98 @@ impl TryFrom<String> for AdmFilterSettings {
                 ..Default::default()
             });
         }
-        let adm_settings: HashMap<String, AdmAdvertiserFilterSettings> =
-            serde_json::from_str(&settings_str).expect("Invalid ADM Settings JSON string");
-        for (adv, filter_setting) in &adm_settings {
-            if filter_setting
-                .include_regions
-                .iter()
-                .any(|region| region != &region.to_uppercase())
-            {
-                return Err(ConfigError::Message(format!(
-                    "Advertiser {:?} include_regions must be uppercase",
-                    adv
-                )));
-            }
-            if filter_setting.advertiser_urls.iter().any(|filter| {
-                if let Some(ref paths) = filter.paths {
-                    return paths.iter().any(|path| match path.matching {
-                        PathMatching::Prefix => !path.value.ends_with('/'),
-                        PathMatching::Exact => !path.value.starts_with('/'),
-                    });
+        // because of the unstructured JSON format, decode this by hand.
+        // Note, Contile will only read this data. It will never write it so serialization is less important.
+        //
+        //
+        // These probably should be refactored into `try_from(Value)` or something similar, although we get richer error messages this way.
+        // Note, be sure to specify the return type from serde_json::from_str(). The default is not
+        // going to do what you want even if it's Map<&String, &Value>.
+        let parsed: HashMap<String, Value> = serde_json::from_str(&settings_str)
+            .map_err(|e| ConfigError::Message(format!("ADM Settings parse error: {:?}", e)))?;
+        let mut advertisers: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
+        // first level `ADVERTISER: AdvertiserFilterSettings`
+        for (advertiser, value) in parsed {
+            // second level `COUNTRY:Vec<AdvertiserUrlFilter> | "delete": bool`
+            let mut countries: HashMap<String, Vec<AdvertiserUrlFilter>> = HashMap::new();
+            let mut delete = false;
+            for (key, value) in value.as_object().ok_or_else(|| {
+                ConfigError::Message(format!("Invalid advertiser info {}", &advertiser))
+            })? {
+                // Delete allows us to delete this advertiser. It may appear at the same
+                // level as the country listsings.
+                if key.to_lowercase() == "delete" {
+                    delete = value.as_bool().unwrap_or_default();
+                    continue;
                 }
-                false
-            }) {
-                return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", adv)));
+                // if it's not a `delete`, than it's part of the
+                // list of per country advertiser filters.
+                /*
+                if key.len() > 2 {
+                    warn!("Invalid country detected: {}", key);
+                    continue;
+                }
+                // */
+                let mut filters: Vec<AdvertiserUrlFilter> = Vec::new();
+                // filters consist of a list of hashes
+                for candidate in value.as_array().ok_or_else(|| {
+                    ConfigError::Message(format!(
+                        "Invalid country information for {}:{}",
+                        &advertiser, &key
+                    ))
+                })? {
+                    let mut filter = AdvertiserUrlFilter::default();
+                    for (field, value) in candidate.as_object().ok_or_else(|| {
+                        ConfigError::Message(format!(
+                            "Invalid advertiser info for {}:{}",
+                            &advertiser, &key
+                        ))
+                    })? {
+                        match field.to_lowercase().as_str() {
+                            "host" => {
+                                filter.host = value
+                                    .as_str()
+                                    .ok_or_else(|| {
+                                        ConfigError::Message(format!(
+                                            "Invalid host for path declaration for {}:{}",
+                                            &advertiser, &key
+                                        ))
+                                    })?
+                                    .to_owned()
+                            }
+                            "paths" => {
+                                let mut paths: Vec<PathFilter> = Vec::new();
+                                for path_filter in value.as_array().ok_or_else(|| ConfigError::Message(format!("missing list of path filters for path declaration for {}:{}", &advertiser, &key)))? {
+                                    let filter = path_filter.as_object().ok_or_else(|| ConfigError::Message(format!("Invalid path filter for path declaration for {}:{}", &advertiser, &key)))?;
+                                    paths.push(PathFilter{
+                                        value: filter.get("value").ok_or_else(|| ConfigError::Message(format!("Missing 'value' for path declaration for {}:{}", &advertiser, &key)))?.to_string(),
+                                        matching: PathMatching::try_from(filter.get("matching").ok_or_else(|| ConfigError::Message(format!("Missing 'matching' for path declaration for {}:{}", &advertiser, &key)))?.as_str().ok_or_else(|| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?).map_err(|_| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?
+                                    })
+                                }
+                                if !paths.is_empty() {
+                                    filter.paths = Some(paths);
+                                }
+                            }
+                            _ => {
+                                warn!("Invalid filter field detected: {}", field);
+                            }
+                        }
+                    }
+                    filters.push(filter);
+                }
+                countries.insert(key.clone(), filters);
             }
+            advertisers.insert(
+                advertiser.clone(),
+                AdmAdvertiserFilterSettings { countries, delete },
+            );
         }
+
+        trace!("Parsed Advertiser list: {:?}", &advertisers);
+        dbg!(&advertisers);
+
         Ok(AdmFilterSettings {
-            advertisers: adm_settings,
+            advertisers,
             ..Default::default()
         })
     }
@@ -338,17 +446,15 @@ impl TryFrom<&mut Settings> for AdmFilterSettings {
 
     fn try_from(settings: &mut Settings) -> Result<Self, Self::Error> {
         // TODO: Convert these to macros.
-        if settings.adm_sub1.is_none() {
-            return Err(ConfigError::Message(format!(
-                "Missing argument {}",
-                "adm_sub1"
-            )));
+        if settings.adm_sub1.is_none() ^ settings.adm_partner_id.is_none() {
+            return Err(ConfigError::Message(
+                "Missing argument args for adm_sub1 or adm_partner_id".to_owned(),
+            ));
         }
-        if settings.adm_partner_id.is_none() {
-            return Err(ConfigError::Message(format!(
-                "Missing argument {}",
-                "adm_partner_id"
-            )));
+        if settings.adm_mobile_sub1.is_none() ^ settings.adm_mobile_partner_id.is_none() {
+            return Err(ConfigError::Message(
+                "Missing argument args for adm_mobile_sub1 or adm_mobile_partner_id".to_owned(),
+            ));
         }
         if settings.adm_settings.is_empty() {
             return Ok(Self::default());
@@ -375,25 +481,33 @@ impl TryFrom<&mut Settings> for AdmFilterSettings {
 /// ```javascript
 /// /* for the Example Co advertiser... */
 /// {"Example": {
-///     /* The allowed hosts for URLs */
-///     "advertiser_urls": [{"host": "www.example.org"}, {"host": "example.org"}],
-///     /* Valid tile positions for this advertiser (empty for "all") */
-///     "positions": 1,
-///     /* Valid target countries for this advertiser
-///        TODO: could support country + subdivision, e.g. "USOK" */
-///     "include_regions": ["US", "MX"],
-///     /* Allowed hosts for impression URLs.
-///        Empty means to use the impression URLs in "DEFAULT" */
-///     "impression_hosts: [],
+///     /* region and paths for the advertiser */
+///     "US":[
+///         {
+///             "host": "www.example.com",
+///             "paths": [
+///                 {
+///                     "value": "/sample/",
+///                     "matching": "prefix"
+///                 },
+///                 {
+///                     "value", "/alternate_exact",
+///                     "matching": "exact"
+///                 }
+///             ]
+///         }
+///         ]
 ///     },
 ///     ...,
-///  "DEFAULT": {
-///    /* The default impression URL host to check for. */
-///    "impression_hosts": ["example.net"]
-///     }
 /// }
 /// ```
-///
+/// Each advertiser `"Example"` has a list of countries that it supports.
+/// Each country has a list of domains and allowed paths.
+/// Each path is an object listing the path value and the type of matching to perform,
+/// either "exact" where only the exact path is allowed, or "prefix" where the path must
+/// begin with the specified string.
+/// There is a special case for an advertiser having a `"deleted": true` flag indicating
+/// that this advertiser should be removed.
 impl From<&mut Settings> for HandlerResult<AdmFilter> {
     fn from(settings: &mut Settings) -> Self {
         let mut filter_map: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
@@ -408,7 +522,8 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .clone()
             .unwrap_or_else(|| "[]".to_owned())
             .to_lowercase();
-        let mut all_include_regions = HashSet::new();
+        // No longer needed since each advertiser has it's own set of countries.
+        // let mut all_include_regions = HashSet::new();
         let source = settings.adm_settings.clone();
         let source_url = match source.parse::<url::Url>() {
             Ok(v) => Some(v),
@@ -420,15 +535,18 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
                 None
             }
         };
+        let defaults = if let Some(default_str) = &settings.adm_defaults {
+            serde_json::from_str::<AdmDefaults>(default_str)
+                .map_err(|e| HandlerError::internal(&e.to_string()))?
+        } else {
+            Default::default()
+        };
+        let excluded_countries_200 = settings.excluded_countries_200;
         for (adv, setting) in AdmFilterSettings::try_from(settings)
             .map_err(|e| HandlerError::internal(&e.to_string()))?
             .advertisers
         {
             trace!("Processing records for {:?}", &adv);
-            // DEFAULT included but sans special processing -- close enough
-            for country in &setting.include_regions {
-                all_include_regions.insert(country.clone());
-            }
             // map the settings to the URL we're going to be checking
             filter_map.insert(adv.to_lowercase(), setting);
         }
@@ -441,24 +559,26 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         Ok(AdmFilter {
             filter_set: filter_map,
             ignore_list,
-            all_include_regions,
             legacy_list,
             last_updated: source.starts_with("gs://").then(chrono::Utc::now),
             source,
             source_url,
             refresh_rate: std::time::Duration::from_secs(refresh_rate),
+            defaults,
+            excluded_countries_200,
         })
     }
 }
 
 #[cfg(test)]
+// TODO: Fix tests and integration tests
 mod tests {
     use std::env;
 
-    use serde_json::json;
+    //use serde_json::json;
 
     use super::*;
-    use crate::web::test::adm_settings;
+    //use crate::web::test::adm_settings;
 
     #[test]
     pub fn test_lower_ignore() {
@@ -481,42 +601,77 @@ mod tests {
     }
 
     #[test]
-    pub fn all_include_regions() {
-        let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
-        let mut adm_settings = adm_settings();
-        adm_settings
-            .advertisers
-            .get_mut("Dunder Mifflin")
-            .expect("No Dunder Mifflin tile")
-            .include_regions = vec!["MX".to_owned()];
-        settings.adm_settings = json!(adm_settings.advertisers).to_string();
-        let filter = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
-        assert!(
-            filter.all_include_regions
-                == vec!["US", "MX"]
-                    .into_iter()
-                    .map(ToOwned::to_owned)
-                    .collect()
-        );
-    }
-
-    #[test]
-    pub fn test_invalid_path_filters() {
-        let mut settings = Settings::default();
+    pub fn test_valid_path_filters() {
+        let mut settings = Settings {
+            adm_sub1: Some("123".to_owned()),
+            adm_partner_id: Some("abcd".to_owned()),
+            ..Default::default()
+        };
         let adm_settings = r#"{"test-adv": {
-            "advertiser_urls": [
+            "US": [
                 {
                     "host": "foo.com",
                     "paths": [
                         {
                             "value": "/bar",
                             "matching": "prefix"
+                        },
+                        {
+                            "value": "/gorp/",
+                            "matching": "exact"
                         }
                     ]
+                },
+                {
+                    "host": "foo.org"
+                }
+            ],
+            "MX": [
+                {
+                    "host": "foo.mx"
                 }
             ]
         }}"#;
         settings.adm_settings = adm_settings.to_owned();
+        let result = AdmFilterSettings::try_from(&mut settings);
+        // dbg!(&result);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    pub fn test_invalid_path_filters() {
+        let mut settings = Settings {
+            adm_sub1: Some("123".to_owned()),
+            adm_partner_id: Some("abcd".to_owned()),
+            ..Default::default()
+        };
+        let adm_settings = r#"{"test-adv": {
+            "US": [
+                {
+                    "host": "foo.com",
+                    "paths": [
+                        {
+                            "value": "/bar",
+                            "matching": "prefix"
+                        },
+                        {
+                            "value": "/gorp/",
+                            "matching": "exact"
+                        }
+                    ]
+                },
+                {
+                    "host": "foo.org",
+                }
+            ],
+            "MX": [
+                {
+                    "host": "foo.mx",
+                }
+            ]
+        }}"#;
+        settings.adm_settings = adm_settings.to_owned();
+        // dbg!(&settings);
         assert!(AdmFilterSettings::try_from(&mut settings).is_err());
     }
 }

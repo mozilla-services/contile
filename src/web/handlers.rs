@@ -48,27 +48,6 @@ pub async fn get_tiles(
     metrics.incr("tiles.get");
 
     let settings = &state.settings;
-    if !state
-        .filter
-        .read()
-        .await
-        .all_include_regions
-        .contains(&location.country())
-    {
-        trace!("get_tiles: country not included: {:?}", location.country());
-        // Nothing to serve. We typically send a 204 for empty tiles but
-        // optionally send 200 to resolve
-        // https://github.com/mozilla-services/contile/issues/284
-        let response = if settings.excluded_countries_200 {
-            HttpResponse::Ok()
-                .content_type("application/json")
-                .body(EMPTY_TILES.as_str())
-        } else {
-            HttpResponse::NoContent().finish()
-        };
-        return Ok(response);
-    }
-
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
         region_code: if location.region() != "" {
