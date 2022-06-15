@@ -44,7 +44,7 @@ services:
       - "8000"
     volumes:
       - ./volumes/contile:/tmp/contile
-      - ../mmdb:/tmp/mmdb
+      - ../../mmdb:/tmp/mmdb
     ## Override the entrypoint to report the IP address, then try
     ## running Contile this can be useful to debug internal
     ## networking issues as well as externally connect to contile.
