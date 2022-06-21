@@ -1,8 +1,9 @@
 # contile-contract-tests
 
-This directory contains the source code for the automated contract test suite 
-for the Mozilla Tile Service (MTS). Passing contract tests are a prerequisite 
-for moving to the next phase in the rollout plan.
+This directory contains the automated contract test suite for the Mozilla Tile 
+Service (MTS). Passing contract tests are a prerequisite for moving to the next 
+phase in the rollout plan. The contract test framework was originally developed 
+in isolation, see [contile-integration-tests][contract-test-repo].
 
 ## Overview
 
@@ -54,4 +55,5 @@ MTS Docker container such as a partner settings file
 - the `volumes/client` directory contains a YML file which defines every test
 scenario that the contract test suite will run
 
+[contract-test-repo]: https://github.com/mozilla-services/contile-integration-tests
 [sequence_diagram]: sequence_diagram.png
