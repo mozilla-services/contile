@@ -8,7 +8,7 @@ updates:
     labels:
       - "dependencies"
       - "python"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
   - package-ecosystem: "pip"
     directory: "test-engineering/contract-tests/client/"
     schedule:
@@ -17,4 +17,4 @@ updates:
     labels:
       - "dependencies"
       - "python"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
