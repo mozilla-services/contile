@@ -204,13 +204,15 @@ jobs:
             python -m pip install --upgrade pip
             python -m pip install tox
       - run:
-          name: Run tox check for client
+          name: Run tox checks for client
+          working_directory: client
           command: |
-            (cd client && tox)
+            tox
       - run:
-          name: Run tox check for partner
+          name: Run tox checks for partner
+          working_directory: partner
           command: |
-            (cd partner && tox)
+            tox
 
   contract-tests:
     machine:
@@ -232,7 +234,9 @@ jobs:
          name: Build client and partner images
          command: |
            docker-compose --version
-           docker-compose -f test-engineering/contract-tests/docker-compose.yml build client partner
+           docker-compose \
+           -f test-engineering/contract-tests/docker-compose.yml \
+           build client partner
       - run:
          name: Run contract tests
          command: |
