@@ -54,7 +54,7 @@ GOOGLE_APPLICATION_CREDENTIALS={path to your credential.json file} \
 #### Contract tests
 
 Contract tests are currently run using Docker images. This is so that they can be run as
-part of our automated continuous integration (CI) testing.  
+part of our automated continuous integration (CI) testing. 
 See the dedicated [contract-tests README](test-engineering/contract-tests/README.md) for details.
 
 ## Why "Contile"?
