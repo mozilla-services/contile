@@ -32,6 +32,7 @@ class Tile(BaseModel, extra=Extra.allow):
     image_size: Optional[int]
     impression_url: str
     url: str
+    new_field: str
 
 
 class Tiles(BaseModel):
