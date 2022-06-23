@@ -235,8 +235,8 @@ jobs:
          command: |
            docker-compose --version
            docker-compose \
-           -f test-engineering/contract-tests/docker-compose.yml \
-           build client partner
+            -f test-engineering/contract-tests/docker-compose.yml \
+            build client partner
       - run:
          name: Run contract tests
          command: |
