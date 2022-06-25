@@ -1,13 +1,11 @@
 //! Application settings objects and initialization
 
-use std::convert::TryFrom;
 use std::path::PathBuf;
 
 use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 
-use crate::adm::AdmFilterSettings;
 use crate::server::{img_storage::StorageSettings, ServerState};
 
 static PREFIX: &str = "contile";
@@ -195,7 +193,7 @@ impl Settings {
 
         // preflight check the storage
         let _ = StorageSettings::from(&*self);
-        AdmFilterSettings::try_from(&mut *self)?;
+        //AdmFilter::advertisers_from_string(self.adm_settings),
         Ok(())
     }
 

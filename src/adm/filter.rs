@@ -15,10 +15,10 @@ use url::Url;
 
 use super::{
     tiles::{AdmTile, Tile},
-    AdmAdvertiserFilterSettings, AdmFilterSettings,
+    AdmAdvertiserFilterSettings,
 };
 use crate::{
-    adm::settings::{AdmDefaults, AdvertiserUrlFilter, PathMatching},
+    adm::settings::{AdmDefaults, AdvertiserUrlFilter, PathFilter, PathMatching},
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     tags::Tags,
@@ -49,13 +49,13 @@ lazy_static! {
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     /// Filter settings by Advertiser name
-    pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
+    pub advertiser_filters: HashMap<String, AdmAdvertiserFilterSettings>,
     /// Ignored (not included but also not reported to Sentry) Advertiser names
     pub ignore_list: HashSet<String>,
     /// Temporary list of advertisers with legacy images built into firefox
     /// for pre 91 tile support.
     pub legacy_list: HashSet<String>,
-    pub source: String,
+    pub source: Option<String>,
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
@@ -144,7 +144,6 @@ pub fn spawn_updater(
     Ok(())
 }
 
-
 /// Filter a given tile data set provided by ADM and validate the various elements
 impl AdmFilter {
     /// convenience function to determine if settings are cloud ready.
@@ -196,20 +195,21 @@ impl AdmFilter {
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self, storage_client: &cloud_storage::Client) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(storage_client, bucket)
-                .await
-                .map_err(|e| {
-                    HandlerError::internal(&format!(
-                        "Invalid bucket data in {:?}: {:?}",
-                        self.source, e
-                    ))
-                })?;
-            for (adv, setting) in adm_settings.advertisers {
+            let advertiser_filters =
+                AdmFilter::advertisers_from_settings_bucket(storage_client, bucket)
+                    .await
+                    .map_err(|e| {
+                        HandlerError::internal(&format!(
+                            "Invalid bucket data in {:?}: {:?}",
+                            self.source, e
+                        ))
+                    })?;
+            for (adv, setting) in advertiser_filters {
                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);
-                    self.filter_set.remove(&adv.to_lowercase());
+                    self.advertiser_filters.remove(&adv.to_lowercase());
                 };
-                self.filter_set.insert(adv.to_lowercase(), setting);
+                self.advertiser_filters.insert(adv.to_lowercase(), setting);
             }
             self.last_updated = Some(chrono::Utc::now());
         }
@@ -243,14 +243,16 @@ impl AdmFilter {
 
         for filter in filters {
             if host == filter.host {
-                if let Some(paths) = &filter.paths {
-                    for rule in paths {
-                        match rule.matching {
-                            // Note that the orignal path is used for exact matching
-                            PathMatching::Exact if rule.value == parsed.path() => return Ok(()),
-                            PathMatching::Prefix if path.starts_with(&rule.value) => return Ok(()),
-                            _ => continue,
-                        }
+                let paths = &filter
+                    .paths
+                    .clone()
+                    .unwrap_or_else(|| [PathFilter::default()].to_vec());
+                for rule in paths {
+                    match rule.matching {
+                        // Note that the orignal path is used for exact matching
+                        PathMatching::Exact if rule.value == parsed.path() => return Ok(()),
+                        PathMatching::Prefix if path.starts_with(&rule.value) => return Ok(()),
+                        _ => continue,
                     }
                 }
             }
@@ -385,10 +387,9 @@ impl AdmFilter {
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        match self.filter_set.get(&tile.name.to_lowercase()) {
+        match self.advertiser_filters.get(&tile.name.to_lowercase()) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
-                dbg!(&location.country());
                 if filter.countries.get(&location.country()).is_none() {
                     trace!(
                         "Rejecting tile: region {:?} not included",
@@ -468,7 +469,7 @@ impl AdmFilter {
 #[cfg(test)]
 mod tests {
     use crate::adm::AdmDefaults;
-    use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile, AdmFilterSettings};
+    use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::tags::Tags;
 
     use super::{check_url, AdmFilter};
@@ -562,16 +563,24 @@ mod tests {
                 ]
             }
         }"#;
-        //let settings: AdvertiserUrlFilter = serde_json::from_str(s).unwrap();
-        let all_settings = AdmFilterSettings::try_from(s.to_owned()).unwrap();
-        let settings = all_settings
-            .advertisers
+        let advertiser_filters = AdmFilter::advertisers_from_string(s).unwrap();
+        let filter = AdmFilter {
+            advertiser_filters: advertiser_filters.clone(),
+            defaults: AdmDefaults {
+                click_hosts: [crate::adm::settings::break_hosts("example.com".to_owned())].to_vec(),
+                image_hosts: [crate::adm::settings::break_hosts("example.org".to_owned())].to_vec(),
+                impression_hosts: [crate::adm::settings::break_hosts("example.net".to_owned())]
+                    .to_vec(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let settings = advertiser_filters
             .get("Acme")
             .unwrap()
             .countries
             .get("US")
             .unwrap();
-        let filter = AdmFilter::default();
         let mut tags = Tags::default();
 
         let mut tile = AdmTile {
@@ -586,47 +595,47 @@ mod tests {
 
         // Good, contains the right lede and path
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags,)
+            .check_advertiser(settings, &mut tile, &mut tags,)
             .is_ok());
 
         // Good, missing lede
         tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
         // Good, missing last slash
         tile.advertiser_url = "https://acme.biz/ca".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
 
         // Bad, path isn't correct.
         tile.advertiser_url = "https://acme.biz/calzone".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_err());
         //Bad, wrong path
         tile.advertiser_url = "https://acme.biz/fr/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_err());
 
         //Good, extra element in host
         tile.advertiser_url = "https://black_friday.acme.biz/ca/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
 
         //Good, extra matching
         tile.advertiser_url = "https://acme.biz/usa".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
 
         // Bad, path doesn't match exactly
         tile.advertiser_url = "https://acme.biz/usa/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_err());
 
         // "Traditional host. "

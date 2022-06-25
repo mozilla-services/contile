@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -19,7 +18,7 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use crate::{
-    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdmFilterSettings, AdvertiserUrlFilter},
+    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdvertiserUrlFilter},
     build_app,
     error::{HandlerError, HandlerResult},
     server::{cache, location::location_config_from_settings, ServerState},
@@ -156,19 +155,22 @@ fn init_mock_adm(response: String) -> MockAdm {
     }
 }
 
-pub fn adm_settings() -> AdmFilterSettings {
-    let adm_settings = json!({
-        "Acme": {
-            "US": [{ "host": "www.acme.biz" }],
-        },
-        "Dunder Mifflin": {
-            "US": [{ "host": "www.dunderm.biz" }],
-        },
-        "Los Pollos Hermanos": {
-            "US": [{ "host": "www.lph-nm.biz" }],
-        },
-    });
-    AdmFilterSettings::try_from(adm_settings.to_string()).unwrap()
+pub fn advertiser_filters() -> HashMap<String, AdmAdvertiserFilterSettings> {
+    AdmFilter::advertisers_from_string(
+        &json!({
+            "Acme": {
+                "US": [{ "host": "www.acme.biz" }],
+            },
+            "Dunder Mifflin": {
+                "US": [{ "host": "www.dunderm.biz" }],
+            },
+            "Los Pollos Hermanos": {
+                "US": [{ "host": "www.lph-nm.biz" }],
+            },
+        })
+        .to_string(),
+    )
+    .unwrap()
 }
 
 /// Basic integration test
@@ -178,9 +180,23 @@ pub fn adm_settings() -> AdmFilterSettings {
 #[actix_web::test]
 async fn basic() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let adm_settings = AdmFilter::advertisers_to_string(advertiser_filters());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings,
+        adm_defaults: Some(
+            json!(crate::adm::AdmDefaults {
+                click_hosts: [crate::adm::break_hosts("example.com".to_owned())].to_vec(),
+                image_hosts: [crate::adm::break_hosts("cdn.example.com".to_owned())].to_vec(),
+                impression_hosts: [
+                    crate::adm::break_hosts("example.net".to_owned()),
+                    crate::adm::break_hosts("example.com".to_owned())
+                ]
+                .to_vec(),
+                ..Default::default()
+            })
+            .to_string(),
+        ),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -218,7 +234,7 @@ async fn basic_old_ua() {
     let valid = ["acme", "los pollos hermanos"];
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         adm_has_legacy_image: Some(json!(valid).to_string()),
         ..get_test_settings()
     };
@@ -280,7 +296,7 @@ async fn basic_bad_reply() {
     let adm = init_mock_adm(missing_ci.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -332,7 +348,7 @@ async fn basic_all_bad_reply() {
     let adm = init_mock_adm(missing_ci.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -348,9 +364,8 @@ async fn basic_all_bad_reply() {
 #[actix_web::test]
 async fn basic_filtered() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
-
-    let mut adm_settings = adm_settings();
-    adm_settings.advertisers.insert(
+    let mut adm_settings = advertiser_filters();
+    adm_settings.insert(
         "Example".to_owned(),
         AdmAdvertiserFilterSettings {
             countries: HashMap::from([(
@@ -364,11 +379,10 @@ async fn basic_filtered() {
             ..Default::default()
         },
     );
-    adm_settings.advertisers.remove("Dunder Mifflin");
-
+    adm_settings.remove("Dunder Mifflin");
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -405,12 +419,9 @@ async fn basic_filtered() {
 async fn basic_default() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
-    let adm_settings = adm_settings();
-    trace!("Settings: {:?}", &adm_settings);
-
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -433,7 +444,6 @@ async fn basic_default() {
     );
 
     let result: Value = test::read_body_json(resp).await;
-    dbg!(&result);
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     // remember, we cap at `settings.adm_max_tiles` (currently 2)
     assert_eq!(tiles.len(), 2);
@@ -447,7 +457,7 @@ async fn fallback_country() {
     let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url.clone(),
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -469,7 +479,7 @@ async fn maxmind_lookup() {
     let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url.clone(),
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -492,7 +502,7 @@ async fn location_test_header() {
     let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url.clone(),
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         location_test_header: Some("x-test-location".to_owned()),
         ..get_test_settings()
     };
@@ -519,11 +529,9 @@ async fn empty_tiles() {
     // test empty responses of an included country (US)
     let adm_settings_json = json!({
         "Foo": {
-            "advertiser_urls": [{ "host": "www.foo.bar" }],
-            "impression_hosts": [],
-            "click_hosts": [],
-            "position": 0,
-            "include_regions": ["US"]
+            "US": [
+                { "host": "www.foo.bar" }
+            ]
         }
     });
     let mut settings = Settings {
@@ -614,11 +622,10 @@ async fn empty_tiles_excluded_country_204() {
 async fn include_regions() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
-    let mut adm_settings = adm_settings();
-    adm_settings.advertisers.remove("Los Pollos Hermanos");
+    let mut adm_settings = advertiser_filters();
+    adm_settings.remove("Los Pollos Hermanos");
     // set Dunder Mifflin to only serve Mexico.
     let a_s = adm_settings
-        .advertisers
         .get_mut("Dunder Mifflin")
         .expect("No Dunder Mifflin tile");
     a_s.countries
@@ -626,7 +633,7 @@ async fn include_regions() {
     a_s.countries.remove("US");
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(adm_settings),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -667,7 +674,7 @@ async fn metrics() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: json!(adm_settings()).to_string(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
     let (app, spy) = init_app_with_spy!(settings).await;
