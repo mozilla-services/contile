@@ -4,11 +4,13 @@
 #
 #    pip-compile requirements.in
 #
+anyio==3.6.1
+    # via starlette
 asgiref==3.4.1
     # via uvicorn
 click==8.0.1
     # via uvicorn
-fastapi==0.68.2
+fastapi==0.78.0
     # via -r requirements.in
 gunicorn==20.1.0
     # via -r requirements.in
@@ -16,6 +18,8 @@ h11==0.12.0
     # via uvicorn
 httptools==0.4.0
     # via uvicorn
+idna==3.3
+    # via anyio
 pydantic==1.8.2
     # via fastapi
 python-dotenv==0.17.1
@@ -24,7 +28,9 @@ pyyaml==6.0
     # via
     #   -r requirements.in
     #   uvicorn
-starlette==0.14.2
+sniffio==1.2.0
+    # via anyio
+starlette==0.19.1
     # via fastapi
 typing-extensions==3.10.0.0
     # via pydantic
