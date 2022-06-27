@@ -4,8 +4,8 @@
 #
 #    pip-compile requirements.in
 #
-asgiref==3.4.1
-    # via uvicorn
+anyio==3.6.1
+    # via watchfiles
 click==8.0.1
     # via uvicorn
 fastapi==0.68.2
@@ -16,6 +16,8 @@ h11==0.12.0
     # via uvicorn
 httptools==0.4.0
     # via uvicorn
+idna==3.3
+    # via anyio
 pydantic==1.8.2
     # via fastapi
 python-dotenv==0.17.1
@@ -24,15 +26,17 @@ pyyaml==6.0
     # via
     #   -r requirements.in
     #   uvicorn
+sniffio==1.2.0
+    # via anyio
 starlette==0.14.2
     # via fastapi
 typing-extensions==3.10.0.0
     # via pydantic
-uvicorn[standard]==0.17.6
+uvicorn[standard]==0.18.2
     # via -r requirements.in
 uvloop==0.15.2
     # via uvicorn
-watchgod==0.7
+watchfiles==0.15.0
     # via uvicorn
 websockets==10.1
     # via uvicorn
