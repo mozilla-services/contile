@@ -190,7 +190,31 @@ jobs:
             else
               echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
             fi
-  contile-contract-tests:
+
+  contract-test-checks:
+    docker:
+      - image: python:3.8
+    working_directory: "~/contile/test-engineering/contract-tests"
+    steps:
+      - checkout:
+          path: ~/contile/
+      - run:
+          name: Setup tox
+          command: |
+            python -m pip install --upgrade pip
+            python -m pip install tox
+      - run:
+          name: Run tox checks for client
+          working_directory: client
+          command: |
+            tox
+      - run:
+          name: Run tox checks for partner
+          working_directory: partner
+          command: |
+            tox
+
+  contract-tests:
     machine:
       docker_layer_caching: true
       image: ubuntu-2004:202101-01 # Ubuntu 20.04, Docker v20.10.2, Docker Compose v1.28.2
@@ -207,28 +231,32 @@ jobs:
          command: |
            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
-         name: Run contract tests
+         name: Build client and partner images
          command: |
            docker-compose --version
            docker-compose \
-            -f contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            build client partner
+      - run:
+         name: Run contract tests
+         command: |
+           docker-compose \
+            -f test-engineering/contract-tests/docker-compose.yml \
             up --abort-on-container-exit --force-recreate
       - run:
          name: 'Run "204" contract tests'
          command: |
-           docker-compose --version
            docker-compose \
-            -f contract-tests/docker-compose.yml \
-            -f contract-tests/docker-compose.204.yml \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.204.yml \
             up --abort-on-container-exit --force-recreate
       - run:
          name: 'Run "init_error" contract tests'
          command: |
-           docker-compose --version
            set +e # We need this so that the run doesn't exit after docker-compose
            docker-compose \
-            -f contract-tests/docker-compose.yml \
-            -f contract-tests/docker-compose.init_error.yml \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.init_error.yml \
             up --abort-on-container-exit --exit-code contile --force-recreate
            contile_exit_code=$?
            if [ "${contile_exit_code}" -eq 0 ]; then
@@ -257,15 +285,16 @@ workflows:
               only: /.*/
           requires:
             - build
-      - contile-contract-tests:
-          name: contile-contract-tests
+      - contract-test-checks
+      - contract-tests:
           requires:
           - build
+          - contract-test-checks
       - deploy:
           requires:
             - build
             - test
-            - contile-contract-tests
+            - contract-tests
           filters:
             tags:
               only: /.*/

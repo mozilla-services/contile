@@ -1,7 +1,8 @@
 version: "3"
 services:
   partner:
-    image: mozilla/contile-integration-tests-partner:22.1.2
+    image: partner
+    build: partner
     container_name: partner
     environment:
       PORT: 5000
@@ -43,7 +44,7 @@ services:
       - "8000"
     volumes:
       - ./volumes/contile:/tmp/contile
-      - ../mmdb:/tmp/mmdb
+      - ../../mmdb:/tmp/mmdb
     ## Override the entrypoint to report the IP address, then try
     ## running Contile this can be useful to debug internal
     ## networking issues as well as externally connect to contile.
@@ -52,7 +53,8 @@ services:
     #entrypoint: >
     #  /bin/sh -c "hostname -I && bin/contile"
   client:
-    image: mozilla/contile-integration-tests-client:22.1.2
+    image: client
+    build: client
     container_name: client
     depends_on:
       - partner
