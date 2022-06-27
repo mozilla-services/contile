@@ -14,7 +14,7 @@ isort==5.10.1
     # via -r dev-requirements.in
 mccabe==0.6.1
     # via flake8
-mypy==0.942
+mypy==0.961
     # via -r dev-requirements.in
 mypy-extensions==0.4.3
     # via
