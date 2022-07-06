@@ -24,13 +24,13 @@ pydantic==1.9.0
     # via -r requirements.in
 pyparsing==2.4.7
     # via packaging
-pytest==6.2.5
+pytest==7.1.2
     # via -r requirements.in
 pyyaml==6.0
     # via -r requirements.in
 requests==2.27.1
     # via -r requirements.in
-toml==0.10.2
+tomli==2.0.1
     # via pytest
 typing-extensions==3.10.0.0
     # via pydantic
