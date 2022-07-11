@@ -31,18 +31,84 @@ You can run the service using `docker compose` from the root directory:
 docker compose run -p 5000:5000 partner
 ```
 
-## Tiles API
+## API
 
-Example request:
+Once the API service is running, API documentation can be found at http://0.0.0.0:5000/docs
+
+### Records
+
+Example GET request:
 
 ```text
 curl \
   -X 'GET' \
   -H 'accept: application/json' \
-  'http://0.0.0.0:5000/tilesp?partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2'
+  'http://0.0.0.0:5000/records/'
 ```
 
-Example response body:
+Example GET response body:
+
+```json
+{
+  "records": [
+    {
+      "method": "GET",
+      "headers": [
+        {
+          "name": "host",
+          "value": "0.0.0.0:5000"
+        },
+        {
+          "name": "user-agent",
+          "value": "curl/7.79.1"
+        },
+        {
+          "name": "accept",
+          "value": "application/json"
+        }
+      ],
+      "path": {
+        "endpoint": "desktop"
+      },
+      "query": {
+        "partner": "demofeed",
+        "sub1": "123456789",
+        "sub2": "placement1",
+        "country-code": "US",
+        "region-code": "NY",
+        "dma-code": "532",
+        "form-factor": "desktop",
+        "os-family": "macos",
+        "v": "1.0",
+        "out": "json",
+        "results": "2"
+      }
+    }
+  ]
+}
+```
+
+Example DELETE request:
+
+```text
+curl \
+  -X 'DELETE' \
+  -H 'accept: */*' \
+  'http://0.0.0.0:5000/records/'
+```
+
+### Tiles
+
+Example GET request:
+
+```text
+curl \
+  -X 'GET' \
+  -H 'accept: application/json' \
+  'http://0.0.0.0:5000/tilesp/desktop?partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&dma-code=532&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2'
+```
+
+Example GET response body:
 
 ```json
 {

@@ -9,13 +9,15 @@ import logging
 import os
 import pathlib
 import sys
+from multiprocessing import Manager
 from typing import Dict, List
 
 from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from models import Tiles
+from models import Records, Tiles
+from record_keeper import RecordKeeper
 from responses import LoaderConfig, load_responses
 
 logger = logging.getLogger("partner")
@@ -32,6 +34,12 @@ if not scenarios_files:
     )
 
 LOADER_CONFIG = LoaderConfig(RESPONSES_DIR)
+
+# Object used for the synchronization of commonly used data types across processes.
+multi_process_manager = Manager()
+
+# Object used to manage recording of API calls
+record_keeper = RecordKeeper(multi_process_manager)
 
 app = FastAPI()
 
@@ -71,6 +79,20 @@ async def read_root():
         f"with Gunicorn. Using Python {version}"
     )
     return {"message": message}
+
+
+@app.get("/records/", response_model=Records, status_code=200)
+async def read_records():
+    """Endpoint for historical Contile request records."""
+
+    return record_keeper.get_all()
+
+
+@app.delete("/records/", response_class=Response, status_code=204)
+async def delete_records():
+    """Endpoint to delete all historical Contile request records."""
+
+    return record_keeper.clear()
 
 
 # Make sure to update this when query parameters for `read_tilesp` change
@@ -139,6 +161,9 @@ async def read_tilesp(
     results: int = Query(1, example=2),
 ):
     """Endpoint for requests from Contile."""
+
+    # record requests made by Contile for later verification by client
+    record_keeper.add(request)
 
     unknown_query_params: List[str] = [
         param for param in request.query_params if param not in ACCEPTED_QUERY_PARAMS

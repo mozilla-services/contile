@@ -38,4 +38,4 @@ USER app
 
 EXPOSE ${PORT}
 ENTRYPOINT [ "./entrypoint.sh" ]
-CMD ["gunicorn","-c", "config/gunicorn_conf.py", "-k", "uvicorn.workers.UvicornWorker", "main:app"]
+CMD ["gunicorn","-c", "config/gunicorn_conf.py", "--preload", "-k", "uvicorn.workers.UvicornWorker", "main:app"]
