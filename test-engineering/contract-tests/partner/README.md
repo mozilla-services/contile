@@ -33,11 +33,16 @@ docker compose run -p 5000:5000 partner
 
 ## API
 
-Once the API service is running, API documentation can be found at http://0.0.0.0:5000/docs
+Once the API service is running, API documentation can be found at 
+`http://0.0.0.0:5000/docs`.
 
 ### Records
 
-Example GET request:
+**GET**: Endpoint to retrieve all historical Contile request records.
+
+Example: 
+
+Request
 
 ```text
 curl \
@@ -46,8 +51,11 @@ curl \
   'http://0.0.0.0:5000/records/'
 ```
 
-Example GET response body:
+Response:
 
+Code: `200`
+
+Body:
 ```json
 {
   "records": [
@@ -67,10 +75,8 @@ Example GET response body:
           "value": "application/json"
         }
       ],
-      "path": {
-        "endpoint": "desktop"
-      },
-      "query": {
+      "path":"/tilesp/desktop",
+      "query_parameters": {
         "partner": "demofeed",
         "sub1": "123456789",
         "sub2": "placement1",
@@ -88,7 +94,11 @@ Example GET response body:
 }
 ```
 
-Example DELETE request:
+**DELETE**: Endpoint to delete all historical Contile request records.
+
+Example:
+
+Request
 
 ```text
 curl \
@@ -97,9 +107,19 @@ curl \
   'http://0.0.0.0:5000/records/'
 ```
 
+Response
+
+Code: `204`
+
+Body: `N/A`
+
 ### Tiles
 
-Example GET request:
+**GET**: Endpoint for requests from Contile.
+
+Example:
+
+Request
 
 ```text
 curl \
@@ -108,7 +128,11 @@ curl \
   'http://0.0.0.0:5000/tilesp/desktop?partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&dma-code=532&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2'
 ```
 
-Example GET response body:
+Response
+
+Code: `200`
+
+Body:
 
 ```json
 {
