@@ -1,5 +1,5 @@
 from multiprocessing.managers import SyncManager
-from typing import Dict, List
+from typing import List
 
 from fastapi import Request
 
@@ -18,15 +18,13 @@ class RecordKeeper:
         """Create record from Fast API Request and add record to the record keeper."""
 
         headers: List[Header] = [
-            Header(name=header[0], value=header[1])
-            for header in request.headers.items()
+            Header(name=name, value=value) for name, value in request.headers.items()
         ]
-        query_parameters: Dict = dict(request.query_params)
         record: Record = Record(
             method=request.method,
             headers=headers,
             path=request.url.path,
-            query_parameters=query_parameters,
+            query=request.url.query,
         )
         self._records.append(record)
 

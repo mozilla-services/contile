@@ -75,20 +75,8 @@ Body:
           "value": "application/json"
         }
       ],
-      "path":"/tilesp/desktop",
-      "query_parameters": {
-        "partner": "demofeed",
-        "sub1": "123456789",
-        "sub2": "placement1",
-        "country-code": "US",
-        "region-code": "NY",
-        "dma-code": "532",
-        "form-factor": "desktop",
-        "os-family": "macos",
-        "v": "1.0",
-        "out": "json",
-        "results": "2"
-      }
+      "path": "/tilesp/desktop",
+      "query": "partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&dma-code=532&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2"
     }
   ]
 }
