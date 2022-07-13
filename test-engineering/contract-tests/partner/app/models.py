@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from typing import Any, List, Union
+from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel
 
@@ -46,10 +46,17 @@ class Record(BaseModel):
     method: str
     headers: List[Header]
     path: str
-    query: str
+    query_parameters: Dict[str, Any]
+
+
+class RecordCount(BaseModel):
+    """Model that represents the number of times a request is sent by Contile."""
+
+    count: int
+    record: Record
 
 
 class Records(BaseModel):
-    """Model for a list of requests sent by Contile."""
+    """Model for a list of requests sent by Contile and their send count."""
 
-    records: List[Record]
+    records: List[RecordCount]

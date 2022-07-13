@@ -83,7 +83,7 @@ async def read_root():
 
 @app.get("/records/", response_model=Records, status_code=200)
 async def read_records():
-    """Endpoint to retrieve all historical Contile request records."""
+    """Endpoint to retrieve all historical Contile request records with a counter."""
 
     return record_keeper.get_all()
 

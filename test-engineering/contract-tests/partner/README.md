@@ -38,7 +38,7 @@ Once the API service is running, API documentation can be found at
 
 ### Records
 
-**GET**: Endpoint to retrieve all historical Contile request records.
+**GET**: Endpoint to retrieve all historical Contile request records with a counter.
 
 Example: 
 
@@ -60,23 +60,38 @@ Body:
 {
   "records": [
     {
-      "method": "GET",
-      "headers": [
-        {
-          "name": "host",
-          "value": "0.0.0.0:5000"
-        },
-        {
-          "name": "user-agent",
-          "value": "curl/7.79.1"
-        },
-        {
-          "name": "accept",
-          "value": "application/json"
+      "count": 1,
+      "record": {
+        "method": "GET",
+        "headers": [
+          {
+            "name": "host",
+            "value": "0.0.0.0:5000"
+          },
+          {
+            "name": "user-agent",
+            "value": "curl/7.79.1"
+          },
+          {
+            "name": "accept",
+            "value": "application/json"
+          }
+        ],
+        "path": "/tilesp/desktop",
+        "query_parameters": {
+          "partner": "demofeed",
+          "sub1": "123456789",
+          "sub2": "placement1",
+          "country-code": "US",
+          "region-code": "NY",
+          "dma-code": "532",
+          "form-factor": "desktop",
+          "os-family": "macos",
+          "v": "1.0",
+          "out": "json",
+          "results": "2"
         }
-      ],
-      "path": "/tilesp/desktop",
-      "query": "partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&dma-code=532&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2"
+      }
     }
   ]
 }

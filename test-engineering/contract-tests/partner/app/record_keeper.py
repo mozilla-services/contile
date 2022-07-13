@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import Request
 
-from models import Header, Record, Records
+from models import Header, Record, RecordCount, Records
 
 
 class RecordKeeper:
@@ -24,7 +24,7 @@ class RecordKeeper:
             method=request.method,
             headers=headers,
             path=request.url.path,
-            query=request.url.query,
+            query_parameters=dict(request.query_params),
         )
         self._records.append(record)
 
@@ -34,6 +34,14 @@ class RecordKeeper:
         self._records[:] = []
 
     def get_all(self) -> Records:
-        """Return all records in the record keeper."""
+        """Return all records in the record keeper with a counter."""
 
-        return Records(records=list(self._records))
+        records: List[RecordCount] = []
+        for record in list(self._records):
+            record_count = next((rc for rc in records if rc.record == record), None)
+            if record_count:
+                record_count.count += 1
+            else:
+                records.append(RecordCount(count=1, record=record))
+
+        return Records(records=records)
