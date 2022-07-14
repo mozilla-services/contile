@@ -78,19 +78,52 @@ Body:
           }
         ],
         "path": "/tilesp/desktop",
-        "query_parameters": {
-          "partner": "demofeed",
-          "sub1": "123456789",
-          "sub2": "placement1",
-          "country-code": "US",
-          "region-code": "NY",
-          "dma-code": "532",
-          "form-factor": "desktop",
-          "os-family": "macos",
-          "v": "1.0",
-          "out": "json",
-          "results": "2"
-        }
+        "query_parameters": [
+          {
+            "name": "partner",
+            "value": "demofeed"
+          },
+          {
+            "name": "sub1",
+            "value": "123456789"
+          },
+          {
+            "name": "sub2",
+            "value": "placement1"
+          },
+          {
+            "name": "country-code",
+            "value": "US"
+          },
+          {
+            "name": "region-code",
+            "value": "NY"
+          },
+          {
+            "name": "dma-code",
+            "value": "532"
+          },
+          {
+            "name": "form-factor",
+            "value": "desktop"
+          },
+          {
+            "name": "os-family",
+            "value": "macos"
+          },
+          {
+            "name": "v",
+            "value": "1.0"
+          },
+          {
+            "name": "out",
+            "value": "json"
+          },
+          {
+            "name": "results",
+            "value": "2"
+          }
+        ]
       }
     }
   ]

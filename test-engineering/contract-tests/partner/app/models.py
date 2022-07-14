@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 from pydantic import BaseModel
 
@@ -68,8 +68,8 @@ class Record(BaseModel):
 class RecordCount(BaseModel):
     """Model that represents the number of times a request is sent by Contile."""
 
-    record: Record
     count: int
+    record: Record
 
 
 class Records(BaseModel):

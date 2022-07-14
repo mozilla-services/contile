@@ -3,6 +3,7 @@ from multiprocessing.managers import SyncManager
 from typing import List, Tuple
 
 from fastapi import Request
+
 from models import Header, QueryParameter, Record, RecordCount, Records
 
 
@@ -42,9 +43,10 @@ class RecordKeeper:
 
     def get_all(self) -> Records:
         """Return all records in the record keeper with a counter."""
-        return Records(
-            records=[
-                RecordCount(record=record, count=count)
-                for record, count in Counter(self._records).items()
-            ]
-        )
+
+        records: List[RecordCount] = [
+            RecordCount(count=count, record=record)
+            for record, count in Counter(self._records).items()
+        ]
+
+        return Records(records=records)
