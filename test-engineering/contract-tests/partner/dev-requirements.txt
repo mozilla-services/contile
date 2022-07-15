@@ -59,12 +59,11 @@ tomli==2.0.1
     #   black
     #   mypy
     #   pytest
-types-pyyaml==6.0.9
+types-pyyaml==6.0.10
     # via -r dev-requirements.in
 typing-extensions==4.3.0
     # via
     #   -c requirements.txt
-    #   black
     #   mypy
 urllib3==1.26.9
     # via requests
