@@ -33,7 +33,7 @@ tomli==2.0.1
     #   -c requirements.txt
     #   black
     #   mypy
-types-pyyaml==6.0.9
+types-pyyaml==6.0.10
     # via -r dev-requirements.in
 types-requests==2.28.1
     # via -r dev-requirements.in
