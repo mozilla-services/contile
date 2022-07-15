@@ -88,7 +88,7 @@ async def read_records():
     return record_keeper.get_all()
 
 
-@app.delete("/records/", response_class=Response, status_code=204)
+@app.delete("/records/", status_code=204)
 async def delete_records():
     """Endpoint to delete all historical Contile request records."""
 
