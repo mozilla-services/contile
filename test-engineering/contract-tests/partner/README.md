@@ -31,18 +31,144 @@ You can run the service using `docker compose` from the root directory:
 docker compose run -p 5000:5000 partner
 ```
 
-## Tiles API
+## API
 
-Example request:
+Once the API service is running, API documentation can be found at 
+`http://0.0.0.0:5000/docs`.
+
+### Records
+
+**GET**: Endpoint to retrieve all historical Contile request records with a counter.
+
+Example: 
+
+Request
 
 ```text
 curl \
   -X 'GET' \
   -H 'accept: application/json' \
-  'http://0.0.0.0:5000/tilesp?partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2'
+  'http://0.0.0.0:5000/records/'
 ```
 
-Example response body:
+Response:
+
+Code: `200`
+
+Body:
+```json
+{
+  "records": [
+    {
+      "count": 1,
+      "record": {
+        "method": "GET",
+        "headers": [
+          {
+            "name": "host",
+            "value": "0.0.0.0:5000"
+          },
+          {
+            "name": "user-agent",
+            "value": "curl/7.79.1"
+          },
+          {
+            "name": "accept",
+            "value": "application/json"
+          }
+        ],
+        "path": "/tilesp/desktop",
+        "query_parameters": [
+          {
+            "name": "partner",
+            "value": "demofeed"
+          },
+          {
+            "name": "sub1",
+            "value": "123456789"
+          },
+          {
+            "name": "sub2",
+            "value": "placement1"
+          },
+          {
+            "name": "country-code",
+            "value": "US"
+          },
+          {
+            "name": "region-code",
+            "value": "NY"
+          },
+          {
+            "name": "dma-code",
+            "value": "532"
+          },
+          {
+            "name": "form-factor",
+            "value": "desktop"
+          },
+          {
+            "name": "os-family",
+            "value": "macos"
+          },
+          {
+            "name": "v",
+            "value": "1.0"
+          },
+          {
+            "name": "out",
+            "value": "json"
+          },
+          {
+            "name": "results",
+            "value": "2"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+**DELETE**: Endpoint to delete all historical Contile request records.
+
+Example:
+
+Request
+
+```text
+curl \
+  -X 'DELETE' \
+  -H 'accept: */*' \
+  'http://0.0.0.0:5000/records/'
+```
+
+Response
+
+Code: `204`
+
+Body: `N/A`
+
+### Tiles
+
+**GET**: Endpoint for requests from Contile.
+
+Example:
+
+Request
+
+```text
+curl \
+  -X 'GET' \
+  -H 'accept: application/json' \
+  'http://0.0.0.0:5000/tilesp/desktop?partner=demofeed&sub1=123456789&sub2=placement1&country-code=US&region-code=NY&dma-code=532&form-factor=desktop&os-family=macos&v=1.0&out=json&results=2'
+```
+
+Response
+
+Code: `200`
+
+Body:
 
 ```json
 {
