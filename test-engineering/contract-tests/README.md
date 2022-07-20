@@ -36,12 +36,16 @@ response content, but also the response status code, response headers and even
 delay the response for a period of time, which allows us to effectively test the
 MTS.
 
+For more details see the partner [README][partner_readme]
+
 ### client
 
 The `client` directory contains a Python-based test framework for the
 contract tests. The HTTP client used in the framework requests tiles from the
 MTS and performs checks against the responses. The framework implements response
 models for the MTS API.
+
+For more details see the client [README][client_readme]
 
 ### volumes
 
@@ -55,5 +59,7 @@ MTS Docker container such as a partner settings file
 - the `volumes/client` directory contains a YML file which defines every test
 scenario that the contract test suite will run
 
+[client_readme]: ./client/README.md
 [contract-test-repo]: https://github.com/mozilla-services/contile-integration-tests
+[partner_readme]: ./partner/README.md
 [sequence_diagram]: sequence_diagram.png
