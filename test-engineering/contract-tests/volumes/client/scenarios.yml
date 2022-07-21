@@ -3,7 +3,7 @@ scenarios:
     description: Test that Contile successfully returns tiles for Windows on Desktop.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -30,7 +30,7 @@ scenarios:
                 impression_url: 'https://example.org/desktop_windows?id=0002'
                 url: 'https://www.example.org/desktop_windows'
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -61,7 +61,7 @@ scenarios:
     description: Test that Contile successfully returns tiles for macOS on Desktop.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -92,7 +92,7 @@ scenarios:
     description: Test that Contile returns tiles for Linux on Desktop.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -123,7 +123,7 @@ scenarios:
     description: Test that Contile correctly handles a 500 from the partner API.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -142,7 +142,7 @@ scenarios:
     description: Test that Contile correctly handles invalid tiles responses from the partner API.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -160,7 +160,7 @@ scenarios:
     description: Test that Contile behaves correctly when a request to the partner API times out.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -179,7 +179,7 @@ scenarios:
     description: Test that Contile correctly handles requests from non Firefox clients.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -198,7 +198,7 @@ scenarios:
     description: Test that Contile successfully returns tiles for a specific country and region.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -237,7 +237,7 @@ scenarios:
       image for the ad provider of a tile shipped with Firefox 90.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -270,7 +270,7 @@ scenarios:
                 impression_url: 'https://example.com/gb_desktop_macos?id=0001'
                 url: 'https://www.example.com/gb_desktop_macos'
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -307,7 +307,7 @@ scenarios:
     description: Test that Contile returns a 200 OK with an empty tiles array for excluded regions
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -334,7 +334,7 @@ scenarios:
       `gb_desktop_windows` prefix for DunBroch tiles.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
@@ -376,7 +376,7 @@ scenarios:
       `gb_desktop_linux/2021` and the additional path segment is not approved.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:

@@ -5,7 +5,7 @@ scenarios:
       contains a prefix path value without a trailing slash character.
     steps:
       - request:
-          service: 'contile'
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:
