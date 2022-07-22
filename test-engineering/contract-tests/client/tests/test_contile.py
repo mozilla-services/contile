@@ -7,9 +7,9 @@ from typing import Callable, Dict, List
 
 import pytest
 import requests
-from requests.models import Response
+from requests import Response as RequestsResponse
 
-from models import Step
+from models import PartnerRecordsNotClearedError, Step
 
 
 @pytest.fixture(name="hosts", scope="session")
@@ -29,16 +29,10 @@ def fixture_clear_partner_records(hosts: Dict[str, str]) -> Callable:
     partner_host = hosts["partner"]
 
     def clear_partner_records():
-        r: Response = requests.delete(f"{partner_host}/records/")
+        r: RequestsResponse = requests.delete(f"{partner_host}/records/")
 
         if r.status_code != 204:
-            error_message: str = (
-                f"The Partner records may not have cleared after the test execution.\n"
-                f"Response details:\n"
-                f"Status Code: {r.status_code}\n"
-                f"Content: '{r.text}'"
-            )
-            raise Exception(error_message)
+            raise PartnerRecordsNotClearedError(r)
 
     return clear_partner_records
 
@@ -65,7 +59,7 @@ def test_contile(hosts: Dict[str, str], steps: List[Step]):
             header.name: header.value for header in step.request.headers
         }
 
-        r: Response = requests.request(method, url, headers=headers)
+        r: RequestsResponse = requests.request(method, url, headers=headers)
 
         error_message: str = (
             f"Expected status code {step.response.status_code},\n"

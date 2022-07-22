@@ -4,11 +4,17 @@
 
 import os
 import pathlib
-from typing import Dict, Any
+from typing import Dict, Union, Type
 
+import pytest
 import yaml
 
 from models import Records, Scenario, Service, Tiles
+
+SERVICE_MODEL: Dict[Service, Union[Type[Records], Type[Tiles]]] = {
+    Service.PARTNER: Records,
+    Service.CONTILE: Tiles,
+}
 
 
 def pytest_configure(config):
@@ -25,21 +31,18 @@ def pytest_configure(config):
 
     # Check that all 200 OK responses in test scenarios contain correct
     # information and FastAPI model instances were created for them.
-    SERVICE_MODEL: Dict[Service, Any] = {
-        Service.PARTNER: Records,
-        Service.CONTILE: Tiles,
-    }
-
     for scenario in config.contile_scenarios:
         for i, step in enumerate(scenario.steps):
 
             if step.response.status_code != 200:
                 continue
 
-            expected_model: Any = SERVICE_MODEL.get(step.request.service)
+            expected_model: Union[Type[Records], Type[Tiles]] = SERVICE_MODEL.get(
+                step.request.service
+            )
 
             if not isinstance(step.response.content, expected_model):
-                raise RuntimeError(
+                raise pytest.UsageError(
                     f"Failed to create {expected_model.__name__} "
                     f"model for '200 OK' response content in "
                     f"step {i} of scenario {scenario.name}"
