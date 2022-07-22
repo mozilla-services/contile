@@ -4,8 +4,8 @@
 
 import os
 import pathlib
+from typing import Dict, Any
 
-import pytest
 import yaml
 
 from models import Records, Scenario, Service, Tiles
@@ -25,26 +25,25 @@ def pytest_configure(config):
 
     # Check that all 200 OK responses in test scenarios contain correct
     # information and FastAPI model instances were created for them.
+    SERVICE_MODEL: Dict[Service, Any] = {
+        Service.PARTNER: Records,
+        Service.CONTILE: Tiles,
+    }
+
     for scenario in config.contile_scenarios:
         for i, step in enumerate(scenario.steps):
 
             if step.response.status_code != 200:
                 continue
 
-            error_message: str = (
-                f"Failed to create {{model}} model for '200 OK' response content in "
-                f"step {i} of scenario {scenario.name}"
-            )
+            expected_model: Any = SERVICE_MODEL.get(step.request.service)
 
-            if step.request.service == Service.CONTILE and not isinstance(
-                step.response.content, Tiles
-            ):
-                raise pytest.UsageError(error_message.format(model="Tiles"))
-
-            if step.request.service == Service.PARTNER and not isinstance(
-                step.response.content, Records
-            ):
-                raise pytest.UsageError(error_message.format(model="Records"))
+            if not isinstance(step.response.content, expected_model):
+                raise RuntimeError(
+                    f"Failed to create {expected_model.__name__} "
+                    f"model for '200 OK' response content in "
+                    f"step {i} of scenario {scenario.name}"
+                )
 
 
 def pytest_generate_tests(metafunc):
