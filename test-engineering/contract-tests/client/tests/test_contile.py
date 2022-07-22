@@ -23,22 +23,24 @@ def fixture_hosts(request) -> Dict[str, str]:
 
 
 @pytest.fixture(name="clear_partner_records")
-def fixture_clear_partner_records(hosts) -> Callable:
+def fixture_clear_partner_records(hosts: Dict[str, str]) -> Callable:
     """Clear Contile request history on partner."""
 
     partner_host = hosts["partner"]
 
-    def _clear_records():
-        r: Response = requests.request("DELETE", f"{partner_host}/records/")
+    def clear_partner_records():
+        r: Response = requests.delete(f"{partner_host}/records/")
 
-        error_message: str = (
-            f"Request status code was not as expected. Records may not have cleared "
-            f"after test run, details: '{r.text}'."
-        )
+        if r.status_code != 204:
+            error_message: str = (
+                f"The Partner records may not have cleared after the test execution.\n"
+                f"Response details:\n"
+                f"Status Code: {r.status_code}\n"
+                f"Content: '{r.text}'"
+            )
+            raise Exception(error_message)
 
-        assert r.status_code == 204, error_message
-
-    return _clear_records
+    return clear_partner_records
 
 
 @pytest.fixture(scope="function", autouse=True)
