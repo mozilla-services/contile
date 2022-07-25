@@ -11,6 +11,7 @@ The contract test suite is designed to be set up as a `docker-compose` CI
 workflow. The following sections as well as the sequence diagram below describe 
 the individual components of the suite.
 
+**Test Scenario: success_windows_desktop** 
 ![Sequence diagram of the integration tests][sequence_diagram]
 
 To run the contract tests locally, execute the following from the repository root:
