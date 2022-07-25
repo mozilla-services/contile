@@ -64,7 +64,7 @@ def test_contile(hosts: Dict[Service, str], steps: List[Step]):
 
         error_message: str = (
             f"Expected status code {step.response.status_code},\n"
-            f"but the status code in the response from Contile is "
+            f"but the status code in the response from {step.request.service.name} is "
             f"{response.status_code}.\n"
             f"The response content is '{response.text}'."
         )
