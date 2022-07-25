@@ -11,7 +11,8 @@ import yaml
 
 from models import Records, Scenario, Service, Tiles
 
-SERVICE_MODEL: Dict[Service, Union[Type[Records], Type[Tiles]]] = {
+SERVICE_MODEL = Union[Type[Records], Type[Tiles]]
+SERVICE_MODELS: Dict[Service, SERVICE_MODEL] = {
     Service.PARTNER: Records,
     Service.CONTILE: Tiles,
 }
@@ -37,9 +38,7 @@ def pytest_configure(config):
             if step.response.status_code != 200:
                 continue
 
-            expected_model: Union[Type[Records], Type[Tiles]] = SERVICE_MODEL.get(
-                step.request.service
-            )
+            expected_model: SERVICE_MODEL = SERVICE_MODELS.get(step.request.service)
 
             if not isinstance(step.response.content, expected_model):
                 raise pytest.UsageError(
