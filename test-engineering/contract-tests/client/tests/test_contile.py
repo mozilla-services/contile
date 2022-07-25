@@ -9,30 +9,30 @@ import pytest
 import requests
 from requests import Response as RequestsResponse
 
-from models import PartnerRecordsNotClearedError, Step
+from models import PartnerRecordsNotClearedError, Service, Step
 
 
 @pytest.fixture(name="hosts", scope="session")
-def fixture_hosts(request) -> Dict[str, str]:
+def fixture_hosts(request) -> Dict[Service, str]:
     """Return a dict mapping from a service name to a host name."""
 
     return {
-        "contile": request.config.option.contile_url,
-        "partner": request.config.option.partner_url,
+        Service.CONTILE: request.config.option.contile_url,
+        Service.PARTNER: request.config.option.partner_url,
     }
 
 
 @pytest.fixture(name="clear_partner_records")
-def fixture_clear_partner_records(hosts: Dict[str, str]) -> Callable:
+def fixture_clear_partner_records(hosts: Dict[Service, str]) -> Callable:
     """Clear Contile request history on partner."""
 
-    partner_host = hosts["partner"]
+    partner_host: str = hosts[Service.PARTNER]
 
     def clear_partner_records():
-        r: RequestsResponse = requests.delete(f"{partner_host}/records/")
+        request: RequestsResponse = requests.delete(f"{partner_host}/records/")
 
-        if r.status_code != 204:
-            raise PartnerRecordsNotClearedError(r)
+        if request.status_code != 204:
+            raise PartnerRecordsNotClearedError(request)
 
     return clear_partner_records
 
@@ -46,7 +46,7 @@ def fixture_function_teardown(clear_partner_records: Callable):
     clear_partner_records()
 
 
-def test_contile(hosts: Dict[str, str], steps: List[Step]):
+def test_contile(hosts: Dict[Service, str], steps: List[Step]):
     """Test for requesting tiles from Contile."""
 
     for step in steps:
@@ -54,35 +54,36 @@ def test_contile(hosts: Dict[str, str], steps: List[Step]):
         # Use the parameters to perform the request and verify the response.
 
         method: str = step.request.method
-        url: str = f"{hosts[step.request.service.value]}{step.request.path}"
+        url: str = f"{hosts[step.request.service]}{step.request.path}"
         headers: Dict[str, str] = {
             header.name: header.value for header in step.request.headers
         }
 
-        r: RequestsResponse = requests.request(method, url, headers=headers)
+        request: RequestsResponse = requests.request(method, url, headers=headers)
 
         error_message: str = (
             f"Expected status code {step.response.status_code},\n"
-            f"but the status code in the response from Contile is {r.status_code}.\n"
-            f"The response content is '{r.text}'."
+            f"but the status code in the response from Contile is "
+            f"{request.status_code}.\n"
+            f"The response content is '{request.text}'."
         )
 
-        assert r.status_code == step.response.status_code, error_message
+        assert request.status_code == step.response.status_code, error_message
 
-        if r.status_code == 200:
+        if request.status_code == 200:
             # If the response status code is 200 OK, load the response content
             # into a Python dict and generate a dict from the response model
-            assert r.json() == step.response.content.dict()
+            assert request.json() == step.response.content.dict()
             continue
 
-        if r.status_code == 204:
+        if request.status_code == 204:
             # If the response status code is 204 No Content, load the response content
             # as text and compare against the value in the response model. This
             # should be an empty string.
-            assert r.text == step.response.content
+            assert request.text == step.response.content
             continue
 
         # If the request to Contile was not successful, load the response
         # content into a Python dict and compare against the value in the
         # response model, which is expected to be the Contile error code.
-        assert r.json() == step.response.content
+        assert request.json() == step.response.content

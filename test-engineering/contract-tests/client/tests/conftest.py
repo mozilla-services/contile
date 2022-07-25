@@ -11,6 +11,7 @@ import yaml
 
 from models import Records, Scenario, Service, Tiles
 
+
 SERVICE_MODEL = Union[Type[Records], Type[Tiles]]
 SERVICE_MODELS: Dict[Service, SERVICE_MODEL] = {
     Service.PARTNER: Records,
