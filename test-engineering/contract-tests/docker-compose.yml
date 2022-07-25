@@ -60,9 +60,11 @@ services:
       - partner
       - contile
     links:
+      - partner
       - contile
     environment:
       CONTILE_URL: http://contile:8000
+      PARTNER_URL: http://partner:5000
       SCENARIOS_FILE: /tmp/client/scenarios.yml
     volumes:
       - ./volumes/client:/tmp/client

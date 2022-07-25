@@ -6,6 +6,7 @@ scenarios:
     # no content if a request is made from an excluded country location.
     steps:
       - request:
+          service: contile
           method: GET
           path: '/v1/tiles'
           headers:

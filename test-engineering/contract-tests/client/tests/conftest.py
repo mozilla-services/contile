@@ -4,10 +4,19 @@
 
 import os
 import pathlib
+from typing import Dict, Union, Type
 
 import pytest
 import yaml
-from models import Scenario, Tiles
+
+from models import Records, Scenario, Service, Tiles
+
+
+SERVICE_MODEL = Union[Type[Records], Type[Tiles]]
+SERVICE_MODELS: Dict[Service, SERVICE_MODEL] = {
+    Service.PARTNER: Records,
+    Service.CONTILE: Tiles,
+}
 
 
 def pytest_configure(config):
@@ -22,7 +31,7 @@ def pytest_configure(config):
         Scenario(**scenario) for scenario in loaded_scenarios["scenarios"]
     ]
 
-    # Check that all 200 OK responses in test scenarios contain correct tiles
+    # Check that all 200 OK responses in test scenarios contain correct
     # information and FastAPI model instances were created for them.
     for scenario in config.contile_scenarios:
         for i, step in enumerate(scenario.steps):
@@ -30,10 +39,13 @@ def pytest_configure(config):
             if step.response.status_code != 200:
                 continue
 
-            if not isinstance(step.response.content, Tiles):
+            expected_model: SERVICE_MODEL = SERVICE_MODELS.get(step.request.service)
+
+            if not isinstance(step.response.content, expected_model):
                 raise pytest.UsageError(
-                    f"Failed to create Tiles model for '200 OK' response "
-                    f"content in step {i} of scenario '{scenario.name}'"
+                    f"Failed to create {expected_model.__name__} "
+                    f"model for '200 OK' response content in "
+                    f"step {i} of scenario {scenario.name}"
                 )
 
 
@@ -53,6 +65,7 @@ def pytest_generate_tests(metafunc):
 def pytest_addoption(parser):
     """Define custom CLI options."""
     contile_group = parser.getgroup("contile")
+
     contile_group.addoption(
         "--contile-url",
         action="store",
@@ -60,6 +73,17 @@ def pytest_addoption(parser):
         help="Contile endpoint URL",
         metavar="CONTILE_URL",
         default=os.environ.get("CONTILE_URL"),
+        type=str,
+        required=False,
+    )
+
+    contile_group.addoption(
+        "--partner-url",
+        action="store",
+        dest="partner_url",
+        help="Partner endpoint URL",
+        metavar="PARTNER_URL",
+        default=os.environ.get("PARTNER_URL"),
         type=str,
         required=False,
     )
