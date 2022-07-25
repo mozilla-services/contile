@@ -29,10 +29,10 @@ def fixture_clear_partner_records(hosts: Dict[Service, str]) -> Callable:
     partner_host: str = hosts[Service.PARTNER]
 
     def clear_partner_records():
-        request: RequestsResponse = requests.delete(f"{partner_host}/records/")
+        response: RequestsResponse = requests.delete(f"{partner_host}/records/")
 
-        if request.status_code != 204:
-            raise PartnerRecordsNotClearedError(request)
+        if response.status_code != 204:
+            raise PartnerRecordsNotClearedError(response)
 
     return clear_partner_records
 
@@ -59,31 +59,31 @@ def test_contile(hosts: Dict[Service, str], steps: List[Step]):
             header.name: header.value for header in step.request.headers
         }
 
-        request: RequestsResponse = requests.request(method, url, headers=headers)
+        response: RequestsResponse = requests.request(method, url, headers=headers)
 
         error_message: str = (
             f"Expected status code {step.response.status_code},\n"
             f"but the status code in the response from Contile is "
-            f"{request.status_code}.\n"
-            f"The response content is '{request.text}'."
+            f"{response.status_code}.\n"
+            f"The response content is '{response.text}'."
         )
 
-        assert request.status_code == step.response.status_code, error_message
+        assert response.status_code == step.response.status_code, error_message
 
-        if request.status_code == 200:
+        if response.status_code == 200:
             # If the response status code is 200 OK, load the response content
             # into a Python dict and generate a dict from the response model
-            assert request.json() == step.response.content.dict()
+            assert response.json() == step.response.content.dict()
             continue
 
-        if request.status_code == 204:
+        if response.status_code == 204:
             # If the response status code is 204 No Content, load the response content
             # as text and compare against the value in the response model. This
             # should be an empty string.
-            assert request.text == step.response.content
+            assert response.text == step.response.content
             continue
 
         # If the request to Contile was not successful, load the response
         # content into a Python dict and compare against the value in the
         # response model, which is expected to be the Contile error code.
-        assert request.json() == step.response.content
+        assert response.json() == step.response.content
