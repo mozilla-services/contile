@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel, Extra
-from requests import Response as RequestsResponse
 
 
 class Service(Enum):
@@ -100,20 +99,3 @@ class Scenario(BaseModel):
     name: str
     description: str
     steps: List[Step]
-
-
-class PartnerError(Exception):
-    """Error specific to partner service interactions."""
-
-
-class PartnerRecordsNotClearedError(PartnerError):
-    """Error clearing partner records."""
-
-    def __init__(self, response: RequestsResponse):
-        error_message: str = (
-            f"The Partner records may not have cleared after the test execution.\n"
-            f"Response details:\n"
-            f"Status Code: {response.status_code}\n"
-            f"Content: '{response.text}'"
-        )
-        super().__init__(error_message)

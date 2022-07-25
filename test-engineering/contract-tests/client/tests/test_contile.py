@@ -9,7 +9,8 @@ import pytest
 import requests
 from requests import Response as RequestsResponse
 
-from models import PartnerRecordsNotClearedError, Service, Step
+from exceptions import PartnerRecordsNotClearedError
+from models import Service, Step
 
 
 @pytest.fixture(name="hosts", scope="session")
