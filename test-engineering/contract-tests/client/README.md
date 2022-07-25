@@ -23,7 +23,7 @@ scenario file. A scenario is defined by a name, description and steps.
 
 * To direct requests to the MTS service, set the `service` value of `request` to 
 `contile`
-* The expected content for a '200 OK' response is a collection of Tiles.
+* The expected content for a `200 OK` response is a collection of tiles.
 
 Example:
 ```yaml
@@ -54,11 +54,11 @@ Example:
           url: 'https://www.example.org/desktop_windows'
 ```
 
-#### partner Service
+#### Partner Service
 
 * To direct requests to the partner service, set the `service` value of `request` to 
 `partner`
-* The expected content for a '200 OK' response is a collection of Records.
+* The expected content for a `200 OK` response is a collection of records.
     * Each `record` represents a distinct request made by the MTS to the partner.
     * The frequency of a request is denoted by the `count`.
 * Request history is cleared between scenarios
