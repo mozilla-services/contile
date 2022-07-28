@@ -736,3 +736,42 @@ async fn not_found() {
     assert_eq!(result["code"], 404);
     assert_eq!(result["errno"], 404);
 }
+
+#[actix_web::test]
+async fn zero_ttl() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: json!(adm_settings()).to_string(),
+        tiles_ttl: 0,
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[actix_web::test]
+async fn zero_jitter() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: json!(adm_settings()).to_string(),
+        tiles_ttl: 1,
+        jitter: 0,
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}

@@ -29,6 +29,11 @@ pub fn add_jitter(settings: &Settings) -> u32 {
     let mut rng = thread_rng();
     let ftl = settings.tiles_ttl as f32;
     let offset = ftl * (std::cmp::min(settings.jitter, 50) as f32 * 0.01);
+    if offset == 0.0 {
+        // Don't panic gen_range with an empty range (a tiles_ttl or jitter of
+        // 0 was specified)
+        return 0;
+    }
     let jit = rng.gen_range(0.0 - offset..offset);
     (ftl + jit) as u32
 }
