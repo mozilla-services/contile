@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  contile:
+    environment:
+      CONTILE_TILES_TTL: 900 # cached tiles will expire after 15 minutes
+  client:
+    environment:
+      SCENARIOS_FILE: /tmp/client/scenarios_tiles_cache.yml

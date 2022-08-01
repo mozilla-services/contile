@@ -1,0 +1,56 @@
+# This file contains partner responses for CN for the /tilesp API endpoint.
+# We use form-factor and os-family to determine which response to send to Contile.
+desktop:
+    windows:
+      status_code: 200
+      headers: []
+      content:
+        tiles:
+          - id: 14356
+            name: 'Example COM'
+            click_url: 'https://example.com/cn_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+            image_url: 'https://example.com/cn_desktop_windows01.jpg'
+            impression_url: 'https://example.com/cn_desktop_windows?id=0001'
+            advertiser_url: 'https://www.example.com/cn_desktop_windows'
+          - id: 24356
+            name: 'Example ORG'
+            click_url: 'https://example.org/cn_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/cn_desktop_windows02.jpg'
+            impression_url: 'https://example.org/cn_desktop_windows?id=0002'
+            advertiser_url: 'https://www.example.org/cn_desktop_windows'
+
+    macos:
+      status_code: 200
+      headers: []
+      content:
+        tiles:
+          - id: 14357
+            name: 'Example COM'
+            click_url: 'https://example.com/cn_desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+            image_url: 'https://example.com/cn_desktop_macos01.jpg'
+            impression_url: 'https://example.com/cn_desktop_macos?id=0001'
+            advertiser_url: 'https://www.example.com/cn_desktop_macos'
+          - id: 24357
+            name: 'Example ORG'
+            click_url: 'https://example.org/cn_desktop_macos?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/cn_desktop_macos02.jpg'
+            impression_url: 'https://example.org/cn_desktop_macos?id=0002'
+            advertiser_url: 'https://www.example.org/cn_desktop_macos'
+
+    linux:
+      status_code: 200
+      headers: []
+      content:
+        tiles:
+          - id: 14358
+            name: 'Example COM'
+            click_url: 'https://example.com/cn_desktop_linux?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+            image_url: 'https://example.com/cn_desktop_linux01.jpg'
+            impression_url: 'https://example.com/cn_desktop_linux?id=0001'
+            advertiser_url: 'https://www.example.com/cn_desktop_linux'
+          - id: 24358
+            name: 'Example ORG'
+            click_url: 'https://example.org/cn_desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+            image_url: 'https://example.org/cn_desktop_linux02.jpg'
+            impression_url: 'https://example.org/cn_desktop_linux?id=0002'
+            advertiser_url: 'https://www.example.org/cn_desktop_linux'

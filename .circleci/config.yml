@@ -244,14 +244,21 @@ jobs:
             -f test-engineering/contract-tests/docker-compose.yml \
             up --abort-on-container-exit --force-recreate
       - run:
-         name: 'Run "204" contract tests'
+          name: Run "tiles cache" contract tests
+          command: |
+           docker-compose \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
+            up --abort-on-container-exit --force-recreate
+      - run:
+         name: Run "204" contract tests
          command: |
            docker-compose \
             -f test-engineering/contract-tests/docker-compose.yml \
             -f test-engineering/contract-tests/docker-compose.204.yml \
             up --abort-on-container-exit --force-recreate
       - run:
-         name: 'Run "init_error" contract tests'
+         name: Run "init_error" contract tests
          command: |
            set +e # We need this so that the run doesn't exit after docker-compose
            docker-compose \

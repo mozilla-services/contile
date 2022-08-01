@@ -1,0 +1,264 @@
+# Note: The scenarios in this file will be executed using a 'CONTILE_TILES_TTL' value
+# greater than 0. As a result, requests made to Contile will be cached, impacting
+# subsequent scenario executions.
+
+scenarios:
+  - name: success_tiles_cache_with_same_form_and_region
+    description: > 
+      Test that Contile will use tiles from its cache, instead of from the 
+      partner, for requests that map to the same form-factor and region.
+    steps:
+      - request:
+          service: contile
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # The following 'User-Agent' header value will result in query values
+            # os-family: windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # The following 'X-Forwarded-For' header value will result in query values
+            # country-code: US, region-code: WA and dma-code: 819
+            - name: X-Forwarded-For
+              value: '216.160.83.57'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 22345
+                name: 'Example COM'
+                click_url: 'https://example.com/us_wa_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/us_wa_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/us_wa_desktop_windows?id=0001'
+                url: 'https://www.example.com/us_wa_desktop_windows'
+              - id: 66789
+                name: 'Example ORG'
+                click_url: 'https://example.org/us_wa_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/us_wa_desktop_windows02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/us_wa_desktop_windows?id=0002'
+                url: 'https://www.example.org/us_wa_desktop_windows'
+      - request:
+          service: contile
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # The following 'User-Agent' header value will result in query values
+            # os-family: windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # The following 'X-Forwarded-For' header value will result in query values
+            # country-code: US, region-code: WA and dma-code: 819
+            - name: X-Forwarded-For
+              value: '216.160.83.62'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 22345
+                name: 'Example COM'
+                click_url: 'https://example.com/us_wa_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/us_wa_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/us_wa_desktop_windows?id=0001'
+                url: 'https://www.example.com/us_wa_desktop_windows'
+              - id: 66789
+                name: 'Example ORG'
+                click_url: 'https://example.org/us_wa_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/us_wa_desktop_windows02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/us_wa_desktop_windows?id=0002'
+                url: 'https://www.example.org/us_wa_desktop_windows'
+      - request:
+          service: partner
+          method: GET
+          path: '/records/'
+          headers:
+            - name: 'accept'
+              value: '*/*'
+        response:
+          status_code: 200
+          content:
+            records:
+              - count: 1
+                record:
+                  method: GET
+                  headers:
+                    - name: accept
+                      value: '*/*'
+                    - name: user-agent
+                      value: 'contile/1.8.0'
+                    - name: host
+                      value: 'partner:5000'
+                  path: '/tilesp/desktop'
+                  query_parameters:
+                    - name: partner
+                      value: 'partner_id_test'
+                    - name: sub1
+                      value: 'sub1_test'
+                    - name: sub2
+                      value: 'newtab'
+                    - name: country-code
+                      value: 'US'
+                    - name: region-code
+                      value: 'WA'
+                    - name: dma-code
+                      value: '819'
+                    - name: form-factor
+                      value: 'desktop'
+                    - name: os-family
+                      value: 'windows'
+                    - name: v
+                      value: '1.0'
+                    - name: out
+                      value: 'json'
+                    - name: results
+                      value: '5'
+
+  - name: success_tiles_cache_with_different_form_and_region
+    description: >
+      Test that Contile will use tiles from the partner, instead of from its cache, 
+      for requests that map to different form-factors and regions.
+    steps:
+      - request:
+          service: contile
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # The following 'User-Agent' header value will result in query values
+            # os-family: linux and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (X11; Linux x86_64; rv:90.0) Gecko/20100101 Firefox/91.0'
+            # The following 'X-Forwarded-For' header value will result in query values
+            # country-code: GB and region-code: ENG
+            - name: X-Forwarded-For
+              value: '81.2.69.204'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 32347
+                name: 'Example COM'
+                click_url: 'https://example.com/gb_desktop_linux?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/gb_desktop_linux01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/gb_desktop_linux?id=0001'
+                url: 'https://www.example.com/gb_desktop_linux'
+              - id: 76791
+                name: 'Example ORG'
+                click_url: 'https://example.org/gb_desktop_linux?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/gb_desktop_linux02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/gb_desktop_linux?id=0002'
+                url: 'https://www.example.org/gb_desktop_linux'
+      - request:
+          service: contile
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # The following 'User-Agent' header value will result in query values
+            # os-family: windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+            # The following 'X-Forwarded-For' header value will result in query values
+            # country-code: CN and region-code: 22
+            - name: X-Forwarded-For
+              value: '175.16.199.0'
+        response:
+          status_code: 200
+          content:
+            tiles:
+              - id: 14356
+                name: 'Example COM'
+                click_url: 'https://example.com/cn_desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://example.com/cn_desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://example.com/cn_desktop_windows?id=0001'
+                url: 'https://www.example.com/cn_desktop_windows'
+              - id: 24356
+                name: 'Example ORG'
+                click_url: 'https://example.org/cn_desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://example.org/cn_desktop_windows02.jpg'
+                image_size: null
+                impression_url: 'https://example.org/cn_desktop_windows?id=0002'
+                url: 'https://www.example.org/cn_desktop_windows'
+      - request:
+          service: partner
+          method: GET
+          path: '/records/'
+          headers:
+            - name: 'accept'
+              value: '*/*'
+        response:
+          status_code: 200
+          content:
+            records:
+              - count: 1
+                record:
+                  method: GET
+                  headers:
+                    - name: accept
+                      value: '*/*'
+                    - name: user-agent
+                      value: 'contile/1.8.0'
+                    - name: host
+                      value: 'partner:5000'
+                  path: '/tilesp/desktop'
+                  query_parameters:
+                    - name: partner
+                      value: 'partner_id_test'
+                    - name: sub1
+                      value: 'sub1_test'
+                    - name: sub2
+                      value: 'newtab'
+                    - name: country-code
+                      value: 'GB'
+                    - name: region-code
+                      value: 'ENG'
+                    - name: dma-code
+                      value: ''
+                    - name: form-factor
+                      value: 'desktop'
+                    - name: os-family
+                      value: 'linux'
+                    - name: v
+                      value: '1.0'
+                    - name: out
+                      value: 'json'
+                    - name: results
+                      value: '5'
+              - count: 1
+                record:
+                  method: GET
+                  headers:
+                    - name: accept
+                      value: '*/*'
+                    - name: user-agent
+                      value: 'contile/1.8.0'
+                    - name: host
+                      value: 'partner:5000'
+                  path: '/tilesp/desktop'
+                  query_parameters:
+                    - name: partner
+                      value: 'partner_id_test'
+                    - name: sub1
+                      value: 'sub1_test'
+                    - name: sub2
+                      value: 'newtab'
+                    - name: country-code
+                      value: 'CN'
+                    - name: region-code
+                      value: '22'
+                    - name: dma-code
+                      value: ''
+                    - name: form-factor
+                      value: 'desktop'
+                    - name: os-family
+                      value: 'windows'
+                    - name: v
+                      value: '1.0'
+                    - name: out
+                      value: 'json'
+                    - name: results
+                      value: '5'
