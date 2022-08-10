@@ -11,7 +11,7 @@ The contract test suite is designed to be set up as a `docker-compose` CI
 workflow. The following sections as well as the sequence diagram below describe 
 the individual components of the suite.
 
-**Test Scenario: success_tiles_cache_expired** 
+**Test Scenario: success_tiles_cached_for_identical_proxy_params** 
 ![Sequence diagram of the integration tests][sequence_diagram]
 
 To run the contract tests locally, execute the following from the repository root:

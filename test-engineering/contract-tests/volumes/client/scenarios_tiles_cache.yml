@@ -3,7 +3,7 @@
 # subsequent scenario executions.
 
 scenarios:
-  - name: success_tiles_cache_with_same_form_and_region
+  - name: success_tiles_cached_for_identical_proxy_params
     description: > 
       Test that Contile will use tiles from its cache, instead of from the 
       partner, for requests that map to the same form-factor and region.
@@ -116,7 +116,7 @@ scenarios:
                     - name: results
                       value: '5'
 
-  - name: success_tiles_cache_with_different_form_and_region
+  - name: success_tiles_cached_for_different_proxy_params
     description: >
       Test that Contile will use tiles from the partner, instead of from its cache, 
       for requests that map to different form-factors and regions.
