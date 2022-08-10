@@ -39,6 +39,7 @@ services:
       CONTILE_HOST: 0.0.0.0
       CONTILE_HUMAN_LOGS: 1
       CONTILE_PORT: 8000
+      CONTILE_TILES_TTL: 0 # cached tiles will always be expired
       RUST_LOG: main,contile=INFO
     expose:
       - "8000"
