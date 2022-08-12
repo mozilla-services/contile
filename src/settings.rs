@@ -14,7 +14,7 @@ static PREFIX: &str = "contile";
 
 static DEFAULT_PORT: u16 = 8000;
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TestModes {
     TestTimeout,
     TestFakeResponse,

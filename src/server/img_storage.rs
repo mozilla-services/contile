@@ -139,7 +139,7 @@ impl StoredImage {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Default, Serialize, PartialEq)]
+#[derive(Copy, Clone, Debug, Deserialize, Default, Serialize, PartialEq, Eq)]
 pub struct ImageMetrics {
     pub width: u32,
     pub height: u32,
