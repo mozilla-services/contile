@@ -87,7 +87,7 @@ commands:
 jobs:
   checks:
     docker:
-      - image: circleci/rust:latest
+      - image: cimg/rust:1.62
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -100,7 +100,7 @@ jobs:
 
   test:
     docker:
-      - image: circleci/rust:latest
+      - image: cimg/rust:1.62
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -116,7 +116,7 @@ jobs:
 
   build:
     docker:
-      - image: circleci/rust:latest
+      - image: cimg/rust:1.62
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
