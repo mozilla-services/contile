@@ -34,7 +34,7 @@ starlette==0.19.1
     # via fastapi
 typing-extensions==4.3.0
     # via pydantic
-uvicorn[standard]==0.18.2
+uvicorn[standard]==0.18.3
     # via -r requirements.in
 uvloop==0.16.0
     # via uvicorn
