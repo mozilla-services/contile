@@ -192,9 +192,11 @@ pub async fn get_tiles(
                 .unwrap()
                 .to_owned();
             trace!("Getting fake response: {:?}", &test_response);
+            dbg!(" Fake response {:?}", &test_response);
             AdmTileResponse::fake_response(&state.settings, test_response)?
         }
         crate::settings::TestModes::TestTimeout => {
+            dbg!("### Timeout!");
             trace!("### Timeout!");
             return Err(HandlerErrorKind::AdmLoadError().into());
         }
@@ -219,8 +221,10 @@ pub async fn get_tiles(
                             .unwrap_or_else(|| Duration::from_secs(0))
                             <= Duration::from_secs(state.settings.adm_timeout)
                     {
+                        dbg!(" --- Timeout");
                         HandlerErrorKind::AdmLoadError().into()
                     } else {
+                        dbg!(" --- Server", &e);
                         HandlerErrorKind::AdmServerError().into()
                     };
                     // ADM servers are down, or improperly configured
@@ -233,6 +237,7 @@ pub async fn get_tiles(
                 .await
                 .map_err(|e| {
                     // ADM servers are not returning correct information
+                    dbg!("--- invalid");
                     let err: HandlerError = HandlerErrorKind::BadAdmResponse(format!(
                         "ADM provided invalid response: {:?}",
                         e
@@ -244,6 +249,7 @@ pub async fn get_tiles(
         }
     };
     if response.tiles.is_empty() {
+        dbg!(" --- empty ");
         warn!("adm::get_tiles empty response {}", adm_url);
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
@@ -251,6 +257,7 @@ pub async fn get_tiles(
     let mut filtered: Vec<Tile> = Vec::new();
     let iter = response.tiles.into_iter();
     for tile in iter {
+        dbg!(&tile);
         if let Some(tile) = state.partner_filter.read().await.filter_and_process(
             tile,
             location,
@@ -279,6 +286,7 @@ pub async fn get_tiles(
                 }
                 Err(e) => {
                     // quietly report the error, and drop the tile.
+                    dbg!("--- bad tile", &e);
                     report(sentry::event_from_error(&e), tags);
                     continue;
                 }

@@ -390,6 +390,8 @@ impl AdmFilter {
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
+        dbg!(&tile.name.to_lowercase());
+        dbg!(&self.advertiser_filters.keys());
         match self.advertiser_filters.get(&tile.name.to_lowercase()) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
@@ -457,9 +459,6 @@ impl AdmFilter {
                     return Ok(None);
                 }
 
-                // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
-                // defined. In either case `None` is a valid return, but we should favor `filter` over
-                // `default`.
                 Ok(Some(Tile::from_adm_tile(tile)))
             }
             None => {

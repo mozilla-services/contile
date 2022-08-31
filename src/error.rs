@@ -248,11 +248,22 @@ impl fmt::Display for HandlerError {
 
 impl ResponseError for HandlerError {
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(self.status_code()).json(json!({
-            "code": self.kind().http_status().as_u16(),
-            "errno": self.kind().errno(),
-            "error": self.kind().as_response_string(),
-        }))
+        match self.kind() {
+            HandlerErrorKind::NoTilesForCountry(_) => {
+                // A technically correct response contains an empty set of tiles.
+                HttpResponse::build(self.status_code()).json(
+                    json!({"tiles": []})
+                )
+            },
+            _ => {
+                // Otherwise, return an error structure.
+                HttpResponse::build(self.status_code()).json(json!({
+                    "code": self.kind().http_status().as_u16(),
+                    "errno": self.kind().errno(),
+                    "error": self.kind().as_response_string(),
+                }))
+            }
+        }
     }
 
     fn status_code(&self) -> StatusCode {

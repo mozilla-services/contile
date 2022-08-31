@@ -114,11 +114,14 @@ impl MockAdm {
     /// Return the passed in query params
     async fn params(&mut self) -> HashMap<String, String> {
         let query_string = self.request_rx.next().await.expect("No request_rx result");
-        Url::parse(&format!("{}{}", self.endpoint_url, query_string))
+        dbg!(&format!("{}?{}", self.endpoint_url, query_string));
+        let bits = Url::parse(&format!("{}?{}", self.endpoint_url, query_string))
             .expect("Couldn't parse request_rx result")
             .query_pairs()
             .into_owned()
-            .collect()
+            .collect();
+        dbg!(&bits);
+        bits
     }
 }
 
@@ -129,13 +132,14 @@ fn init_mock_adm(response: String) -> MockAdm {
         resp: web::Data<String>,
         tx: web::Data<futures::channel::mpsc::UnboundedSender<String>>,
     ) -> HttpResponse {
-        trace!(
+        dbg!(
             "mock_adm: path: {:#?} query_string: {:#?} {:#?} {:#?}",
             req.path(),
             req.query_string(),
             req.connection_info(),
             req.headers()
         );
+        dbg!(resp.get_ref().to_owned());
         // TODO: pass more data for validation
         tx.unbounded_send(req.query_string().to_owned())
             .expect("Failed to send");
@@ -567,11 +571,27 @@ async fn empty_tiles() {
 
 #[actix_web::test]
 async fn empty_tiles_excluded_country() {
+    // ensure that a response where all candidate tiles have been filtered
+    // out returns a 200 response.
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
-    // no adm_settings filters everything out, the client's country (US) is
-    // considered "excluded"
+    // Specify valid advertisers with no per country information. This will
+    // "exclude" US locations.
+    let filters = AdmFilter::advertisers_from_string(
+        &json!({
+            "Acme": {
+             },
+            "Dunder Mifflin": {
+            },
+            "Los Pollos Hermanos": {
+            },
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let adm_settings = AdmFilter::advertisers_to_string(filters);
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
+        adm_settings,
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -583,6 +603,7 @@ async fn empty_tiles_excluded_country() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
+    dbg!(&result);
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert_eq!(tiles.len(), 0);
 
@@ -592,6 +613,7 @@ async fn empty_tiles_excluded_country() {
         .insert_header((header::USER_AGENT, UA_91))
         .to_request();
     let resp = test::call_service(&app, req).await;
+    dbg!(&resp);
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
@@ -631,10 +653,10 @@ async fn include_regions() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let mut adm_settings = advertiser_filters();
-    adm_settings.remove("Los Pollos Hermanos");
+    adm_settings.remove(&"Los Pollos Hermanos".to_lowercase());
     // set Dunder Mifflin to only serve Mexico.
     let a_s = adm_settings
-        .get_mut("Dunder Mifflin")
+        .get_mut(&"Dunder Mifflin".to_lowercase())
         .expect("No Dunder Mifflin tile");
     a_s.countries
         .insert("MX".into(), a_s.countries.get("US").unwrap().clone());
