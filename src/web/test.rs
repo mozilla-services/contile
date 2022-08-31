@@ -43,6 +43,13 @@ fn get_test_settings() -> Settings {
         maxminddb_loc: Some(MMDB_LOC.into()),
         port: treq.uri().port_u16().unwrap_or(8080),
         host: treq.uri().host().unwrap_or("localhost").to_owned(),
+        adm_defaults: Some(json!(crate::adm::AdmDefaults{
+            click_hosts: [crate::adm::settings::break_hosts("example.com".to_owned())].to_vec(),
+            image_hosts: [crate::adm::settings::break_hosts("cdn.example.com".to_owned())].to_vec(),
+            impression_hosts: [crate::adm::settings::break_hosts("example.net".to_owned())]
+                .to_vec(),
+            ..Default::default()
+        }).to_string()),
         ..test_settings()
     }
 }
@@ -379,10 +386,11 @@ async fn basic_filtered() {
             ..Default::default()
         },
     );
-    adm_settings.remove("Dunder Mifflin");
+    adm_settings.remove("dunder mifflin");
+
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
+        adm_settings: AdmFilter::advertisers_to_string(adm_settings),
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -412,7 +420,7 @@ async fn basic_filtered() {
     let tile1 = &tiles[0];
     assert_eq!(tile1["name"], "Acme");
     let tile2 = &tiles[1];
-    assert_eq!(tile2["name"], "Los Pollos Hermanos");
+    assert_eq!(tile2["name"].as_str().unwrap(), "Los Pollos Hermanos");
 }
 
 #[actix_web::test]

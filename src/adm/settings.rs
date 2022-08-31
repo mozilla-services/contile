@@ -329,7 +329,7 @@ impl AdmFilter {
                 }
                 // if it's not a `delete`, than it's part of the
                 // list of per country advertiser filters.
-                /*
+                //*
                 if key.len() > 2 {
                     warn!("Invalid country detected: {}", key);
                     continue;
@@ -366,10 +366,14 @@ impl AdmFilter {
                                 let mut paths: Vec<PathFilter> = Vec::new();
                                 for path_filter in value.as_array().ok_or_else(|| ConfigError::Message(format!("missing list of path filters for path declaration for {}:{}", &advertiser, &key)))? {
                                     let filter = path_filter.as_object().ok_or_else(|| ConfigError::Message(format!("Invalid path filter for path declaration for {}:{}", &advertiser, &key)))?;
-                                    paths.push(PathFilter{
-                                        value: filter.get("value").ok_or_else(|| ConfigError::Message(format!("Missing 'value' for path declaration for {}:{}", &advertiser, &key)))?.to_string(),
+                                    let pfilter = PathFilter{
+                                        value: filter.get("value").ok_or_else(|| ConfigError::Message(format!("Missing 'value' for path declaration for {}:{}", &advertiser, &key)))?.as_str().unwrap_or_default().to_owned(),
                                         matching: PathMatching::try_from(filter.get("matching").ok_or_else(|| ConfigError::Message(format!("Missing 'matching' for path declaration for {}:{}", &advertiser, &key)))?.as_str().ok_or_else(|| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?).map_err(|_| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?
-                                    })
+                                    };
+                                    if pfilter.value == "".to_owned() {
+                                        return Err(ConfigError::Message(format!("Invalid or unparsable 'value' declaration for {}:{}", &advertiser, &key)))
+                                    }
+                                    paths.push(pfilter);
                                 }
                                 if !paths.is_empty() {
                                     filter.paths = Some(paths);
@@ -385,7 +389,7 @@ impl AdmFilter {
                 countries.insert(key.clone(), filters);
             }
             advertisers.insert(
-                advertiser.clone(),
+                advertiser.to_lowercase(),
                 AdmAdvertiserFilterSettings { countries, delete },
             );
         }
@@ -557,8 +561,12 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         let advertiser_filters = if source_url.is_some() {
             HashMap::new()
         } else {
-            AdmFilter::advertisers_from_string(&settings.adm_settings)
+            if settings.adm_settings.is_empty() && settings.debug {
+                HashMap::new()
+            } else {
+                AdmFilter::advertisers_from_string(&settings.adm_settings)
                 .map_err(|e| HandlerError::internal(&format!("Configuration error: {:?}", e)))?
+            }
         };
         let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))

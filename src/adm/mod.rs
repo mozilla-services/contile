@@ -7,7 +7,7 @@
 //! offered matches expected values.
 
 mod filter;
-mod settings;
+pub mod settings;
 mod tiles;
 
 pub use filter::{spawn_updater, AdmFilter};

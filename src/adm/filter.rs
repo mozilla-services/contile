@@ -287,6 +287,7 @@ impl AdmFilter {
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &defaults.click_hosts)? {
             trace!("bad url: url={:?}", url);
+            dbg!("url", &url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
@@ -297,6 +298,7 @@ impl AdmFilter {
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
                 trace!("missing param: key={:?} url={:?}", &key, url);
+                dbg!("missing", &url, &key);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -309,6 +311,7 @@ impl AdmFilter {
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
                 trace!("invalid param key={:?} url={:?}", &key, url);
+                dbg!("param", &url, &key);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -391,6 +394,7 @@ impl AdmFilter {
             Some(filter) => {
                 // Apply any additional tile filtering here.
                 if filter.countries.get(&location.country()).is_none() {
+                    dbg!("no country");
                     trace!(
                         "Rejecting tile: region {:?} not included",
                         location.country()
@@ -407,6 +411,7 @@ impl AdmFilter {
                 if device_info.legacy_only()
                     && !self.legacy_list.contains(&tile.name.to_lowercase())
                 {
+                    dbg!("legacy");
                     trace!("Rejecting tile: Not a legacy advertiser {:?}", &tile.name);
                     metrics.incr_with_tags("filter.adm.err.non_legacy", Some(tags));
                     return Ok(None);
@@ -415,30 +420,35 @@ impl AdmFilter {
                 let adv_filter = filter.countries.get(&location.country()).unwrap();
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
+                    dbg!("bad_adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = self.check_click(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad click");
+                    dbg!("bad_click", &e);
                     metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = self.check_impression(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad imp");
+                    dbg!("bad_imp");
                     metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = self.check_image_hosts(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad image");
+                    dbg!("bad_img");
                     metrics.incr_with_tags("filter.adm.err.invalid_image_host", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = tile.image_url.parse::<Uri>() {
                     trace!("Rejecting tile: bad image: {:?}", e);
+                    dbg!("bad_img2");
                     metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
@@ -568,7 +578,7 @@ mod tests {
             advertiser_filters: advertiser_filters.clone(),
             defaults: AdmDefaults {
                 click_hosts: [crate::adm::settings::break_hosts("example.com".to_owned())].to_vec(),
-                image_hosts: [crate::adm::settings::break_hosts("example.org".to_owned())].to_vec(),
+                image_hosts: [crate::adm::settings::break_hosts("cdn.example.org".to_owned())].to_vec(),
                 impression_hosts: [crate::adm::settings::break_hosts("example.net".to_owned())]
                     .to_vec(),
                 ..Default::default()
@@ -576,7 +586,7 @@ mod tests {
             ..Default::default()
         };
         let settings = advertiser_filters
-            .get("Acme")
+            .get("acme")
             .unwrap()
             .countries
             .get("US")
