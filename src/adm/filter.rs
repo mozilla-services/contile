@@ -15,10 +15,10 @@ use url::Url;
 
 use super::{
     tiles::{AdmTile, Tile},
-    AdmAdvertiserFilterSettings, AdmFilterSettings, DEFAULT,
+    AdmAdvertiserFilterSettings,
 };
 use crate::{
-    adm::settings::PathMatching,
+    adm::settings::{AdmDefaults, AdvertiserUrlFilter, PathFilter, PathMatching},
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     tags::Tags,
@@ -45,22 +45,22 @@ lazy_static! {
 /// In addition there is a special `DEFAULT` value which is a filter
 /// that will be applied to all advertisers that do not supply their
 /// own values.
+
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     /// Filter settings by Advertiser name
-    pub filter_set: HashMap<String, AdmAdvertiserFilterSettings>,
+    pub advertiser_filters: HashMap<String, AdmAdvertiserFilterSettings>,
     /// Ignored (not included but also not reported to Sentry) Advertiser names
     pub ignore_list: HashSet<String>,
-    /// All countries set for inclusion in at least one of the advertiser regions
-    /// [crate::adm::AdmAdvertiserFilterSettings]
-    pub all_include_regions: HashSet<String>,
     /// Temporary list of advertisers with legacy images built into firefox
     /// for pre 91 tile support.
     pub legacy_list: HashSet<String>,
-    pub source: String,
+    pub source: Option<String>,
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
+    pub defaults: AdmDefaults,
+    pub excluded_countries_200: bool,
 }
 
 /// Parse &str into a `Url`
@@ -103,28 +103,42 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-pub async fn spawn_updater(
+// Clippy complains about the lock being held across the await for `requires_update` and `update`.
+// However these are fairly atomic, and do async calls on the shared filter. Not sure how to avoid
+// those.
+#[allow(clippy::await_holding_lock)]
+/// Background updater.
+///
+pub fn spawn_updater(
+    is_cloud: bool,
+    refresh_rate: Duration,
     filter: &Arc<RwLock<AdmFilter>>,
     storage_client: cloud_storage::Client,
 ) -> HandlerResult<()> {
-    if !filter.read().await.is_cloud() {
-        return Ok(());
+    {
+        if !(is_cloud) {
+            return Ok(());
+        }
     }
     let mfilter = filter.clone();
     rt::spawn(async move {
         let mut tags = crate::tags::Tags::default();
         loop {
-            let mut filter = mfilter.write().await;
-            match filter.requires_update(&storage_client).await {
-                Ok(true) => filter.update(&storage_client).await.unwrap_or_else(|e| {
-                    filter.report(&e, &mut tags);
-                }),
-                Ok(false) => {}
-                Err(e) => {
-                    filter.report(&e, &mut tags);
+            {
+                match mfilter.read().await.requires_update(&storage_client).await {
+                    Ok(true) => {
+                        let mut filter = mfilter.write().await;
+                        filter.update(&storage_client).await.unwrap_or_else(|e| {
+                            filter.report(&e, &mut tags);
+                        });
+                    }
+                    Ok(false) => {}
+                    Err(e) => {
+                        mfilter.read().await.report(&e, &mut tags);
+                    }
                 }
             }
-            rt::time::sleep(filter.refresh_rate).await;
+            rt::time::sleep(refresh_rate).await;
         }
     });
     Ok(())
@@ -181,28 +195,21 @@ impl AdmFilter {
     /// Try to update the ADM filter data from the remote bucket.
     pub async fn update(&mut self, storage_client: &cloud_storage::Client) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(storage_client, bucket)
-                .await
-                .map_err(|e| {
-                    HandlerError::internal(&format!(
-                        "Invalid bucket data in {:?}: {:?}",
-                        self.source, e
-                    ))
-                })?;
-            for (adv, setting) in adm_settings.advertisers {
+            let advertiser_filters =
+                AdmFilter::advertisers_from_settings_bucket(storage_client, bucket)
+                    .await
+                    .map_err(|e| {
+                        HandlerError::internal(&format!(
+                            "Invalid bucket data in {:?}: {:?}",
+                            self.source, e
+                        ))
+                    })?;
+            for (adv, setting) in advertiser_filters {
                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);
-                    self.filter_set.remove(&adv.to_lowercase());
+                    self.advertiser_filters.remove(&adv.to_lowercase());
                 };
-                trace!("Processing records for {:?}", &adv);
-                // DEFAULT included but sans special processing -- close enough
-                for country in &setting.include_regions {
-                    if !self.all_include_regions.contains(country) {
-                        self.all_include_regions.insert(country.clone());
-                    }
-                }
-                // map the settings to the URL we're going to be checking
-                self.filter_set.insert(adv.to_lowercase(), setting);
+                self.advertiser_filters.insert(adv.to_lowercase(), setting);
             }
             self.last_updated = Some(chrono::Utc::now());
         }
@@ -212,7 +219,7 @@ impl AdmFilter {
     /// Check the advertiser URL
     fn check_advertiser(
         &self,
-        filter: &AdmAdvertiserFilterSettings,
+        filters: &Vec<AdvertiserUrlFilter>,
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
@@ -234,12 +241,12 @@ impl AdmFilter {
             path.to_mut().push('/');
         }
 
-        for filter in &filter.advertiser_urls {
-            if !host.eq(&filter.host) {
-                continue;
-            }
-
-            if let Some(ref paths) = filter.paths {
+        for filter in filters {
+            if host == filter.host {
+                let paths = &filter
+                    .paths
+                    .clone()
+                    .unwrap_or_else(|| [PathFilter::default()].to_vec());
                 for rule in paths {
                     match rule.matching {
                         // Note that the orignal path is used for exact matching
@@ -248,12 +255,8 @@ impl AdmFilter {
                         _ => continue,
                     }
                 }
-            } else {
-                // Host matches without any path filters, matching succeeds.
-                return Ok(());
-            };
+            }
         }
-
         tags.add_tag("type", species);
         tags.add_extra("tile", &tile.name);
         tags.add_extra("url", url);
@@ -266,7 +269,7 @@ impl AdmFilter {
     /// the required and optional query parameter keys that can appear in the click_url
     fn check_click(
         &self,
-        filter: &AdmAdvertiserFilterSettings,
+        defaults: &AdmDefaults,
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
@@ -282,8 +285,9 @@ impl AdmFilter {
             .collect::<HashSet<String>>();
 
         // run the gauntlet of checks.
-        if !check_url(parsed, "Click", &filter.click_hosts)? {
+        if !check_url(parsed, "Click", &defaults.click_hosts)? {
             trace!("bad url: url={:?}", url);
+            dbg!("url", &url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
@@ -294,6 +298,7 @@ impl AdmFilter {
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
                 trace!("missing param: key={:?} url={:?}", &key, url);
+                dbg!("missing", &url, &key);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -306,6 +311,7 @@ impl AdmFilter {
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
                 trace!("invalid param key={:?} url={:?}", &key, url);
+                dbg!("param", &url, &key);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -323,7 +329,7 @@ impl AdmFilter {
     /// This extends `filter_and_process`
     fn check_impression(
         &self,
-        filter: &AdmAdvertiserFilterSettings,
+        defaults: &AdmDefaults,
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
@@ -345,7 +351,7 @@ impl AdmFilter {
             let host = get_host(&parsed, species)?;
             return Err(HandlerErrorKind::InvalidHost(species, host).into());
         }
-        check_url(parsed, species, &filter.impression_hosts)?;
+        check_url(parsed, species, &defaults.impression_hosts)?;
         Ok(())
     }
 
@@ -354,19 +360,19 @@ impl AdmFilter {
     /// This extends `filter_and_process`
     fn check_image_hosts(
         &self,
-        filter: &AdmAdvertiserFilterSettings,
+        defaults: &AdmDefaults,
         tile: &mut AdmTile,
         tags: &mut Tags,
     ) -> HandlerResult<()> {
         // if no hosts are defined, then accept all (this allows
         // for backward compatibility)
-        if filter.image_hosts.is_empty() {
+        if defaults.image_hosts.is_empty() {
             return Ok(());
         }
         let url = &tile.image_url;
         let species = "Image";
         let parsed = parse_url(url, species, &tile.name, tags)?;
-        check_url(parsed, species, &filter.image_hosts)?;
+        check_url(parsed, species, &defaults.image_hosts)?;
         Ok(())
     }
 
@@ -381,34 +387,25 @@ impl AdmFilter {
         device_info: &DeviceInfo,
         tags: &mut Tags,
         metrics: &Metrics,
-    ) -> Option<Tile> {
+    ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        match self.filter_set.get(&tile.name.to_lowercase()) {
+        dbg!(&tile.name.to_lowercase());
+        dbg!(&self.advertiser_filters.keys());
+        match self.advertiser_filters.get(&tile.name.to_lowercase()) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
-                let none = AdmAdvertiserFilterSettings::default();
-                let default = self
-                    .filter_set
-                    .get(&DEFAULT.to_lowercase())
-                    .unwrap_or(&none);
-                // if the filter doesn't have anything defined, try using what's in the default.
-                // Sadly, `vec.or()` doesn't exist, so do this a bit "long hand"
-                let include_regions = if filter.include_regions.is_empty() {
-                    default
-                } else {
-                    filter
-                };
-                if !include_regions
-                    .include_regions
-                    .contains(&location.country())
-                {
+                if filter.countries.get(&location.country()).is_none() {
+                    dbg!("no country");
                     trace!(
                         "Rejecting tile: region {:?} not included",
                         location.country()
                     );
                     metrics.incr_with_tags("filter.adm.err.invalid_location", Some(tags));
-                    return None;
+                    if self.excluded_countries_200 {
+                        return Err(HandlerErrorKind::NoTilesForCountry(location.country()).into());
+                    }
+                    return Ok(None);
                 }
                 // match to the version that we switched over from built in image management
                 // to CDN image fetch.
@@ -416,69 +413,53 @@ impl AdmFilter {
                 if device_info.legacy_only()
                     && !self.legacy_list.contains(&tile.name.to_lowercase())
                 {
+                    dbg!("legacy");
                     trace!("Rejecting tile: Not a legacy advertiser {:?}", &tile.name);
                     metrics.incr_with_tags("filter.adm.err.non_legacy", Some(tags));
-                    return None;
+                    return Ok(None);
                 }
 
-                let adv_filter = if filter.advertiser_urls.is_empty() {
-                    default
-                } else {
-                    filter
-                };
-                let impression_filter = if filter.impression_hosts.is_empty() {
-                    default
-                } else {
-                    filter
-                };
-                let click_filter = if filter.click_hosts.is_empty() {
-                    default
-                } else {
-                    filter
-                };
-                let img_filter = if filter.image_hosts.is_empty() {
-                    default
-                } else {
-                    filter
-                };
+                let adv_filter = filter.countries.get(&location.country()).unwrap();
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
+                    dbg!("bad_adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
                     self.report(&e, tags);
-                    return None;
+                    return Ok(None);
                 }
-                if let Err(e) = self.check_click(click_filter, &mut tile, tags) {
+                if let Err(e) = self.check_click(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad click");
+                    dbg!("bad_click", &e);
                     metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
                     self.report(&e, tags);
-                    return None;
+                    return Ok(None);
                 }
-                if let Err(e) = self.check_impression(impression_filter, &mut tile, tags) {
+                if let Err(e) = self.check_impression(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad imp");
+                    dbg!("bad_imp");
                     metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
                     self.report(&e, tags);
-                    return None;
+                    return Ok(None);
                 }
-                if let Err(e) = self.check_image_hosts(img_filter, &mut tile, tags) {
+                if let Err(e) = self.check_image_hosts(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad image");
+                    dbg!("bad_img");
                     metrics.incr_with_tags("filter.adm.err.invalid_image_host", Some(tags));
                     self.report(&e, tags);
-                    return None;
+                    return Ok(None);
                 }
                 if let Err(e) = tile.image_url.parse::<Uri>() {
                     trace!("Rejecting tile: bad image: {:?}", e);
+                    dbg!("bad_img2");
                     metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
                         tags,
                     );
-                    return None;
+                    return Ok(None);
                 }
 
-                // Use the default.position (Option<u8>) if the filter.position (Option<u8>) isn't
-                // defined. In either case `None` is a valid return, but we should favor `filter` over
-                // `default`.
-                Some(Tile::from_adm_tile(tile))
+                Ok(Some(Tile::from_adm_tile(tile)))
             }
             None => {
                 if !self.ignore_list.contains(&tile.name.to_lowercase()) {
@@ -488,7 +469,7 @@ impl AdmFilter {
                         tags,
                     );
                 }
-                None
+                Ok(None)
             }
         }
     }
@@ -496,8 +477,8 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
-    use crate::adm::tiles::AdmTile;
-    use crate::adm::AdmAdvertiserFilterSettings;
+    use crate::adm::AdmDefaults;
+    use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::tags::Tags;
 
     use super::{check_url, AdmFilter};
@@ -567,7 +548,8 @@ mod tests {
     #[test]
     fn check_advertiser() {
         let s = r#"{
-            "advertiser_urls": [
+            "Acme": {
+                "US": [
                 {
                     "host": "acme.biz",
                     "paths": [
@@ -587,11 +569,30 @@ mod tests {
                         { "value": "/usa", "matching": "exact" }
                     ]
                 }
-            ],
-            "position": 0
+                ]
+            }
         }"#;
-        let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
-        let filter = AdmFilter::default();
+        let advertiser_filters = AdmFilter::advertisers_from_string(s).unwrap();
+        let filter = AdmFilter {
+            advertiser_filters: advertiser_filters.clone(),
+            defaults: AdmDefaults {
+                click_hosts: [crate::adm::settings::break_hosts("example.com".to_owned())].to_vec(),
+                image_hosts: [crate::adm::settings::break_hosts(
+                    "cdn.example.org".to_owned(),
+                )]
+                .to_vec(),
+                impression_hosts: [crate::adm::settings::break_hosts("example.net".to_owned())]
+                    .to_vec(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let settings = advertiser_filters
+            .get("acme")
+            .unwrap()
+            .countries
+            .get("US")
+            .unwrap();
         let mut tags = Tags::default();
 
         let mut tile = AdmTile {
@@ -606,52 +607,51 @@ mod tests {
 
         // Good, contains the right lede and path
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags,)
+            .check_advertiser(settings, &mut tile, &mut tags,)
             .is_ok());
 
         // Good, missing lede
         tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
         // Good, missing last slash
         tile.advertiser_url = "https://acme.biz/ca".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
 
         // Bad, path isn't correct.
         tile.advertiser_url = "https://acme.biz/calzone".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_err());
         //Bad, wrong path
         tile.advertiser_url = "https://acme.biz/fr/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_err());
 
         //Good, extra element in host
         tile.advertiser_url = "https://black_friday.acme.biz/ca/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
 
         //Good, extra matching
         tile.advertiser_url = "https://acme.biz/usa".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_ok());
 
         // Bad, path doesn't match exactly
         tile.advertiser_url = "https://acme.biz/usa/".to_owned();
         assert!(filter
-            .check_advertiser(&settings, &mut tile, &mut tags)
+            .check_advertiser(settings, &mut tile, &mut tags)
             .is_err());
 
         // "Traditional host. "
-        let s = r#"{
-            "advertiser_urls": [
+        let s = r#"[
                 {
                     "host": "acme.biz",
                     "paths": [
@@ -671,10 +671,8 @@ mod tests {
                         { "value": "/", "matching": "exact" }
                     ]
                 }
-            ],
-            "position": 0
-        }"#;
-        let mut settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
+            ]"#;
+        let settings: Vec<AdvertiserUrlFilter> = serde_json::from_str(s).unwrap();
         // Good, matches hosts
         tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
@@ -724,19 +722,23 @@ mod tests {
             .split('.')
             .map(String::from)
             .collect();
-        settings.image_hosts = vec![host_bits];
+
+        let defaults = AdmDefaults {
+            image_hosts: vec![host_bits],
+            ..Default::default()
+        };
         tile.image_url = "https://example.biz".to_owned();
         assert!(filter
-            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .check_image_hosts(&defaults, &mut tile, &mut tags)
             .is_err());
         tile.image_url = "https://example.org".to_owned();
         assert!(filter
-            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .check_image_hosts(&defaults, &mut tile, &mut tags)
             .is_ok());
         // check that sub-hosts are not rejected.
         tile.image_url = "https://cdn.example.org".to_owned();
         assert!(filter
-            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .check_image_hosts(&defaults, &mut tile, &mut tags)
             .is_ok());
     }
 }

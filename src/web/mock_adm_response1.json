@@ -14,7 +14,7 @@
             "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
             "image_url": "https://cdn.example.com/703.jpg",
             "advertiser_url": "https://www.dunderm.biz/?tag=bar&ref=baz",
-            "impression_url": "https://example.com/static?id=DEADB33F"
+            "impression_url": "https://example.net/static?id=DEADB33F"
         },
         {
             "id": 805,

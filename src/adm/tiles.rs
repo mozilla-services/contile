@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::{
-    adm::{AdmPse, DEFAULT},
+    adm::AdmPse,
     error::{HandlerError, HandlerErrorKind, HandlerResult},
     metrics::Metrics,
     server::ServerState,
@@ -183,7 +183,7 @@ pub async fn get_tiles(
     metrics.incr_with_tags("tiles.adm.request", Some(tags));
     let response: AdmTileResponse = match state.settings.test_mode {
         crate::settings::TestModes::TestFakeResponse => {
-            let default = HeaderValue::from_str(DEFAULT).unwrap();
+            let default = HeaderValue::from_str("DEFAULT").unwrap();
             let test_response = headers
                 .unwrap_or(&HeaderMap::new())
                 .get("fake-response")
@@ -192,9 +192,11 @@ pub async fn get_tiles(
                 .unwrap()
                 .to_owned();
             trace!("Getting fake response: {:?}", &test_response);
+            dbg!(" Fake response {:?}", &test_response);
             AdmTileResponse::fake_response(&state.settings, test_response)?
         }
         crate::settings::TestModes::TestTimeout => {
+            dbg!("### Timeout!");
             trace!("### Timeout!");
             return Err(HandlerErrorKind::AdmLoadError().into());
         }
@@ -219,8 +221,10 @@ pub async fn get_tiles(
                             .unwrap_or_else(|| Duration::from_secs(0))
                             <= Duration::from_secs(state.settings.adm_timeout)
                     {
+                        dbg!(" --- Timeout");
                         HandlerErrorKind::AdmLoadError().into()
                     } else {
+                        dbg!(" --- Server", &e);
                         HandlerErrorKind::AdmServerError().into()
                     };
                     // ADM servers are down, or improperly configured
@@ -233,6 +237,7 @@ pub async fn get_tiles(
                 .await
                 .map_err(|e| {
                     // ADM servers are not returning correct information
+                    dbg!("--- invalid");
                     let err: HandlerError = HandlerErrorKind::BadAdmResponse(format!(
                         "ADM provided invalid response: {:?}",
                         e
@@ -248,17 +253,22 @@ pub async fn get_tiles(
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
-    let filtered: Vec<Tile> = {
-        let filter = state.filter.read().await;
-        response
-            .tiles
-            .into_iter()
-            .filter_map(|tile| {
-                filter.filter_and_process(tile, location, &device_info, tags, metrics)
-            })
-            .take(settings.adm_max_tiles as usize)
-            .collect()
-    };
+    let mut filtered: Vec<Tile> = Vec::new();
+    let iter = response.tiles.into_iter();
+    for tile in iter {
+        if let Some(tile) = state.partner_filter.read().await.filter_and_process(
+            tile,
+            location,
+            &device_info,
+            tags,
+            metrics,
+        )? {
+            filtered.push(tile);
+        }
+        if filtered.len() == settings.adm_max_tiles as usize {
+            break;
+        }
+    }
 
     let mut tiles: Vec<Tile> = Vec::new();
     for mut tile in filtered {

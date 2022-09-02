@@ -1,6 +1,6 @@
 {
     "Example COM": {
-        "advertiser_urls": [
+        "US": [
             {
                 "host": "www.example.com"
             },
@@ -38,7 +38,7 @@
         "position": 1
     },
     "Example ORG": {
-        "advertiser_urls": [
+        "CA": [
             {
                 "host": "www.example.org"
             }
@@ -53,7 +53,7 @@
         "position": 1
     },
     "DunBroch": {
-        "advertiser_urls": [
+        "GB": [
             {
                 "host": "www.dunbroch.co.uk",
                 "paths": [
@@ -78,27 +78,5 @@
             "GB"
         ],
         "position": 2
-    },
-    "DEFAULT": {
-        "advertiser_urls": [],
-        "click_hosts": [
-            "example.com"
-        ],
-        "impression_hosts": [
-            "example.com"
-        ],
-        "include_regions": [
-            "US",
-            "GB",
-            "IT",
-            "AU",
-            "CA",
-            "DE",
-            "FR",
-            "ES",
-            "IN",
-            "MX",
-            "CN"
-        ]
     }
 }
