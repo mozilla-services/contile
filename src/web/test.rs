@@ -606,7 +606,6 @@ async fn empty_tiles_excluded_country() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
-    dbg!(&result);
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert_eq!(tiles.len(), 0);
 
@@ -616,7 +615,6 @@ async fn empty_tiles_excluded_country() {
         .insert_header((header::USER_AGENT, UA_91))
         .to_request();
     let resp = test::call_service(&app, req).await;
-    dbg!(&resp);
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");

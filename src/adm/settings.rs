@@ -2,8 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
     fmt::Debug,
-    fs::File,
-    io::Read,
+    fs::read_to_string,
     path::Path,
 };
 
@@ -387,6 +386,7 @@ impl AdmFilter {
                             }
                         }
                     }
+
                     filters.push(filter);
                 }
                 countries.insert(key.clone(), filters);
@@ -540,29 +540,24 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         };
         let excluded_countries_200 = settings.excluded_countries_200;
 
-        let mut settings_str = "".to_string();
-        if Path::new(&settings.adm_settings).exists() {
-            if let Ok(mut f) = File::open(&settings.adm_settings) {
-                settings_str = f
-                    .read_to_string(&mut settings.adm_settings)
-                    .map_err(|e| {
-                        HandlerError::internal(&format!(
-                            "Could not read {}: {:?}",
-                            settings.adm_settings, e
-                        ))
-                    })?
-                    .to_string();
-            }
-        }
+        let settings_str = if Path::new(&settings.adm_settings).exists() {
+            read_to_string(&settings.adm_settings)
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Could not read {}: {:?}",
+                        settings.adm_settings, e
+                    ))
+                })
+                .unwrap_or_else(|_| settings.adm_settings.clone())
+        } else {
+            settings.adm_settings.clone()
+        };
 
         let advertiser_filters =
             if source_url.is_some() || (settings.adm_settings.is_empty() && settings.debug) {
                 HashMap::new()
-            } else if !settings_str.is_empty() {
-                AdmFilter::advertisers_from_string(&settings_str)
-                    .map_err(|e| HandlerError::internal(&format!("Configuration error: {:?}", e)))?
             } else {
-                AdmFilter::advertisers_from_string(&settings.adm_settings)
+                AdmFilter::advertisers_from_string(&settings_str)
                     .map_err(|e| HandlerError::internal(&format!("Configuration error: {:?}", e)))?
             };
         let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {

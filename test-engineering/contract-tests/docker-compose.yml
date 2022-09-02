@@ -30,6 +30,19 @@ services:
       CONTILE_ADM_MOBILE_ENDPOINT_URL: http://partner:5000/tilesp/mobile
       CONTILE_ADM_QUERY_TILE_COUNT: 5
       CONTILE_ADM_SETTINGS: /tmp/contile/adm_settings.json
+      CONTILE_ADM_DEFAULTS: '{
+        "advertiser_urls": [],
+        "click_hosts": [
+            "example.com",
+            "example.org",
+            "dunbroch.co.uk"
+        ],
+        "impression_hosts": [
+            "example.com",
+            "example.org",
+            "dunbroch.co.uk"
+        ]
+    }'
       CONTILE_ADM_SUB1: sub1_test
       CONTILE_ADM_PARTNER_ID: partner_id_test
       CONTILE_ADM_HAS_LEGACY_IMAGE: '["Example ORG","Example COM"]'

@@ -192,11 +192,9 @@ pub async fn get_tiles(
                 .unwrap()
                 .to_owned();
             trace!("Getting fake response: {:?}", &test_response);
-            dbg!(" Fake response {:?}", &test_response);
             AdmTileResponse::fake_response(&state.settings, test_response)?
         }
         crate::settings::TestModes::TestTimeout => {
-            dbg!("### Timeout!");
             trace!("### Timeout!");
             return Err(HandlerErrorKind::AdmLoadError().into());
         }
@@ -221,10 +219,8 @@ pub async fn get_tiles(
                             .unwrap_or_else(|| Duration::from_secs(0))
                             <= Duration::from_secs(state.settings.adm_timeout)
                     {
-                        dbg!(" --- Timeout");
                         HandlerErrorKind::AdmLoadError().into()
                     } else {
-                        dbg!(" --- Server", &e);
                         HandlerErrorKind::AdmServerError().into()
                     };
                     // ADM servers are down, or improperly configured
@@ -237,7 +233,7 @@ pub async fn get_tiles(
                 .await
                 .map_err(|e| {
                     // ADM servers are not returning correct information
-                    dbg!("--- invalid");
+
                     let err: HandlerError = HandlerErrorKind::BadAdmResponse(format!(
                         "ADM provided invalid response: {:?}",
                         e

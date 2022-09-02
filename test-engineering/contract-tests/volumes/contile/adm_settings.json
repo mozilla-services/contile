@@ -1,82 +1,186 @@
 {
-    "Example COM": {
-        "US": [
-            {
-                "host": "www.example.com"
-            },
-            {
-                "host": "www.example.co.uk"
-            },
-            {
-                "host": "www.example.it"
-            },
-            {
-                "host": "www.example.com.au"
-            },
-            {
-                "host": "www.example.ca"
-            },
-            {
-                "host": "www.example.de"
-            },
-            {
-                "host": "www.example.fr"
-            },
-            {
-                "host": "www.example.es"
-            },
-            {
-                "host": "www.example.in"
-            },
-            {
-                "host": "www.example.com.mx"
-            }
-        ],
-        "click_hosts": [],
-        "impression_hosts": [],
-        "include_regions": [],
-        "position": 1
-    },
-    "Example ORG": {
-        "CA": [
-            {
-                "host": "www.example.org"
-            }
-        ],
-        "click_hosts": [
-            "example.org"
-        ],
-        "impression_hosts": [
-            "example.org"
-        ],
-        "include_regions": [],
-        "position": 1
-    },
-    "DunBroch": {
-        "GB": [
-            {
-                "host": "www.dunbroch.co.uk",
-                "paths": [
-                    {
-                        "value": "/gb_desktop_macos/",
-                        "matching": "prefix"
-                    },
-                    {
-                        "value": "/gb_desktop_linux",
-                        "matching": "exact"
-                    }
-                ]
-            }
-        ],
-        "click_hosts": [
-            "dunbroch.co.uk"
-        ],
-        "impression_hosts": [
-            "dunbroch.co.uk"
-        ],
-        "include_regions": [
-            "GB"
-        ],
-        "position": 2
-    }
+  "Example COM": {
+    "US": [
+      {
+        "host": "www.example.com",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
+    ],
+    "CN": [
+      {
+        "host": "www.example.com",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
+    ],
+    "GB": [
+      {
+        "host": "www.example.co.uk",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      },
+      {
+        "host": "www.example.com",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
+    ],
+    "IT": [
+      {
+        "host": "www.example.it",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "AU": [
+      {
+        "host": "www.example.com.au",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "CA": [
+      {
+        "host": "www.example.ca",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "DE": [
+      {
+        "host": "www.example.de",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "FR": [
+      {
+        "host": "www.example.fr",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "ES": [
+      {
+        "host": "www.example.es",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "IN": [
+      {
+        "host": "www.example.in",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "MX": [
+      {
+        "host": "www.example.com.mx",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ]
+  },
+  "Example ORG": {
+    "US": [
+      {
+        "host": "www.example.org",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
+    ],
+    "GB": [
+      {
+        "host": "www.example.org",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
+    ],
+    "CN": [
+      {
+        "host": "www.example.org",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
+    ]
+  },
+  "DunBroch": {
+    "GB": [
+      {
+        "host": "www.dunbroch.co.uk",
+        "paths": [
+          {
+            "value": "/gb_desktop_macos/",
+            "matching": "prefix"
+          },
+          {
+            "value": "/gb_desktop_linux",
+            "matching": "exact"
+          }
+        ]
+      }
+    ]
+  }
 }
