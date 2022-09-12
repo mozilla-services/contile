@@ -1,24 +1,24 @@
 # contile-contract-tests
 
-This directory contains the automated contract test suite for the Mozilla Tile 
-Service (MTS). Passing contract tests are a prerequisite for moving to the next 
-phase in the rollout plan. The contract test framework was originally developed 
+This directory contains the automated contract test suite for the Mozilla Tile
+Service (MTS). Passing contract tests are a prerequisite for moving to the next
+phase in the rollout plan. The contract test framework was originally developed
 in isolation, see [contile-integration-tests][contract-test-repo].
 
 ## Overview
 
 The contract test suite is designed to be set up as a `docker-compose` CI
-workflow. The following sections as well as the sequence diagram below describe 
+workflow. The following sections as well as the sequence diagram below describe
 the individual components of the suite.
 
-**Test Scenario: success_tiles_cached_for_identical_proxy_params** 
+**Test Scenario: success_tiles_cached_for_identical_proxy_params**
 ![Sequence diagram of the integration tests][sequence_diagram]
 
 To run the contract tests locally, execute the following from the repository root:
 
 ```text
-docker compose \ 
--f test-engineering\contract-tests\docker-compose.yml \ 
+docker compose \
+-f test-engineering\contract-tests\docker-compose.yml \
 up --abort-on-container-exit --build
 ```
 
