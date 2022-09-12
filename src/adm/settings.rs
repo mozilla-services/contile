@@ -368,13 +368,20 @@ impl AdmFilter {
                                 let mut paths: Vec<PathFilter> = Vec::new();
                                 for path_filter in value.as_array().ok_or_else(|| ConfigError::Message(format!("missing list of path filters for path declaration for {}:{}", &advertiser, &key)))? {
                                     let filter = path_filter.as_object().ok_or_else(|| ConfigError::Message(format!("Invalid path filter for path declaration for {}:{}", &advertiser, &key)))?;
-                                    let pfilter = PathFilter{
+                                    let pfilter = PathFilter {
                                         value: filter.get("value").ok_or_else(|| ConfigError::Message(format!("Missing 'value' for path declaration for {}:{}", &advertiser, &key)))?.as_str().unwrap_or_default().to_owned(),
-                                        matching: PathMatching::try_from(filter.get("matching").ok_or_else(|| ConfigError::Message(format!("Missing 'matching' for path declaration for {}:{}", &advertiser, &key)))?.as_str().ok_or_else(|| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?).map_err(|_| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?
+                                        matching: PathMatching::try_from(filter.get("matching").ok_or_else(|| ConfigError::Message(format!("Missing 'matching' for path declaration for {}:{}", &advertiser, &key)))?.as_str().ok_or_else(|| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?).map_err(|_| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?,
                                     };
                                     if pfilter.value == *"" {
-                                        return Err(ConfigError::Message(format!("Invalid or unparsable 'value' declaration for {}:{}", &advertiser, &key)))
+                                        return Err(ConfigError::Message(format!("Invalid or unparsable 'value' declaration for {}:{}", &advertiser, &key)));
                                     }
+                                    if let PathMatching::Prefix = pfilter.matching {
+                                        if !pfilter.value.ends_with('/'){
+                                            return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", &filter)));
+                                        }
+
+                                    }
+
                                     paths.push(pfilter);
                                 }
                                 if !paths.is_empty() {
@@ -617,7 +624,7 @@ mod tests {
                     "host": "foo.com",
                     "paths": [
                         {
-                            "value": "/bar",
+                            "value": "/bar/",
                             "matching": "prefix"
                         },
                         {
@@ -639,6 +646,28 @@ mod tests {
         let result = AdmFilter::advertisers_from_string(adm_settings);
         debug!("result: {:?}", &result);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    pub fn test_invalid_prefix_path_filters() {
+        let adm_settings = r#"{"test-adv": {
+            "US": [
+                {
+                    "host": "foo.com",
+                    "paths": [
+                        {
+                            "value": "/bar",
+                            "matching": "prefix"
+                        },
+                        {
+                            "value": "/gorp/",
+                            "matching": "exact"
+                        }
+                    ]
+                }
+            ]
+        }}"#;
+        assert!(AdmFilter::advertisers_from_string(adm_settings).is_err());
     }
 
     #[test]

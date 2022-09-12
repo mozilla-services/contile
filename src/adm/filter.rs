@@ -250,11 +250,7 @@ impl AdmFilter {
                     match rule.matching {
                         // Note that the original path is used for exact matching
                         PathMatching::Exact if rule.value == parsed.path() => return Ok(()),
-                        PathMatching::Prefix
-                            if path.starts_with(&rule.value) && path.ends_with('/') =>
-                        {
-                            return Ok(())
-                        }
+                        PathMatching::Prefix if path.starts_with(&rule.value) => return Ok(()),
 
                         _ => continue,
                     }
@@ -281,7 +277,6 @@ impl AdmFilter {
         let species = "Click";
         // Check the required fields are present for the `click_url` pg 15 of
         // 5.7.21 spec
-
 
         let parsed = parse_url(url, species, &tile.name, tags)?;
         let host = get_host(&parsed, species)?;
