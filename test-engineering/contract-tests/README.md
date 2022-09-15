@@ -14,14 +14,6 @@ the individual components of the suite.
 **Test Scenario: success_tiles_cached_for_identical_proxy_params**
 ![Sequence diagram of the integration tests][sequence_diagram]
 
-To run the contract tests locally, execute the following from the repository root:
-
-```text
-docker compose \
--f test-engineering\contract-tests\docker-compose.yml \
-up --abort-on-container-exit --build
-```
-
 ### partner
 
 The `partner` directory contains a Python-based web service. The HTTP API of
@@ -59,6 +51,56 @@ response that the API returns keyed by form-factor and then os-family
 MTS Docker container such as a partner settings file
 - the `volumes/client` directory contains a YML file which defines every test
 scenario that the contract test suite will run
+
+## Local Execution and Debugging
+
+To run the contract tests locally, execute the following from the repository root:
+
+**Build Contile Docker Image**
+```text
+docker build -t app:build .
+```
+
+**Build Contract Test Docker Images & Execute Tests**
+```text
+docker compose \
+    -f test-engineering\contract-tests\docker-compose.yml \
+    up --abort-on-container-exit --build
+```
+
+### Executing and Debugging Individual Components
+
+The contract testing system is optimized to run within a set of related docker images.
+
+However, it may be necessary to run the tests outside of docker in order to debug 
+functions or manually verify expected results.
+
+#### Partner
+See the `Local Execution and Debugging` section of the partner [README][partner_readme] 
+
+#### Contile
+
+To run the contile service, and it's dependant partner service locally, execute the 
+following from the contract-tests root:
+
+```text
+docker-compose run -p 8000:8000 contile
+```
+
+Contile runs, by default, on `http://localhost:8000/`.
+
+##### Fetching Tiles
+
+Contile will attempt to look up your IP address if you access it using Firefox. 
+The easiest way to get a test response back would be to craft a curl request. 
+For example (presuming that Contile is running on `http://localhost:8000/v1/tiles`):
+
+```sh
+curl -v \
+    -H "UserAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'" \
+    -H "X-Forwarded-For: '89.160.20.115'" \
+    "http://localhost:8000/v1/tiles"
+```
 
 [client_readme]: ./client/README.md
 [contract-test-repo]: https://github.com/mozilla-services/contile-integration-tests
