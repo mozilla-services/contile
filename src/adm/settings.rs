@@ -120,13 +120,9 @@ impl Default for PathFilter {
 /// ADM provided partners.
 ///
 /// These are specified as a JSON formatted hash
-/// that contains the components. A special "DEFAULT" setting provides
-/// information that may be used as a DEFAULT, or commonly appearing set
-/// of data. Any Optional value that is not defined will use the value
-/// defined in DEFAULT.
+/// that contains the components.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    // TODO: handle country and path parsing.
     pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>,
     #[serde(default)]
     pub(crate) delete: bool,
@@ -324,14 +320,11 @@ impl AdmFilter {
                 ConfigError::Message(format!("Invalid advertiser info {}", &advertiser))
             })? {
                 // Delete allows us to delete this advertiser. It may appear at the same
-                // level as the country listsings.
+                // level as the country listings.
                 if key.to_lowercase() == "delete" {
                     delete = value.as_bool().unwrap_or_default();
                     continue;
                 }
-                // if it's not a `delete`, than it's part of the
-                // list of per country advertiser filters.
-                //*
                 if key.len() > 2 {
                     warn!("Invalid country detected: {}", key);
                     continue;
@@ -449,11 +442,11 @@ impl AdmFilter {
             .download(&bucket_name, path)
             .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
-        let reply =
-            AdmFilter::advertisers_from_string(&String::from_utf8(contents).map_err(|e| {
+        AdmFilter::advertisers_from_string(
+            &String::from_utf8(contents).map_err(|e| {
                 ConfigError::Message(format!("Could not read ADM Settings: {:?}", e))
-            })?)?;
-        Ok(reply)
+            })?,
+        )
     }
 }
 
@@ -521,8 +514,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .clone()
             .unwrap_or_else(|| "[]".to_owned())
             .to_lowercase();
-        // No longer needed since each advertiser has it's own set of countries.
-        // let mut all_include_regions = HashSet::new();
+
         let source = settings.adm_settings.clone();
 
         let source_url = if source.starts_with("gs://") {
@@ -591,10 +583,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
 mod tests {
     use std::env;
 
-    //use serde_json::json;
-
     use super::*;
-    //use crate::web::test::adm_settings;
 
     #[test]
     pub fn test_lower_ignore() {

@@ -42,9 +42,6 @@ lazy_static! {
 /// Each "filter"  is a set of [crate::adm::AdmAdvertiserFilterSettings] that are
 /// specific to a given Advertiser name (the names are matched against
 /// the tiles fetch request)
-/// In addition there is a special `DEFAULT` value which is a filter
-/// that will be applied to all advertisers that do not supply their
-/// own values.
 
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {

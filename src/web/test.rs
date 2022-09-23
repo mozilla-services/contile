@@ -120,12 +120,11 @@ impl MockAdm {
     /// Return the passed in query params
     async fn params(&mut self) -> HashMap<String, String> {
         let query_string = self.request_rx.next().await.expect("No request_rx result");
-        let bits = Url::parse(&format!("{}?{}", self.endpoint_url, query_string))
+        Url::parse(&format!("{}?{}", self.endpoint_url, query_string))
             .expect("Couldn't parse request_rx result")
             .query_pairs()
             .into_owned()
-            .collect();
-        bits
+            .collect()
     }
 }
 
@@ -723,7 +722,7 @@ async fn metrics() {
         spy.try_iter()
             .filter_map(|m| {
                 let m = String::from_utf8(m).unwrap();
-                prefixes.iter().any(|name| m.starts_with(name)).then(|| m)
+                prefixes.iter().any(|name| m.starts_with(name)).then_some(m)
             })
             .collect()
     };
