@@ -76,18 +76,18 @@ commands:
     steps:
       - restore_cache:
           name: Restore sccache cache
-          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
+          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}
   save-sccache-cache:
     steps:
       - save_cache:
           name: Save sccache cache
-          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}-{{ epoch }}
+          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
           paths:
             - "~/.cache/sccache"
 jobs:
   checks:
     docker:
-      - image: cimg/rust:1.61.0
+      - image: cimg/rust:1.62
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -100,7 +100,7 @@ jobs:
 
   test:
     docker:
-      - image: circleci/rust:latest
+      - image: cimg/rust:1.62
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -116,7 +116,7 @@ jobs:
 
   build:
     docker:
-      - image: circleci/rust:latest
+      - image: cimg/rust:1.62
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -149,7 +149,7 @@ jobs:
             mkdir -p /home/circleci/cache
             docker save -o /home/circleci/cache/docker.tar "app:build"
       - save_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}-{{ epoch }}
+          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}-{{ epoch }}
           paths:
             - /home/circleci/cache
 
@@ -162,7 +162,7 @@ jobs:
     steps:
       - setup_remote_docker
       - restore_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
+          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
           name: Restore Docker image cache
           command: docker load -i /home/circleci/cache/docker.tar
@@ -190,7 +190,31 @@ jobs:
             else
               echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
             fi
-  contile-integration-tests:
+
+  contract-test-checks:
+    docker:
+      - image: python:3.8
+    working_directory: "~/contile/test-engineering/contract-tests"
+    steps:
+      - checkout:
+          path: ~/contile/
+      - run:
+          name: Setup tox
+          command: |
+            python -m pip install --upgrade pip
+            python -m pip install tox
+      - run:
+          name: Run tox checks for client
+          working_directory: client
+          command: |
+            tox
+      - run:
+          name: Run tox checks for partner
+          working_directory: partner
+          command: |
+            tox
+
+  contract-tests:
     machine:
       docker_layer_caching: true
       image: ubuntu-2004:202101-01 # Ubuntu 20.04, Docker v20.10.2, Docker Compose v1.28.2
@@ -198,7 +222,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_TAG }}
+          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
          name: Restore Docker image cache
          command: docker load -i /home/circleci/cache/docker.tar
@@ -207,28 +231,39 @@ jobs:
          command: |
            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
-         name: Run integration tests
+         name: Build client and partner images
          command: |
            docker-compose --version
            docker-compose \
-            -f integration-tests/docker-compose.yml \
-            up --abort-on-container-exit --force-recreate
+            -f test-engineering/contract-tests/docker-compose.yml \
+            build client partner
       - run:
-         name: 'Run "204" integration tests'
+         name: Run contract tests
          command: |
-           docker-compose --version
            docker-compose \
-            -f integration-tests/docker-compose.yml \
-            -f integration-tests/docker-compose.204.yml \
+            -f test-engineering/contract-tests/docker-compose.yml \
             up --abort-on-container-exit --force-recreate
       - run:
-         name: 'Run "init_error" integration tests'
+          name: Run "tiles cache" contract tests
+          command: |
+           docker-compose \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
+            up --abort-on-container-exit --force-recreate
+      - run:
+         name: Run "204" contract tests
          command: |
-           docker-compose --version
+           docker-compose \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.204.yml \
+            up --abort-on-container-exit --force-recreate
+      - run:
+         name: Run "init_error" contract tests
+         command: |
            set +e # We need this so that the run doesn't exit after docker-compose
            docker-compose \
-            -f integration-tests/docker-compose.yml \
-            -f integration-tests/docker-compose.init_error.yml \
+            -f test-engineering/contract-tests/docker-compose.yml \
+            -f test-engineering/contract-tests/docker-compose.init_error.yml \
             up --abort-on-container-exit --exit-code contile --force-recreate
            contile_exit_code=$?
            if [ "${contile_exit_code}" -eq 0 ]; then
@@ -257,15 +292,16 @@ workflows:
               only: /.*/
           requires:
             - build
-      - contile-integration-tests:
-          name: contile-integration-tests
+      - contract-test-checks
+      - contract-tests:
           requires:
           - build
+          - contract-test-checks
       - deploy:
           requires:
             - build
             - test
-            - contile-integration-tests
+            - contract-tests
           filters:
             tags:
               only: /.*/

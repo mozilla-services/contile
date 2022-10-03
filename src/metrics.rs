@@ -1,9 +1,8 @@
 //! Metric collection and reporting via the `cadence` library.
 
-use std::net::UdpSocket;
-use std::time::Instant;
+use std::{net::UdpSocket, sync::Arc, time::Instant};
 
-use actix_web::{error::ErrorInternalServerError, web::Data, Error, HttpRequest};
+use actix_web::{error::ErrorInternalServerError, web::Data, Error, HttpMessage, HttpRequest};
 use cadence::{
     BufferedUdpMetricSink, Counted, CountedExt, Metric, NopMetricSink, QueuingMetricSink,
     StatsdClient, Timed,
@@ -25,7 +24,7 @@ pub struct MetricTimer {
 /// The metric wrapper
 #[derive(Debug, Clone)]
 pub struct Metrics {
-    client: Option<StatsdClient>,
+    client: Option<Arc<StatsdClient>>,
     tags: Option<Tags>,
     timer: Option<MetricTimer>,
 }
@@ -68,7 +67,7 @@ impl From<&HttpRequest> for Metrics {
         let tags = exts.get::<Tags>().unwrap_or(&def_tags);
         Metrics {
             client: match req.app_data::<Data<ServerState>>() {
-                Some(v) => Some(*v.metrics.clone()),
+                Some(v) => Some(Arc::clone(&v.metrics)),
                 None => {
                     warn!("⚠️ metric error: No App State");
                     None
@@ -80,10 +79,10 @@ impl From<&HttpRequest> for Metrics {
     }
 }
 
-impl From<&StatsdClient> for Metrics {
-    fn from(client: &StatsdClient) -> Self {
+impl From<Arc<StatsdClient>> for Metrics {
+    fn from(client: Arc<StatsdClient>) -> Self {
         Metrics {
-            client: Some(client.clone()),
+            client: Some(client),
             tags: None,
             timer: None,
         }
@@ -93,7 +92,7 @@ impl From<&StatsdClient> for Metrics {
 impl From<&ServerState> for Metrics {
     fn from(state: &ServerState) -> Self {
         Metrics {
-            client: Some(*state.metrics.clone()),
+            client: Some(Arc::clone(&state.metrics)),
             tags: None,
             timer: None,
         }
@@ -108,7 +107,7 @@ impl Metrics {
 
     pub fn noop() -> Self {
         Self {
-            client: Some(Self::sink()),
+            client: Some(Arc::new(Self::sink())),
             timer: None,
             tags: None,
         }
@@ -199,13 +198,13 @@ impl Metrics {
 }
 
 /// Fetch the metric information from the current [HttpRequest]
-pub fn metrics_from_req(req: &HttpRequest) -> Result<Box<StatsdClient>, Error> {
-    Ok(req
-        .app_data::<Data<ServerState>>()
-        .ok_or_else(|| ErrorInternalServerError("Could not get state"))
-        .expect("Could not get state in metrics_from_req")
-        .metrics
-        .clone())
+pub fn metrics_from_req(req: &HttpRequest) -> Result<Arc<StatsdClient>, Error> {
+    Ok(Arc::clone(
+        &req.app_data::<Data<ServerState>>()
+            .ok_or_else(|| ErrorInternalServerError("Could not get state"))
+            .expect("Could not get state in metrics_from_req")
+            .metrics,
+    ))
 }
 
 /// Create a cadence StatsdClient from the given options

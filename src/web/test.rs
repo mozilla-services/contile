@@ -1,16 +1,21 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 use actix_cors::Cors;
 use actix_web::{
-    http::header, http::StatusCode, middleware::errhandlers::ErrorHandlers, test, web, App,
-    HttpRequest, HttpResponse, HttpServer,
+    http::header,
+    http::StatusCode,
+    middleware::ErrorHandlers,
+    rt, test,
+    web::{self, Data},
+    App, HttpRequest, HttpResponse, HttpServer,
 };
 use cadence::{SpyMetricSink, StatsdClient};
 use futures::{channel::mpsc, StreamExt};
 use serde_json::{json, Value};
+use tokio::sync::RwLock;
 use url::Url;
 
 use crate::{
@@ -28,7 +33,7 @@ const UA_91: &str =
 const UA_90: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/90.0";
 const UA_IPHONE: &str =
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_8_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/40.2 Mobile/15E148 Safari/605.1.15";
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 14_8_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/91.0 Mobile/15E148 Safari/605.1.15";
 const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
 const TEST_ADDR: &str = "216.160.83.56";
 
@@ -55,14 +60,14 @@ macro_rules! init_app_with_spy {
         async {
             crate::logging::init_logging(false).unwrap();
             let (spy, sink) = SpyMetricSink::new();
-            let metrics = &StatsdClient::builder("contile", sink).build();
+            let metrics = Arc::new(StatsdClient::builder("contile", sink).build());
             let excluded_dmas = if let Some(exclude_dmas) = &$settings.exclude_dma {
                 serde_json::from_str(exclude_dmas).expect("Invalid exclude_dma field")
             } else {
                 None
             };
             let state = ServerState {
-                metrics: Box::new(metrics.clone()),
+                metrics: Arc::clone(&metrics),
                 reqwest_client: reqwest::Client::builder()
                     .connect_timeout(Duration::from_secs(3))
                     .build()
@@ -76,7 +81,7 @@ macro_rules! init_app_with_spy {
                 excluded_dmas,
                 start_up: std::time::Instant::now(),
             };
-            let location_config = location_config_from_settings(&$settings, &metrics);
+            let location_config = location_config_from_settings(&$settings, metrics);
 
             let service = test::init_service(build_app!(state, location_config)).await;
             (service, spy)
@@ -113,33 +118,38 @@ impl MockAdm {
 
 /// Bind a mock of the AdM Tiles API to a random port on localhost
 fn init_mock_adm(response: String) -> MockAdm {
+    async fn adm_tiles(
+        req: HttpRequest,
+        resp: web::Data<String>,
+        tx: web::Data<futures::channel::mpsc::UnboundedSender<String>>,
+    ) -> HttpResponse {
+        trace!(
+            "mock_adm: path: {:#?} query_string: {:#?} {:#?} {:#?}",
+            req.path(),
+            req.query_string(),
+            req.connection_info(),
+            req.headers()
+        );
+        // TODO: pass more data for validation
+        tx.unbounded_send(req.query_string().to_owned())
+            .expect("Failed to send");
+        HttpResponse::Ok()
+            .content_type("application/json")
+            .body(resp.get_ref().to_owned())
+    }
+
     let (tx, request_rx) = mpsc::unbounded::<String>();
     let server = HttpServer::new(move || {
-        let tx = tx.clone();
-        App::new().data(response.clone()).route(
-            "/",
-            web::get().to(move |req: HttpRequest, resp: web::Data<String>| {
-                trace!(
-                    "mock_adm: path: {:#?} query_string: {:#?} {:#?} {:#?}",
-                    req.path(),
-                    req.query_string(),
-                    req.connection_info(),
-                    req.headers()
-                );
-                // TODO: pass more data for validation
-                tx.unbounded_send(req.query_string().to_owned())
-                    .expect("Failed to send");
-                HttpResponse::Ok()
-                    .content_type("application/json")
-                    .body(resp.get_ref())
-            }),
-        )
+        App::new()
+            .app_data(Data::new(response.clone()))
+            .app_data(Data::new(tx.clone()))
+            .route("/", web::get().to(adm_tiles))
     });
     let server = server
         .bind(("127.0.0.1", 0))
         .expect("Couldn't bind mock_adm");
     let addr = server.addrs().pop().expect("No mock_adm addr");
-    server.run();
+    rt::spawn(server.run());
     MockAdm {
         endpoint_url: format!("http://{}:{}/?partner=foo&sub1=bar", addr.ip(), addr.port()),
         request_rx,
@@ -184,7 +194,7 @@ pub fn adm_settings() -> AdmFilterSettings {
 ///
 /// This is a baseline test ensuring that we can read data returned from the ADM server.
 /// Since we may not want to hit the ADM server directly, we use a mock response.
-#[actix_rt::test]
+#[actix_web::test]
 async fn basic() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
@@ -192,13 +202,13 @@ async fn basic() {
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let content_type = resp.headers().get(header::CONTENT_TYPE);
@@ -221,7 +231,7 @@ async fn basic() {
     }
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn basic_old_ua() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let valid = ["acme", "los pollos hermanos"];
@@ -231,13 +241,13 @@ async fn basic_old_ua() {
         adm_has_legacy_image: Some(json!(valid).to_string()),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_90)
+        .insert_header((header::USER_AGENT, UA_90))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let content_type = resp.headers().get(header::CONTENT_TYPE);
@@ -265,7 +275,7 @@ async fn basic_old_ua() {
     }
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn basic_bad_reply() {
     let missing_ci = r#"{
         "tiles": [
@@ -292,13 +302,13 @@ async fn basic_bad_reply() {
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let content_type = resp.headers().get(header::CONTENT_TYPE);
@@ -317,7 +327,7 @@ async fn basic_bad_reply() {
     assert_eq!("Dunder Mifflin", &tiles[0]["name"]);
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn basic_all_bad_reply() {
     let missing_ci = r#"{
         "tiles": [
@@ -344,17 +354,17 @@ async fn basic_all_bad_reply() {
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn basic_filtered() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
@@ -377,13 +387,13 @@ async fn basic_filtered() {
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let content_type = resp.headers().get(header::CONTENT_TYPE);
@@ -407,7 +417,7 @@ async fn basic_filtered() {
     assert_eq!(tile2["name"], "Los Pollos Hermanos");
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn basic_default() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
@@ -419,13 +429,13 @@ async fn basic_default() {
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let content_type = resp.headers().get(header::CONTENT_TYPE);
@@ -447,7 +457,7 @@ async fn basic_default() {
         .any(|tile| tile["name"].as_str().unwrap() == "Los Pollos Hermanos"));
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn fallback_country() {
     let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
@@ -455,13 +465,13 @@ async fn fallback_country() {
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let params = adm.params().await;
@@ -469,7 +479,7 @@ async fn fallback_country() {
     assert_eq!(params.get("region-code"), Some(&"".to_owned()));
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn maxmind_lookup() {
     let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
@@ -477,14 +487,14 @@ async fn maxmind_lookup() {
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
-        .header("X-Forwarded-For", TEST_ADDR)
+        .insert_header((header::USER_AGENT, UA_91))
+        .insert_header(("X-Forwarded-For", TEST_ADDR))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let params = adm.params().await;
@@ -492,7 +502,7 @@ async fn maxmind_lookup() {
     assert_eq!(params.get("region-code"), Some(&"WA".to_owned()));
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn location_test_header() {
     let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
@@ -501,15 +511,15 @@ async fn location_test_header() {
         location_test_header: Some("x-test-location".to_owned()),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
-        .header("X-Forwarded-For", TEST_ADDR)
-        .header("X-Test-Location", "US, CA")
+        .insert_header((header::USER_AGENT, UA_91))
+        .insert_header(("X-Forwarded-For", TEST_ADDR))
+        .insert_header(("X-Test-Location", "US, CA"))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let params = adm.params().await;
@@ -518,7 +528,7 @@ async fn location_test_header() {
     assert_eq!(params.get("dma-code"), Some(&"".to_owned()));
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn empty_tiles() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     // test empty responses of an included country (US)
@@ -532,44 +542,44 @@ async fn empty_tiles() {
         }
     });
     let mut settings = Settings {
-        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: adm_settings_json.to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 
     // Ensure same result from cache
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn empty_tiles_excluded_country() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     // no adm_settings filters everything out, the client's country (US) is
     // considered "excluded"
     let mut settings = Settings {
-        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_endpoint_url: adm.endpoint_url,
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
@@ -578,44 +588,44 @@ async fn empty_tiles_excluded_country() {
     // Ensure same result from cache
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert_eq!(tiles.len(), 0);
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn empty_tiles_excluded_country_204() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     // no adm_settings filters everything out, the client's country (US) is
     // considered "excluded"
     let mut settings = Settings {
-        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_endpoint_url: adm.endpoint_url,
         excluded_countries_200: false,
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 
     // Ensure same result from cache
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
-#[actix_rt::test]
+#[actix_web::test]
 async fn include_regions() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
@@ -627,17 +637,17 @@ async fn include_regions() {
         .expect("No Dunder Mifflin tile")
         .include_regions = vec!["MX".to_owned()];
     let mut settings = Settings {
-        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings).to_string(),
         ..get_test_settings()
     };
-    let mut app = init_app!(settings).await;
+    let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     // "Dunder Mifflin" should be filtered out
@@ -647,16 +657,16 @@ async fn include_regions() {
     assert_eq!(&tiles[0]["name"], "Acme");
 }
 
-#[actix_rt::test]
-async fn test_loc() {
-    let mut app = init_app!().await;
+#[actix_web::test]
+async fn loc_test() {
+    let app = init_app!().await;
 
     let req = test::TestRequest::get()
         .uri("/__loc_test__")
-        .header("X-FORWARDED-FOR", TEST_ADDR)
+        .insert_header(("X-FORWARDED-FOR", TEST_ADDR))
         .to_request();
 
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let result: Value = test::read_body_json(resp).await;
@@ -664,21 +674,21 @@ async fn test_loc() {
     assert_eq!(result["region"], "WA");
 }
 
-#[actix_rt::test]
-async fn test_metrics() {
+#[actix_web::test]
+async fn metrics() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
         adm_settings: json!(adm_settings()).to_string(),
         ..get_test_settings()
     };
-    let (mut app, spy) = init_app_with_spy!(settings).await;
+    let (app, spy) = init_app_with_spy!(settings).await;
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_91)
+        .insert_header((header::USER_AGENT, UA_91))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     // Find all metric lines with matching prefixes
@@ -701,9 +711,9 @@ async fn test_metrics() {
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
-        .header(header::USER_AGENT, UA_IPHONE)
+        .insert_header((header::USER_AGENT, UA_IPHONE))
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let metrics = find_metrics(prefixes);
@@ -712,4 +722,56 @@ async fn test_metrics() {
     assert!(get_metric.contains("ua.form_factor:phone"));
     assert!(get_metric.contains("ua.os.family:ios"));
     assert!(&metrics[1].contains("endpoint:mobile"));
+}
+
+#[actix_web::test]
+async fn not_found() {
+    let app = init_app!().await;
+
+    let req = test::TestRequest::get().uri("/non-existent").to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+    let result: Value = test::read_body_json(resp).await;
+    assert_eq!(result["code"], 404);
+    assert_eq!(result["errno"], 404);
+}
+
+#[actix_web::test]
+async fn zero_ttl() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: json!(adm_settings()).to_string(),
+        tiles_ttl: 0,
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[actix_web::test]
+async fn zero_jitter() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: json!(adm_settings()).to_string(),
+        tiles_ttl: 1,
+        jitter: 0,
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
 }

@@ -1,0 +1,13 @@
+**/*.py[cod]
+**/__pycache__
+**/.pytest_cache
+*.egg
+*.egg-info
+*.log
+.cache
+.git
+.tox
+.vscode
+build
+dist
+pip-log.txt

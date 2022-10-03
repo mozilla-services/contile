@@ -29,6 +29,11 @@ pub fn add_jitter(settings: &Settings) -> u32 {
     let mut rng = thread_rng();
     let ftl = settings.tiles_ttl as f32;
     let offset = ftl * (std::cmp::min(settings.jitter, 50) as f32 * 0.01);
+    if offset == 0.0 {
+        // Don't panic gen_range with an empty range (a tiles_ttl or jitter of
+        // 0 was specified)
+        return 0;
+    }
     let jit = rng.gen_range(0.0 - offset..offset);
     (ftl + jit) as u32
 }
@@ -51,7 +56,7 @@ pub async fn get_tiles(
     if !state
         .filter
         .read()
-        .unwrap()
+        .await
         .all_include_regions
         .contains(&location.country())
     {
@@ -62,7 +67,7 @@ pub async fn get_tiles(
         let response = if settings.excluded_countries_200 {
             HttpResponse::Ok()
                 .content_type("application/json")
-                .body(&*EMPTY_TILES)
+                .body(EMPTY_TILES.as_str())
         } else {
             HttpResponse::NoContent().finish()
         };
@@ -82,7 +87,7 @@ pub async fn get_tiles(
         legacy_only: device_info.legacy_only(),
     };
 
-    let mut tags = Tags::default();
+    let mut tags = Tags::from_head(request.head(), settings);
     {
         tags.add_extra("audience_key", &format!("{:#?}", audience_key));
         // Add/modify the existing request tags.
@@ -90,6 +95,7 @@ pub async fn get_tiles(
     }
 
     let mut expired = false;
+
     if settings.test_mode != crate::settings::TestModes::TestFakeResponse {
         // First make a cheap read from the cache
         if let Some(tiles_state) = state.tiles_cache.get(&audience_key) {
@@ -168,19 +174,24 @@ pub async fn get_tiles(
             // Add some kind of stats to Retrieving or RetrievingFirst?
             // do we need a kill switch if we're restricting like this already?
             match e.kind() {
-                HandlerErrorKind::BadAdmResponse(es) => {
+                // Handle a bad response from ADM specially.
+                // Report it to metrics and sentry, but also store an empty record
+                // into the cache so that we don't stampede the ADM servers.
+                HandlerErrorKind::BadAdmResponse(_es) => {
                     warn!("Bad response from ADM: {:?}", e);
+                    // Merge in the error tags, which should already include the
+                    // error string as `error`
+                    tags.extend(e.tags.clone());
+                    tags.add_tag("level", "warning");
                     metrics.incr_with_tags("tiles.invalid", Some(&tags));
+                    // write an empty tile set into the cache for this result.
                     handle.insert(TilesState::Fresh {
                         tiles: Tiles::empty(add_jitter(&state.settings)),
                     });
-                    // Report directly to sentry
-                    // (This is starting to become a pattern. 🤔)
-                    let mut tags = Tags::from_head(request.head(), settings);
-                    tags.add_extra("err", es);
-                    tags.add_tag("level", "warning");
+                    // Report the error directly to sentry
                     l_sentry::report(sentry::event_from_error(&e), &tags);
                     warn!("ADM Server error: {:?}", e);
+                    // Return a 204 to the client.
                     Ok(HttpResponse::NoContent().finish())
                 }
                 _ => Err(e),
@@ -193,7 +204,7 @@ fn content_response(content: &cache::TilesContent) -> HttpResponse {
     match content {
         cache::TilesContent::Json(json) => HttpResponse::Ok()
             .content_type("application/json")
-            .body(json),
+            .body(json.to_owned()),
         cache::TilesContent::Empty => HttpResponse::NoContent().finish(),
     }
 }

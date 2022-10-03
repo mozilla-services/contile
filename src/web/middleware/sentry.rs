@@ -2,12 +2,7 @@
 //!
 //! This sends [crate::error::HandlerError] events to Sentry
 
-use std::{
-    cell::RefCell,
-    error::Error as StdError,
-    rc::Rc,
-    task::{Context, Poll},
-};
+use std::{error::Error as StdError, rc::Rc};
 
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
@@ -34,13 +29,12 @@ impl Default for SentryWrapper {
     }
 }
 
-impl<S, B> Transform<S> for SentryWrapper
+impl<S, B> Transform<S, ServiceRequest> for SentryWrapper
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
@@ -49,14 +43,14 @@ where
 
     fn new_transform(&self, service: S) -> Self::Future {
         Box::pin(future::ok(SentryWrapperMiddleware {
-            service: Rc::new(RefCell::new(service)),
+            service: Rc::new(service),
         }))
     }
 }
 
 #[derive(Debug)]
 pub struct SentryWrapperMiddleware<S> {
-    service: Rc<RefCell<S>>,
+    service: Rc<S>,
 }
 
 /// Report an error with [crate::tags::Tags] and [Event] directly to sentry
@@ -70,22 +64,19 @@ pub fn report(mut event: Event<'static>, tags: &Tags) {
     sentry::capture_event(event);
 }
 
-impl<S, B> Service for SentryWrapperMiddleware<S>
+impl<S, B> Service<ServiceRequest> for SentryWrapperMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.service.poll_ready(cx)
-    }
+    actix_web::dev::forward_ready!(service);
 
-    fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
+    fn call(&self, sreq: ServiceRequest) -> Self::Future {
         let settings: &Settings = (&sreq).into();
         let metrics = sreq
             .app_data::<Data<ServerState>>()

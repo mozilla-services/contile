@@ -1,7 +1,8 @@
 version: "3"
 services:
   partner:
-    image: mozilla/contile-integration-tests-partner:22.1.0
+    image: partner
+    build: partner
     container_name: partner
     environment:
       PORT: 5000
@@ -38,12 +39,13 @@ services:
       CONTILE_HOST: 0.0.0.0
       CONTILE_HUMAN_LOGS: 1
       CONTILE_PORT: 8000
+      CONTILE_TILES_TTL: 0 # cached tiles will always be expired
       RUST_LOG: main,contile=INFO
     expose:
       - "8000"
     volumes:
       - ./volumes/contile:/tmp/contile
-      - ../mmdb:/tmp/mmdb
+      - ../../mmdb:/tmp/mmdb
     ## Override the entrypoint to report the IP address, then try
     ## running Contile this can be useful to debug internal
     ## networking issues as well as externally connect to contile.
@@ -52,15 +54,18 @@ services:
     #entrypoint: >
     #  /bin/sh -c "hostname -I && bin/contile"
   client:
-    image: mozilla/contile-integration-tests-client:22.1.0
+    image: client
+    build: client
     container_name: client
     depends_on:
       - partner
       - contile
     links:
+      - partner
       - contile
     environment:
       CONTILE_URL: http://contile:8000
+      PARTNER_URL: http://partner:5000
       SCENARIOS_FILE: /tmp/client/scenarios.yml
     volumes:
       - ./volumes/client:/tmp/client

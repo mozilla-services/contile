@@ -3,13 +3,14 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::Debug,
     iter::FromIterator,
-    sync::{Arc, RwLock},
+    sync::Arc,
     time::Duration,
 };
 
-use actix_http::http::Uri;
+use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
 use lazy_static::lazy_static;
+use tokio::sync::RwLock;
 use url::Url;
 
 use super::{
@@ -60,8 +61,6 @@ pub struct AdmFilter {
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
-    pub connect_timeout: Duration,
-    pub request_timeout: Duration,
 }
 
 /// Parse &str into a `Url`
@@ -104,27 +103,31 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-pub fn spawn_updater(filter: &Arc<RwLock<AdmFilter>>, req: reqwest::Client) {
-    if !filter.read().unwrap().is_cloud() {
-        return;
+pub async fn spawn_updater(
+    filter: &Arc<RwLock<AdmFilter>>,
+    storage_client: cloud_storage::Client,
+) -> HandlerResult<()> {
+    if !filter.read().await.is_cloud() {
+        return Ok(());
     }
     let mfilter = filter.clone();
-    actix_rt::spawn(async move {
-        let tags = crate::tags::Tags::default();
+    rt::spawn(async move {
+        let mut tags = crate::tags::Tags::default();
         loop {
-            let mut filter = mfilter.write().unwrap();
-            match filter.requires_update(&req).await {
-                Ok(true) => filter.update().await.unwrap_or_else(|e| {
-                    filter.report(&e, &tags);
+            let mut filter = mfilter.write().await;
+            match filter.requires_update(&storage_client).await {
+                Ok(true) => filter.update(&storage_client).await.unwrap_or_else(|e| {
+                    filter.report(&e, &mut tags);
                 }),
                 Ok(false) => {}
                 Err(e) => {
-                    filter.report(&e, &tags);
+                    filter.report(&e, &mut tags);
                 }
             }
-            actix_rt::time::delay_for(filter.refresh_rate).await;
+            rt::time::sleep(filter.refresh_rate).await;
         }
     });
+    Ok(())
 }
 
 /// Filter a given tile data set provided by ADM and validate the various elements
@@ -138,7 +141,7 @@ impl AdmFilter {
     }
 
     /// Report the error directly to sentry
-    fn report(&self, error: &HandlerError, tags: &Tags) {
+    fn report(&self, error: &HandlerError, tags: &mut Tags) {
         // trace!(&error, &tags);
         // TODO: if not error.is_reportable, just add to metrics.
         let mut merged_tags = error.tags.clone();
@@ -147,7 +150,10 @@ impl AdmFilter {
     }
 
     /// check to see if the bucket has been modified since the last time we updated.
-    pub async fn requires_update(&self, req: &reqwest::Client) -> HandlerResult<bool> {
+    pub async fn requires_update(
+        &self,
+        storage_client: &cloud_storage::Client,
+    ) -> HandlerResult<bool> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
             return Ok(false);
@@ -159,9 +165,10 @@ impl AdmFilter {
                     HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
                 })?
                 .to_string();
-            let obj =
-                cloud_storage::Object::read_with(&host, bucket.path().trim_start_matches('/'), req)
-                    .await?;
+            let obj = storage_client
+                .object()
+                .read(&host, bucket.path().trim_start_matches('/'))
+                .await?;
             if let Some(updated) = self.last_updated {
                 // if the bucket is older than when we last checked, do nothing.
                 return Ok(updated <= obj.updated);
@@ -172,20 +179,16 @@ impl AdmFilter {
     }
 
     /// Try to update the ADM filter data from the remote bucket.
-    pub async fn update(&mut self) -> HandlerResult<()> {
+    pub async fn update(&mut self, storage_client: &cloud_storage::Client) -> HandlerResult<()> {
         if let Some(bucket) = &self.source_url {
-            let adm_settings = AdmFilterSettings::from_settings_bucket(
-                bucket,
-                self.connect_timeout,
-                self.request_timeout,
-            )
-            .await
-            .map_err(|e| {
-                HandlerError::internal(&format!(
-                    "Invalid bucket data in {:?}: {:?}",
-                    self.source, e
-                ))
-            })?;
+            let adm_settings = AdmFilterSettings::from_settings_bucket(storage_client, bucket)
+                .await
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Invalid bucket data in {:?}: {:?}",
+                        self.source, e
+                    ))
+                })?;
             for (adv, setting) in adm_settings.advertisers {
                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);
@@ -280,7 +283,7 @@ impl AdmFilter {
 
         // run the gauntlet of checks.
         if !check_url(parsed, "Click", &filter.click_hosts)? {
-            trace!("bad url: url={:?}", url.to_string());
+            trace!("bad url: url={:?}", url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
@@ -290,7 +293,7 @@ impl AdmFilter {
         }
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
-                trace!("missing param: key={:?} url={:?}", &key, url.to_string());
+                trace!("missing param: key={:?} url={:?}", &key, url);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -302,7 +305,7 @@ impl AdmFilter {
         }
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
-                trace!("invalid param key={:?} url={:?}", &key, url.to_string());
+                trace!("invalid param key={:?} url={:?}", &key, url);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -333,7 +336,7 @@ impl AdmFilter {
             .collect::<Vec<String>>();
         query_keys.sort();
         if query_keys != vec!["id"] {
-            trace!("missing param key=id url={:?}", url.to_string());
+            trace!("missing param key=id url={:?}", url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
@@ -343,6 +346,27 @@ impl AdmFilter {
             return Err(HandlerErrorKind::InvalidHost(species, host).into());
         }
         check_url(parsed, species, &filter.impression_hosts)?;
+        Ok(())
+    }
+
+    /// Check the image URL to see if it's valid.
+    ///
+    /// This extends `filter_and_process`
+    fn check_image_hosts(
+        &self,
+        filter: &AdmAdvertiserFilterSettings,
+        tile: &mut AdmTile,
+        tags: &mut Tags,
+    ) -> HandlerResult<()> {
+        // if no hosts are defined, then accept all (this allows
+        // for backward compatibility)
+        if filter.image_hosts.is_empty() {
+            return Ok(());
+        }
+        let url = &tile.image_url;
+        let species = "Image";
+        let parsed = parse_url(url, species, &tile.name, tags)?;
+        check_url(parsed, species, &filter.image_hosts)?;
         Ok(())
     }
 
@@ -387,7 +411,7 @@ impl AdmFilter {
                     return None;
                 }
                 // match to the version that we switched over from built in image management
-                // to CDN image fetch. Note: iOS does not use the standard firefox version number
+                // to CDN image fetch.
 
                 if device_info.legacy_only()
                     && !self.legacy_list.contains(&tile.name.to_lowercase())
@@ -412,6 +436,11 @@ impl AdmFilter {
                 } else {
                     filter
                 };
+                let img_filter = if filter.image_hosts.is_empty() {
+                    default
+                } else {
+                    filter
+                };
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
@@ -430,9 +459,14 @@ impl AdmFilter {
                     self.report(&e, tags);
                     return None;
                 }
-
+                if let Err(e) = self.check_image_hosts(img_filter, &mut tile, tags) {
+                    trace!("Rejecting tile: bad image");
+                    metrics.incr_with_tags("filter.adm.err.invalid_image_host", Some(tags));
+                    self.report(&e, tags);
+                    return None;
+                }
                 if let Err(e) = tile.image_url.parse::<Uri>() {
-                    trace!("Rejecting tile: bad img: {:?}", e);
+                    trace!("Rejecting tile: bad image: {:?}", e);
                     metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
@@ -565,7 +599,7 @@ mod tests {
             name: "test".to_owned(),
             advertiser_url: "https://acme.biz/ca/foobar".to_owned(),
             click_url: "https://example.com/foo".to_owned(),
-            image_url: "".to_owned(),
+            image_url: "https://example.org/i/cat.jpg".to_owned(),
             impression_url: "https://example.net".to_owned(),
             position: None,
         };
@@ -640,7 +674,7 @@ mod tests {
             ],
             "position": 0
         }"#;
-        let settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
+        let mut settings: AdmAdvertiserFilterSettings = serde_json::from_str(s).unwrap();
         // Good, matches hosts
         tile.advertiser_url = "https://acme.biz/ca/".to_owned();
         assert!(filter
@@ -682,6 +716,27 @@ mod tests {
         tile.advertiser_url = "https://acme.biz/".to_owned();
         assert!(filter
             .check_advertiser(&settings, &mut tile, &mut tags)
+            .is_ok());
+
+        // replicate settings breaking hosts into component bits.
+        let host_bits: Vec<String> = "example.org"
+            .to_owned()
+            .split('.')
+            .map(String::from)
+            .collect();
+        settings.image_hosts = vec![host_bits];
+        tile.image_url = "https://example.biz".to_owned();
+        assert!(filter
+            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .is_err());
+        tile.image_url = "https://example.org".to_owned();
+        assert!(filter
+            .check_image_hosts(&settings, &mut tile, &mut tags)
+            .is_ok());
+        // check that sub-hosts are not rejected.
+        tile.image_url = "https://cdn.example.org".to_owned();
+        assert!(filter
+            .check_image_hosts(&settings, &mut tile, &mut tags)
             .is_ok());
     }
 }

@@ -1,10 +1,15 @@
 //! Main application server
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 use actix_cors::Cors;
 use actix_web::{
-    dev, http::StatusCode, middleware::errhandlers::ErrorHandlers, web, App, HttpServer,
+    dev,
+    http::StatusCode,
+    middleware::ErrorHandlers,
+    web::{self, Data},
+    App, HttpServer,
 };
 use cadence::StatsdClient;
 
@@ -32,7 +37,7 @@ const REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARG
 /// HTTP API calls.
 pub struct ServerState {
     /// Metric reporting
-    pub metrics: Box<StatsdClient>,
+    pub metrics: Arc<StatsdClient>,
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
@@ -77,8 +82,8 @@ pub struct Server;
 macro_rules! build_app {
     ($state: expr, $location_config: expr) => {
         App::new()
-            .data($state)
-            .data($location_config.clone())
+            .app_data(Data::new($state))
+            .app_data(Data::new($location_config.clone()))
             // Middleware is applied LIFO
             // These will wrap all outbound responses with matching status codes.
             .wrap(ErrorHandlers::new().handler(StatusCode::NOT_FOUND, HandlerError::render_404))
@@ -95,28 +100,31 @@ macro_rules! build_app {
             // image cache tester...
             //.service(web::resource("/v1/test").route(web::get().to(handlers::get_image)))
             // And finally the behavior necessary to satisfy Dockerflow
-            .service(web::scope("/").configure(dockerflow::service))
+            .service(web::scope("").configure(dockerflow::service))
     };
 }
 
 impl Server {
     /// initialize a new instance of the server from [Settings]
     pub async fn with_settings(mut settings: Settings) -> Result<dev::Server, HandlerError> {
-        let metrics = metrics_from_opts(&settings)?;
-        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
-        // try to update from the bucket if possible.
-        if raw_filter.is_cloud() {
-            raw_filter.update().await?
-        }
-        let filter = Arc::new(RwLock::new(raw_filter));
+        let metrics = Arc::new(metrics_from_opts(&settings)?);
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
             .timeout(Duration::from_secs(settings.request_timeout))
             .user_agent(REQWEST_USER_AGENT)
             .build()?;
-        spawn_updater(&filter, req.clone());
+        let storage_client = cloud_storage::Client::builder()
+            .client(req.clone())
+            .build()?;
+        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        // try to update from the bucket if possible.
+        if raw_filter.is_cloud() {
+            raw_filter.update(&storage_client).await?
+        }
+        let filter = Arc::new(RwLock::new(raw_filter));
+        spawn_updater(&filter, storage_client).await?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
-        let img_store = ImageStore::create(&settings, &metrics, &req).await?;
+        let img_store = ImageStore::create(&settings, Arc::clone(&metrics), &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
             serde_json::from_str(exclude_dmas).map_err(|e| {
                 HandlerError::internal(&format!("Invalid exclude_dma field: {:?}", e))
@@ -125,7 +133,7 @@ impl Server {
             None
         };
         let state = ServerState {
-            metrics: Box::new(metrics.clone()),
+            metrics: Arc::clone(&metrics),
             reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             settings: settings.clone(),
@@ -134,13 +142,13 @@ impl Server {
             excluded_dmas,
             start_up: Instant::now(),
         };
-        let location_config = location_config_from_settings(&settings, &metrics);
+        let location_config = location_config_from_settings(&settings, Arc::clone(&metrics));
 
-        tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), metrics.clone());
+        tiles_cache.spawn_periodic_reporter(Duration::from_secs(60), Arc::clone(&metrics));
 
         let mut server = HttpServer::new(move || build_app!(state.clone(), location_config));
         if let Some(keep_alive) = settings.actix_keep_alive {
-            server = server.keep_alive(keep_alive as usize);
+            server = server.keep_alive(Duration::from_secs(keep_alive));
         }
         let server = server
             .bind((settings.host, settings.port))

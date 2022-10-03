@@ -1,11 +1,10 @@
 //! Fetch and store a given remote image into Google Storage for CDN caching
 use std::{env, io::Cursor, sync::Arc};
 
-use actix_http::http::HeaderValue;
-use actix_web::{http::uri, web::Bytes};
+use actix_web::http::{header::HeaderValue, uri};
+use bytes::Bytes;
 use cadence::{CountedExt, StatsdClient};
 use chrono::{DateTime, Duration, Utc};
-use cloud_storage::Bucket;
 use dashmap::DashMap;
 use image::{io::Reader as ImageReader, ImageFormat};
 use lazy_static::lazy_static;
@@ -117,7 +116,8 @@ pub struct ImageStore {
     settings: StorageSettings,
     // `Settings::tiles_ttl`
     tiles_ttl: u32,
-    cadence_metrics: StatsdClient,
+    cadence_metrics: Arc<StatsdClient>,
+    storage_client: Arc<cloud_storage::Client>,
     req: reqwest::Client,
     /// `StoredImage`s already fetched/uploaded
     stored_images: Arc<DashMap<uri::Uri, StoredImage>>,
@@ -139,7 +139,7 @@ impl StoredImage {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Default, Serialize, PartialEq)]
+#[derive(Copy, Clone, Debug, Deserialize, Default, Serialize, PartialEq, Eq)]
 pub struct ImageMetrics {
     pub width: u32,
     pub height: u32,
@@ -151,7 +151,7 @@ impl ImageStore {
     /// Connect and optionally create a new Google Storage bucket based off [Settings]
     pub async fn create(
         settings: &Settings,
-        cadence_metrics: &StatsdClient,
+        cadence_metrics: Arc<StatsdClient>,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
         let sset = StorageSettings::from(settings);
@@ -161,7 +161,7 @@ impl ImageStore {
     pub async fn check_bucket(
         settings: &StorageSettings,
         tiles_ttl: u32,
-        cadence_metrics: &StatsdClient,
+        cadence_metrics: Arc<StatsdClient>,
         client: &reqwest::Client,
     ) -> HandlerResult<Option<Self>> {
         if env::var("SERVICE_ACCOUNT").is_err()
@@ -190,7 +190,14 @@ impl ImageStore {
         // to public view.
         //
 
-        let _content = Bucket::read_with(&settings.bucket_name, client)
+        let storage_client = Arc::new(
+            cloud_storage::Client::builder()
+                .client(client.clone())
+                .build()?,
+        );
+        let _content = storage_client
+            .bucket()
+            .read(&settings.bucket_name)
             .await
             .map_err(|e| HandlerError::internal(&format!("Could not read bucket {:?}", e)))?;
 
@@ -200,7 +207,8 @@ impl ImageStore {
             // bucket: Some(bucket),
             settings: settings.clone(),
             tiles_ttl,
-            cadence_metrics: cadence_metrics.clone(),
+            cadence_metrics: Arc::clone(&cadence_metrics),
+            storage_client,
             req: client.clone(),
             stored_images: Default::default(),
         }))
@@ -233,7 +241,7 @@ impl ImageStore {
 
     /// Store an image fetched from the passed `uri` into Google Cloud Storage
     ///
-    /// This will fetch and store the img into the bucket if necessary (fetch
+    /// This will fetch and store the image into the bucket if necessary (fetch
     /// results are cached for a short time).
     pub async fn store(&self, uri: &uri::Uri) -> HandlerResult<StoredImage> {
         if let Some(stored_image) = self.stored_images.get(uri) {
@@ -372,9 +380,11 @@ impl ImageStore {
 
         // check to see if image has already been stored.
         self.cadence_metrics.incr("image.object.check").ok();
-        if let Ok(exists) =
-            cloud_storage::Object::read_with(&self.settings.bucket_name, &image_path, &self.req)
-                .await
+        if let Ok(exists) = self
+            .storage_client
+            .object()
+            .read(&self.settings.bucket_name, &image_path)
+            .await
         {
             trace!("Found existing image in bucket: {:?}", &exists.media_link);
             return Ok(self.new_image(
@@ -386,21 +396,23 @@ impl ImageStore {
 
         // store new data to the googles
         self.cadence_metrics.incr("image.object.create").ok();
-        match cloud_storage::Object::create_with_params(
-            &self.settings.bucket_name,
-            image.to_vec(),
-            &image_path,
-            content_type,
-            Some(&[("ifGenerationMatch", "0")]),
-            Some(self.req.clone()),
-        )
-        .await
+        match self
+            .storage_client
+            .object()
+            .create_with_params(
+                &self.settings.bucket_name,
+                image.to_vec(),
+                &image_path,
+                content_type,
+                Some(&[("ifGenerationMatch", "0")]),
+            )
+            .await
         {
             Ok(mut object) => {
                 object.content_disposition = Some("inline".to_owned());
                 object.cache_control = Some(format!("public, max-age={}", self.settings.cache_ttl));
                 self.cadence_metrics.incr("image.object.update").ok();
-                object.update().await?;
+                self.storage_client.object().update(&object).await?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
                 trace!("Stored to {:?}: {:?}", &object.self_link, &url);
                 Ok(self.new_image(url.parse()?, image_metrics, object.time_created))
@@ -464,7 +476,7 @@ mod tests {
     use super::*;
 
     use crate::settings::test_settings;
-    use actix_http::http::Uri;
+    use actix_web::http::Uri;
     use cadence::{NopMetricSink, SpyMetricSink};
     use rand::Rng;
 
@@ -495,14 +507,21 @@ mod tests {
     fn test_store() -> ImageStore {
         let settings = test_storage_settings();
         let timeout = std::time::Duration::from_secs(settings.request_timeout);
+        let req = reqwest::Client::builder()
+            .connect_timeout(timeout)
+            .build()
+            .unwrap();
         ImageStore {
             settings,
             tiles_ttl: 15 * 60,
-            cadence_metrics: StatsdClient::builder("", NopMetricSink).build(),
-            req: reqwest::Client::builder()
-                .connect_timeout(timeout)
-                .build()
-                .unwrap(),
+            cadence_metrics: Arc::new(StatsdClient::builder("", NopMetricSink).build()),
+            storage_client: Arc::new(
+                cloud_storage::Client::builder()
+                    .client(req.clone())
+                    .build()
+                    .unwrap(),
+            ),
+            req,
             stored_images: Default::default(),
         }
     }
@@ -556,7 +575,7 @@ mod tests {
         let img_store = ImageStore::check_bucket(
             &test_settings,
             15 * 60,
-            &StatsdClient::builder("", NopMetricSink).build(),
+            Arc::new(StatsdClient::builder("", NopMetricSink).build()),
             &client,
         )
         .await
@@ -627,7 +646,7 @@ mod tests {
         let img_store = ImageStore::check_bucket(
             &test_settings,
             tiles_ttl,
-            &StatsdClient::builder("contile", sink).build(),
+            Arc::new(StatsdClient::builder("contile", sink).build()),
             &client,
         )
         .await
@@ -642,7 +661,7 @@ mod tests {
         img_store.store(&target).await.expect("Store failed");
         assert_eq!(rx.len(), 2);
 
-        tokio::time::delay_for(std::time::Duration::from_secs(tiles_ttl.into())).await;
+        tokio::time::sleep(std::time::Duration::from_secs(tiles_ttl.into())).await;
         img_store.store(&target).await.expect("Store failed");
         assert_eq!(rx.len(), 4);
         let spied_metrics: Vec<String> = rx

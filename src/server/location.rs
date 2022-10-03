@@ -1,4 +1,6 @@
-use actix_web::{http::HeaderName, HttpRequest};
+use std::sync::Arc;
+
+use actix_web::{http::header::HeaderName, HttpRequest};
 use actix_web_location::{
     providers::{FallbackProvider, MaxMindProvider},
     Error, Location, LocationConfig, Provider,
@@ -79,9 +81,9 @@ impl Provider for TestHeaderProvider {
 
 pub fn location_config_from_settings(
     settings: &Settings,
-    metrics: &StatsdClient,
+    metrics: Arc<StatsdClient>,
 ) -> LocationConfig {
-    let mut location_config = LocationConfig::default().with_metrics(metrics.clone());
+    let mut location_config = LocationConfig::default().with_metrics(metrics);
     if let Some(ref test_header) = settings.location_test_header {
         location_config = location_config.with_provider(TestHeaderProvider::new(test_header));
     }
@@ -101,13 +103,13 @@ pub mod test {
     use actix_web::test::TestRequest;
     use actix_web_location::{Location, Provider};
 
-    #[actix_rt::test]
+    #[actix_web::test]
     async fn from_test_header() {
         let test_header = "x-test-location";
         let provider = TestHeaderProvider::new(test_header);
 
         let request = TestRequest::default()
-            .header(test_header, "US, USCA, 862")
+            .insert_header((test_header, "US, USCA, 862"))
             .to_http_request();
         let location = provider
             .get_location(&request)
@@ -125,7 +127,7 @@ pub mod test {
         assert_eq!(location, expected);
     }
 
-    #[actix_rt::test]
+    #[actix_web::test]
     async fn no_test_header() {
         let test_header = "x-test-location";
         let provider = TestHeaderProvider::new(test_header);

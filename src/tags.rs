@@ -4,11 +4,10 @@
 use core::cell::RefMut;
 use std::collections::{BTreeMap, HashMap};
 
-use actix_http::Extensions;
 use actix_web::{
-    dev::{Payload, RequestHead},
+    dev::{Extensions, Payload, RequestHead},
     http::header::USER_AGENT,
-    Error, FromRequest, HttpRequest,
+    Error, FromRequest, HttpMessage, HttpRequest,
 };
 use futures::future;
 use futures::future::Ready;
@@ -204,13 +203,14 @@ impl Tags {
     pub fn commit(self, exts: &mut RefMut<'_, Extensions>) {
         match exts.get_mut::<Tags>() {
             Some(t) => t.extend(self),
-            None => exts.insert(self),
-        }
+            None => {
+                exts.insert(self);
+            }
+        };
     }
 }
 
 impl FromRequest for Tags {
-    type Config = ();
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
 

@@ -6,7 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use actix_http::http::header::{HeaderMap, HeaderValue};
+use actix_web::http::header::{HeaderMap, HeaderValue};
 use actix_web_location::Location;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -213,7 +213,7 @@ pub async fn get_tiles(
                     // We still want to track this as a server error later.
                     //
                     // TODO: Remove this after the shared cache is implemented.
-                    let mut err: HandlerError = if e.is_timeout()
+                    let err: HandlerError = if e.is_timeout()
                         && Instant::now()
                             .checked_duration_since(state.start_up)
                             .unwrap_or_else(|| Duration::from_secs(0))
@@ -224,7 +224,8 @@ pub async fn get_tiles(
                         HandlerErrorKind::AdmServerError().into()
                     };
                     // ADM servers are down, or improperly configured
-                    err.tags.add_extra("error", &e.to_string());
+                    // be sure to write the error to the provided mut tags.
+                    tags.add_extra("error", &e.to_string());
                     err
                 })?
                 .error_for_status()?
@@ -232,10 +233,13 @@ pub async fn get_tiles(
                 .await
                 .map_err(|e| {
                     // ADM servers are not returning correct information
-                    HandlerErrorKind::BadAdmResponse(format!(
+                    let err: HandlerError = HandlerErrorKind::BadAdmResponse(format!(
                         "ADM provided invalid response: {:?}",
                         e
                     ))
+                    .into();
+                    tags.add_extra("error", &e.to_string());
+                    err
                 })?
         }
     };
@@ -244,20 +248,17 @@ pub async fn get_tiles(
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
     }
 
-    let filtered: Vec<Tile> = response
-        .tiles
-        .into_iter()
-        .filter_map(|tile| {
-            state.filter.read().unwrap().filter_and_process(
-                tile,
-                location,
-                &device_info,
-                tags,
-                metrics,
-            )
-        })
-        .take(settings.adm_max_tiles as usize)
-        .collect();
+    let filtered: Vec<Tile> = {
+        let filter = state.filter.read().await;
+        response
+            .tiles
+            .into_iter()
+            .filter_map(|tile| {
+                filter.filter_and_process(tile, location, &device_info, tags, metrics)
+            })
+            .take(settings.adm_max_tiles as usize)
+            .collect()
+    };
 
     let mut tiles: Vec<Tile> = Vec::new();
     for mut tile in filtered {
