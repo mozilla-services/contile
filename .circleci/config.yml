@@ -5,6 +5,13 @@
 # DOCKER_PASS
 #
 version: 2.1
+
+parameters:
+  rust-version:
+    type: string
+    # NOTE: Ensure this Rust version matches the builder's in ../Dockerfile
+    default: "1.64"
+
 commands:
   setup-rust:
     steps:
@@ -84,7 +91,7 @@ commands:
 jobs:
   checks:
     docker:
-      - image: cimg/rust:1.62
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -97,7 +104,7 @@ jobs:
 
   test:
     docker:
-      - image: cimg/rust:1.62
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -113,7 +120,7 @@ jobs:
 
   build:
     docker:
-      - image: cimg/rust:1.62
+      - image: cimg/rust:<< pipeline.parameters.rust-version >>
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
