@@ -58,12 +58,12 @@ response that the API returns keyed by form-factor and then os-family
 To run the contract tests locally, execute the following from the repository root:
 
 **Build Contile Docker Image**
-```text
+```shell
 docker build -t app:build .
 ```
 
 **Build Contract Test Docker Images & Execute Tests**
-```text
+```shell
 docker compose \
     -f test-engineering\contract-tests\docker-compose.yml \
     up --abort-on-container-exit --build
@@ -82,7 +82,7 @@ See the `Debugging` section of the client [README][client_readme]
 To run the contile service, and it's dependant partner service locally, execute the 
 following from the contract-tests root:
 
-```text
+```shell
 docker-compose run -p 8000:8000 contile
 ```
 

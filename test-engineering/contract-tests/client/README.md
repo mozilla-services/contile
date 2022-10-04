@@ -124,13 +124,13 @@ environment to prevent dependency cross contamination.
 
 Install all requirements via [pip-tools][pip-tools]:
 
-```text
+```shell
 pip-sync requirements.txt dev-requirements.txt
 ```
 
 With requirements installed run the code checks and test via [tox][tox]:
 
-```text
+```shell
 tox
 ```
 
@@ -156,14 +156,14 @@ will run.
 2. Run Contile and partner docker containers.
 
    Execute the following from the project root:
-   ```text
+   ```shell
    docker compose -f test-engineering/contract-tests/docker-compose.yml up contile
    ```
 
 3. Run the contract tests
 
     Execute the following from the project root:
-    ```text
+    ```shell
     CONTILE_URL=http://localhost:8000 \
         PARTNER_URL=http://localhost:5000 \
         SCENARIOS_FILE=test-engineering/contract-tests/volumes/client/scenarios.yml \
@@ -174,7 +174,7 @@ will run.
     * Tests can be run individually using [-k _expr_][pytest-k]. 
       
       Example executing the `success_desktop_windows` scenario:
-      ```text
+      ```shell
       pytest test-engineering/contract-tests/client/tests/test_contile.py \
           -k success_desktop_windows
       ```

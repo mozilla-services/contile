@@ -17,7 +17,7 @@ Example:
 
 Request
 
-```text
+```shell
 curl \
   -X 'GET' \
   -H 'accept: application/json' \
@@ -109,7 +109,7 @@ Example:
 
 Request
 
-```text
+```shell
 curl \
   -X 'DELETE' \
   -H 'accept: */*' \
@@ -130,7 +130,7 @@ Example:
 
 Request
 
-```text
+```shell
 curl \
   -X 'GET' \
   -H 'accept: application/json' \
@@ -170,7 +170,7 @@ Body:
 
 To run the service locally, execute the following from the contract-tests root:
 
-```text
+```shell
 docker compose run -p 5000:5000 partner
 ```
 
@@ -205,13 +205,13 @@ shell to prevent environment variable cross contamination.
 
 Install all requirements via [pip-tools][pip-tools]:
 
-```text
+```shell
 pip-sync requirements.txt dev-requirements.txt
 ```
 
 With requirements installed run the code checks and test via [tox][tox]:
 
-```text
+```shell
 tox
 ```
 
