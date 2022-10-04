@@ -147,7 +147,7 @@ will run.
       - "5000:5000"
     ```
 
-    In the Contile definition, expose port 5000 by adding the following:
+    In the Contile definition, expose port 8000 by adding the following:
     ```yaml
     ports:
       - "8000:8000"
