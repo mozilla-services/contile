@@ -1,10 +1,10 @@
 //! Application settings objects and initialization
 
-use std::convert::TryFrom;
-use std::path::PathBuf;
+use std::{convert::TryFrom, path::PathBuf, time::Duration};
 
 use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
+use rand::{thread_rng, Rng};
 use serde::Deserialize;
 
 use crate::adm::AdmFilterSettings;
@@ -66,6 +66,8 @@ pub struct Settings {
     pub actix_keep_alive: Option<u64>,
     /// Expire tiles after this many seconds (15 * 60s)
     pub tiles_ttl: u32,
+    /// Fallback expiry for tiles after this many seconds (3 * 60 * 60s)
+    pub tiles_fallback_ttl: u32,
     /// path to MaxMind location database
     pub maxminddb_loc: Option<PathBuf>,
     /// A JSON formatted string of [StorageSettings] related to
@@ -95,6 +97,8 @@ pub struct Settings {
     /// status code or 204s when disabled. See
     /// https://github.com/mozilla-services/contile/issues/284
     pub excluded_countries_200: bool,
+    /// Whether Tiles responses may include a `Cache-Control` header
+    pub cache_control_header: bool,
 
     // TODO: break these out into a PartnerSettings?
     /// Adm partner ID (default: "demofeed")
@@ -127,7 +131,7 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
-    /// Percentage of overall time for fetch "jitter".
+    /// Percentage of overall time for fetch "jitter" (applied to `tiles_ttl` and tiles_fallback_ttl`)
     pub jitter: u8,
 }
 
@@ -143,7 +147,10 @@ impl Default for Settings {
             statsd_host: None,
             statsd_port: 8125,
             actix_keep_alive: None,
+            /// 15 minutes
             tiles_ttl: 15 * 60,
+            /// 3 hours
+            tiles_fallback_ttl: 3 * 60 * 60,
             maxminddb_loc: None,
             storage: "".to_owned(),
             test_mode: TestModes::NoTest,
@@ -157,6 +164,7 @@ impl Default for Settings {
             connect_timeout: 2,
             request_timeout: 5,
             excluded_countries_200: true,
+            cache_control_header: true,
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
@@ -252,6 +260,30 @@ impl Settings {
     /// A simple banner for display of certain settings at startup
     pub fn banner(&self) -> String {
         format!("http://{}:{}", self.host, self.port)
+    }
+
+    pub fn tiles_ttl_with_jitter(&self) -> Duration {
+        Duration::from_secs(self.add_jitter(self.tiles_ttl) as u64)
+    }
+
+    pub fn tiles_fallback_ttl_with_jitter(&self) -> Duration {
+        Duration::from_secs(self.add_jitter(self.tiles_fallback_ttl) as u64)
+    }
+
+    /// Calculate the ttl from the settings by taking the tiles_ttl and
+    /// calculating a jitter that is no more than 50% of the total TTL. It is
+    /// recommended that "jitter" be 10%.
+    fn add_jitter(&self, value: u32) -> u32 {
+        let mut rng = thread_rng();
+        let ftl = value as f32;
+        let offset = ftl * (std::cmp::min(self.jitter, 50) as f32 * 0.01);
+        if offset == 0.0 {
+            // Don't panic gen_range with an empty range (a tiles_ttl or jitter
+            // of 0 was specified)
+            return 0;
+        }
+        let jit = rng.gen_range(0.0 - offset..offset);
+        (ftl + jit) as u32
     }
 }
 
