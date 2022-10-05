@@ -120,12 +120,11 @@ impl MockAdm {
     /// Return the passed in query params
     async fn params(&mut self) -> HashMap<String, String> {
         let query_string = self.request_rx.next().await.expect("No request_rx result");
-        let bits = Url::parse(&format!("{}?{}", self.endpoint_url, query_string))
+        Url::parse(&format!("{}?{}", self.endpoint_url, query_string))
             .expect("Couldn't parse request_rx result")
             .query_pairs()
             .into_owned()
-            .collect();
-        bits
+            .collect()
     }
 }
 
@@ -606,7 +605,6 @@ async fn empty_tiles_excluded_country() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
-    dbg!(&result);
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert_eq!(tiles.len(), 0);
 
@@ -616,7 +614,6 @@ async fn empty_tiles_excluded_country() {
         .insert_header((header::USER_AGENT, UA_91))
         .to_request();
     let resp = test::call_service(&app, req).await;
-    dbg!(&resp);
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");

@@ -2,8 +2,7 @@ use std::{
     collections::{HashMap, HashSet},
     convert::TryFrom,
     fmt::Debug,
-    fs::File,
-    io::Read,
+    fs::read_to_string,
     path::Path,
 };
 
@@ -121,13 +120,9 @@ impl Default for PathFilter {
 /// ADM provided partners.
 ///
 /// These are specified as a JSON formatted hash
-/// that contains the components. A special "DEFAULT" setting provides
-/// information that may be used as a DEFAULT, or commonly appearing set
-/// of data. Any Optional value that is not defined will use the value
-/// defined in DEFAULT.
+/// that contains the components.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    // TODO: handle country and path parsing.
     pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>,
     #[serde(default)]
     pub(crate) delete: bool,
@@ -325,14 +320,11 @@ impl AdmFilter {
                 ConfigError::Message(format!("Invalid advertiser info {}", &advertiser))
             })? {
                 // Delete allows us to delete this advertiser. It may appear at the same
-                // level as the country listsings.
+                // level as the country listings.
                 if key.to_lowercase() == "delete" {
                     delete = value.as_bool().unwrap_or_default();
                     continue;
                 }
-                // if it's not a `delete`, than it's part of the
-                // list of per country advertiser filters.
-                //*
                 if key.len() > 2 {
                     warn!("Invalid country detected: {}", key);
                     continue;
@@ -369,13 +361,20 @@ impl AdmFilter {
                                 let mut paths: Vec<PathFilter> = Vec::new();
                                 for path_filter in value.as_array().ok_or_else(|| ConfigError::Message(format!("missing list of path filters for path declaration for {}:{}", &advertiser, &key)))? {
                                     let filter = path_filter.as_object().ok_or_else(|| ConfigError::Message(format!("Invalid path filter for path declaration for {}:{}", &advertiser, &key)))?;
-                                    let pfilter = PathFilter{
+                                    let pfilter = PathFilter {
                                         value: filter.get("value").ok_or_else(|| ConfigError::Message(format!("Missing 'value' for path declaration for {}:{}", &advertiser, &key)))?.as_str().unwrap_or_default().to_owned(),
-                                        matching: PathMatching::try_from(filter.get("matching").ok_or_else(|| ConfigError::Message(format!("Missing 'matching' for path declaration for {}:{}", &advertiser, &key)))?.as_str().ok_or_else(|| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?).map_err(|_| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?
+                                        matching: PathMatching::try_from(filter.get("matching").ok_or_else(|| ConfigError::Message(format!("Missing 'matching' for path declaration for {}:{}", &advertiser, &key)))?.as_str().ok_or_else(|| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?).map_err(|_| ConfigError::Message(format!("Invalid string for 'matching' for path declaration for {}:{}", &advertiser, &key)))?,
                                     };
                                     if pfilter.value == *"" {
-                                        return Err(ConfigError::Message(format!("Invalid or unparsable 'value' declaration for {}:{}", &advertiser, &key)))
+                                        return Err(ConfigError::Message(format!("Invalid or unparsable 'value' declaration for {}:{}", &advertiser, &key)));
                                     }
+                                    if let PathMatching::Prefix = pfilter.matching {
+                                        if !pfilter.value.ends_with('/'){
+                                            return Err(ConfigError::Message(format!("Advertiser {:?} advertiser_urls contain invalid prefix PathFilter (missing trailing '/')", &filter)));
+                                        }
+
+                                    }
+
                                     paths.push(pfilter);
                                 }
                                 if !paths.is_empty() {
@@ -387,6 +386,7 @@ impl AdmFilter {
                             }
                         }
                     }
+
                     filters.push(filter);
                 }
                 countries.insert(key.clone(), filters);
@@ -442,11 +442,11 @@ impl AdmFilter {
             .download(&bucket_name, path)
             .await
             .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
-        let reply =
-            AdmFilter::advertisers_from_string(&String::from_utf8(contents).map_err(|e| {
+        AdmFilter::advertisers_from_string(
+            &String::from_utf8(contents).map_err(|e| {
                 ConfigError::Message(format!("Could not read ADM Settings: {:?}", e))
-            })?)?;
-        Ok(reply)
+            })?,
+        )
     }
 }
 
@@ -514,8 +514,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             .clone()
             .unwrap_or_else(|| "[]".to_owned())
             .to_lowercase();
-        // No longer needed since each advertiser has it's own set of countries.
-        // let mut all_include_regions = HashSet::new();
+
         let source = settings.adm_settings.clone();
 
         let source_url = if source.starts_with("gs://") {
@@ -540,29 +539,24 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         };
         let excluded_countries_200 = settings.excluded_countries_200;
 
-        let mut settings_str = "".to_string();
-        if Path::new(&settings.adm_settings).exists() {
-            if let Ok(mut f) = File::open(&settings.adm_settings) {
-                settings_str = f
-                    .read_to_string(&mut settings.adm_settings)
-                    .map_err(|e| {
-                        HandlerError::internal(&format!(
-                            "Could not read {}: {:?}",
-                            settings.adm_settings, e
-                        ))
-                    })?
-                    .to_string();
-            }
-        }
+        let settings_str = if Path::new(&settings.adm_settings).exists() {
+            read_to_string(&settings.adm_settings)
+                .map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Could not read {}: {:?}",
+                        settings.adm_settings, e
+                    ))
+                })
+                .unwrap_or_else(|_| settings.adm_settings.clone())
+        } else {
+            settings.adm_settings.clone()
+        };
 
         let advertiser_filters =
             if source_url.is_some() || (settings.adm_settings.is_empty() && settings.debug) {
                 HashMap::new()
-            } else if !settings_str.is_empty() {
-                AdmFilter::advertisers_from_string(&settings_str)
-                    .map_err(|e| HandlerError::internal(&format!("Configuration error: {:?}", e)))?
             } else {
-                AdmFilter::advertisers_from_string(&settings.adm_settings)
+                AdmFilter::advertisers_from_string(&settings_str)
                     .map_err(|e| HandlerError::internal(&format!("Configuration error: {:?}", e)))?
             };
         let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
@@ -589,10 +583,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
 mod tests {
     use std::env;
 
-    //use serde_json::json;
-
     use super::*;
-    //use crate::web::test::adm_settings;
 
     #[test]
     pub fn test_lower_ignore() {
@@ -622,7 +613,7 @@ mod tests {
                     "host": "foo.com",
                     "paths": [
                         {
-                            "value": "/bar",
+                            "value": "/bar/",
                             "matching": "prefix"
                         },
                         {
@@ -644,6 +635,28 @@ mod tests {
         let result = AdmFilter::advertisers_from_string(adm_settings);
         debug!("result: {:?}", &result);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    pub fn test_invalid_prefix_path_filters() {
+        let adm_settings = r#"{"test-adv": {
+            "US": [
+                {
+                    "host": "foo.com",
+                    "paths": [
+                        {
+                            "value": "/bar",
+                            "matching": "prefix"
+                        },
+                        {
+                            "value": "/gorp/",
+                            "matching": "exact"
+                        }
+                    ]
+                }
+            ]
+        }}"#;
+        assert!(AdmFilter::advertisers_from_string(adm_settings).is_err());
     }
 
     #[test]

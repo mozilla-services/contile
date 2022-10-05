@@ -42,9 +42,6 @@ lazy_static! {
 /// Each "filter"  is a set of [crate::adm::AdmAdvertiserFilterSettings] that are
 /// specific to a given Advertiser name (the names are matched against
 /// the tiles fetch request)
-/// In addition there is a special `DEFAULT` value which is a filter
-/// that will be applied to all advertisers that do not supply their
-/// own values.
 
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
@@ -227,7 +224,6 @@ impl AdmFilter {
         let species = "Advertiser";
         let parsed = parse_url(url, species, &tile.name, tags)?;
         let host = get_host(&parsed, species)?;
-
         if parsed.scheme().to_lowercase() != "https" {
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
@@ -249,9 +245,10 @@ impl AdmFilter {
                     .unwrap_or_else(|| [PathFilter::default()].to_vec());
                 for rule in paths {
                     match rule.matching {
-                        // Note that the orignal path is used for exact matching
+                        // Note that the original path is used for exact matching
                         PathMatching::Exact if rule.value == parsed.path() => return Ok(()),
                         PathMatching::Prefix if path.starts_with(&rule.value) => return Ok(()),
+
                         _ => continue,
                     }
                 }
@@ -277,17 +274,17 @@ impl AdmFilter {
         let species = "Click";
         // Check the required fields are present for the `click_url` pg 15 of
         // 5.7.21 spec
+
         let parsed = parse_url(url, species, &tile.name, tags)?;
         let host = get_host(&parsed, species)?;
         let query_keys = parsed
             .query_pairs()
             .map(|p| p.0.to_string())
             .collect::<HashSet<String>>();
-
         // run the gauntlet of checks.
+
         if !check_url(parsed, "Click", &defaults.click_hosts)? {
             trace!("bad url: url={:?}", url);
-            dbg!("url", &url);
             tags.add_tag("type", species);
             tags.add_extra("tile", &tile.name);
             tags.add_extra("url", url);
@@ -295,10 +292,10 @@ impl AdmFilter {
             tags.add_extra("reason", "bad host");
             return Err(HandlerErrorKind::InvalidHost(species, host).into());
         }
+
         for key in &*REQ_CLICK_PARAMS {
             if !query_keys.contains(*key) {
                 trace!("missing param: key={:?} url={:?}", &key, url);
-                dbg!("missing", &url, &key);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -311,7 +308,6 @@ impl AdmFilter {
         for key in query_keys {
             if !ALL_CLICK_PARAMS.contains(key.as_str()) {
                 trace!("invalid param key={:?} url={:?}", &key, url);
-                dbg!("param", &url, &key);
                 tags.add_tag("type", species);
                 tags.add_extra("tile", &tile.name);
                 tags.add_extra("url", url);
@@ -390,13 +386,10 @@ impl AdmFilter {
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        dbg!(&tile.name.to_lowercase());
-        dbg!(&self.advertiser_filters.keys());
         match self.advertiser_filters.get(&tile.name.to_lowercase()) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
                 if filter.countries.get(&location.country()).is_none() {
-                    dbg!("no country");
                     trace!(
                         "Rejecting tile: region {:?} not included",
                         location.country()
@@ -413,7 +406,6 @@ impl AdmFilter {
                 if device_info.legacy_only()
                     && !self.legacy_list.contains(&tile.name.to_lowercase())
                 {
-                    dbg!("legacy");
                     trace!("Rejecting tile: Not a legacy advertiser {:?}", &tile.name);
                     metrics.incr_with_tags("filter.adm.err.non_legacy", Some(tags));
                     return Ok(None);
@@ -422,35 +414,30 @@ impl AdmFilter {
                 let adv_filter = filter.countries.get(&location.country()).unwrap();
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
-                    dbg!("bad_adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = self.check_click(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad click");
-                    dbg!("bad_click", &e);
                     metrics.incr_with_tags("filter.adm.err.invalid_click", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = self.check_impression(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad imp");
-                    dbg!("bad_imp");
                     metrics.incr_with_tags("filter.adm.err.invalid_impression", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = self.check_image_hosts(&self.defaults, &mut tile, tags) {
                     trace!("Rejecting tile: bad image");
-                    dbg!("bad_img");
                     metrics.incr_with_tags("filter.adm.err.invalid_image_host", Some(tags));
                     self.report(&e, tags);
                     return Ok(None);
                 }
                 if let Err(e) = tile.image_url.parse::<Uri>() {
                     trace!("Rejecting tile: bad image: {:?}", e);
-                    dbg!("bad_img2");
                     metrics.incr_with_tags("filter.adm.err.invalid_image", Some(tags));
                     self.report(
                         &HandlerErrorKind::InvalidHost("Image", tile.image_url).into(),
@@ -458,7 +445,6 @@ impl AdmFilter {
                     );
                     return Ok(None);
                 }
-
                 Ok(Some(Tile::from_adm_tile(tile)))
             }
             None => {
