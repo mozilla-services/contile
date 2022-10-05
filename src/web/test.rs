@@ -725,7 +725,7 @@ async fn metrics() {
         spy.try_iter()
             .filter_map(|m| {
                 let m = String::from_utf8(m).unwrap();
-                prefixes.iter().any(|name| m.starts_with(name)).then(|| m)
+                prefixes.iter().any(|name| m.starts_with(name)).then_some(m)
             })
             .collect()
     };
