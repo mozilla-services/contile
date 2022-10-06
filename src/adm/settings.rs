@@ -549,8 +549,11 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
                 })
                 .unwrap_or_else(|_| settings.adm_settings.clone())
         } else {
-            debug!("{}/{} ... Not a valid path, presuming a string.",
-                std::env::current_dir().expect("could not get current path").display(),
+            debug!(
+                "{}/{} ... Not a valid path, presuming a string.",
+                std::env::current_dir()
+                    .expect("could not get current path")
+                    .display(),
                 &settings.adm_settings
             );
             settings.adm_settings.clone()
@@ -560,8 +563,12 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             if source_url.is_some() || (settings.adm_settings.is_empty() && settings.debug) {
                 HashMap::new()
             } else {
-                AdmFilter::advertisers_from_string(&settings_str)
-                    .map_err(|e| HandlerError::internal(&format!("Configuration error reading AdmFilter advertisers: {:?}", e)))?
+                AdmFilter::advertisers_from_string(&settings_str).map_err(|e| {
+                    HandlerError::internal(&format!(
+                        "Configuration error reading AdmFilter advertisers: {:?}",
+                        e
+                    ))
+                })?
             };
         let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
