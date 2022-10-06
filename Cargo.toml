@@ -1,5 +1,6 @@
 [package]
 name = "contile"
+# be sure to update test-engineering/contract-tests/volumes/client/scenarios.yml
 version = "1.8.1"
 authors = [
   "Philip Jenvey <pjenvey@underboss.org>",
