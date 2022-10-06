@@ -3,8 +3,8 @@
 # Change this to be your application's name
 ARG APPNAME=contile
 
-# make sure that the build and run environments are the same version
-FROM rust:1.62-slim-buster as builder
+# NOTE: Ensure builder's Rust version matches CI's in .circleci/config.yml
+FROM rust:1.64-slim-buster as builder
 ARG APPNAME
 ADD . /app
 WORKDIR /app
