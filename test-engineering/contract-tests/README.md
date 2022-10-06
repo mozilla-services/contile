@@ -17,7 +17,9 @@ the individual components of the suite.
 To run the contract tests locally, execute the following from the repository root:
 
 ```text
-u
+docker compose \ 
+-f test-engineering\contract-tests\docker-compose.yml \ 
+up --abort-on-container-exit --build
 ```
 
 ### partner
