@@ -1,6 +1,8 @@
 [package]
 name = "contile"
-# be sure to update test-engineering/contract-tests/volumes/client/scenarios.yml
+# be sure to update
+# test-engineering/contract-tests/volumes/client/scenarios.yml
+# test-engineering/contract-tests/volumes/client/scenarios_tiles_cache.yml
 version = "1.8.2"
 authors = [
   "Philip Jenvey <pjenvey@underboss.org>",
