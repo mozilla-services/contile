@@ -204,6 +204,7 @@ impl Settings {
         let mut builder = Config::builder();
         // Merge the config file if supplied
         if let Some(config_filename) = filename {
+            debug!("Reading settings from {}", &config_filename);
             builder = builder.add_source(File::with_name(config_filename));
         }
         // Merge the environment overrides
@@ -211,6 +212,7 @@ impl Settings {
             .add_source(Environment::with_prefix(&PREFIX.to_uppercase()))
             .build()?;
 
+        debug!("deserializing {:?}", &s);
         Ok(match s.try_deserialize::<Self>() {
             Ok(mut s) => {
                 trace!("raw Settings: {:?}", &s);

@@ -46,6 +46,7 @@ services:
       CONTILE_ADM_SUB1: sub1_test
       CONTILE_ADM_PARTNER_ID: partner_id_test
       CONTILE_ADM_HAS_LEGACY_IMAGE: '["Example ORG","Example COM"]'
+      CONTILE_ADM_DEFAULTS: '{"image_hosts":["example.com","example.org"],"impression_hosts":["example.com","example.org"],"click_hosts":["example.com","example.org"]}'
       # Timeout requests to the ADM server after this many seconds (default: 5)
       CONTILE_ADM_TIMEOUT: 2
       CONTILE_DEBUG: 1
