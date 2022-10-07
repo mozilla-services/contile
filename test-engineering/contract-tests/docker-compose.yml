@@ -44,7 +44,8 @@ services:
         ],
         "image_hosts": [
           "example.com",
-          "example.org"
+          "example.org",
+          "dunbroch.co.uk"
         ]
       }'
       CONTILE_ADM_SUB1: sub1_test
