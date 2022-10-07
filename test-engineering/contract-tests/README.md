@@ -98,7 +98,7 @@ For example (presuming that Contile is running on `http://localhost:8000/v1/tile
 
 ```sh
 curl -v \
-    -H "UserAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'" \
+    -H "User-Agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'" \
     -H "X-Forwarded-For: '89.160.20.115'" \
     "http://localhost:8000/v1/tiles"
 ```
