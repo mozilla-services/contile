@@ -167,7 +167,7 @@ will run.
     CONTILE_URL=http://localhost:8000 \
         PARTNER_URL=http://localhost:5000 \
         SCENARIOS_FILE=test-engineering/contract-tests/volumes/client/scenarios.yml \
-        pytest test-engineering/contract-tests/client/tests/test_contile.py
+        pytest test-engineering/contract-tests/client/tests/test_contile.py --vv
     ```
     * Environment variables can alternatively be set in a pytest.ini file or through an 
       IDE configuration
