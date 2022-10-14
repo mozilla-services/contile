@@ -5,7 +5,10 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use actix_web::rt;
+use actix_web::{
+    http::header::{CacheControl, CacheDirective, TryIntoHeaderPair},
+    rt, HttpResponse,
+};
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
@@ -75,12 +78,17 @@ impl TilesCache {
         audience_key: &'a AudienceKey,
         expired: bool,
     ) -> WriteHandle<'a, impl FnOnce(()) + '_> {
+        let mut fallback_tiles = None;
+
         if expired {
             // The cache entry's expired and we're about to refresh it
             trace!("prepare_write: Fresh now expired, Refreshing");
             self.inner
                 .alter(audience_key, |_, tiles_state| match tiles_state {
                     TilesState::Fresh { tiles } if tiles.expired() => {
+                        // In case an error occurs while doing the write work
+                        // we'll render the current value as a fallback
+                        fallback_tiles = Some(tiles.clone());
                         TilesState::Refreshing { tiles }
                     }
                     _ => tiles_state,
@@ -95,8 +103,8 @@ impl TilesCache {
         let guard = scopeguard::guard((), move |_| {
             trace!("prepare_write (ScopeGuard cleanup): Resetting state");
             if expired {
-                // Back to Fresh (though the tiles are expired): so a later request
-                // will retry refreshing again
+                // Back to Fresh (though the tiles are expired): so a later
+                // request will retry refreshing again
                 self.inner
                     .alter(audience_key, |_, tiles_state| match tiles_state {
                         TilesState::Refreshing { tiles } => TilesState::Fresh { tiles },
@@ -113,6 +121,7 @@ impl TilesCache {
             cache: self,
             audience_key,
             guard,
+            fallback_tiles,
         }
     }
 }
@@ -129,6 +138,7 @@ where
     cache: &'a TilesCache,
     audience_key: &'a AudienceKey,
     guard: scopeguard::ScopeGuard<(), F>,
+    pub fallback_tiles: Option<Tiles>,
 }
 
 impl<F> WriteHandle<'_, F>
@@ -169,12 +179,22 @@ impl TilesState {
 #[derive(Clone, Debug)]
 pub struct Tiles {
     pub content: TilesContent,
+    /// When this is in need of a refresh (the `Cache-Control` `max-age`)
     expiry: SystemTime,
+    /// After expiry we'll continue serving the stale version of these Tiles
+    /// until they're successfully refreshed (acting as a fallback during
+    /// upstream service outages). `fallback_expiry` is when we stop serving
+    /// this stale Tiles completely
+    fallback_expiry: SystemTime,
 }
 
 impl Tiles {
-    pub fn new(tile_response: TileResponse, ttl: u32) -> Result<Self, HandlerError> {
-        let empty = Self::empty(ttl);
+    pub fn new(
+        tile_response: TileResponse,
+        ttl: Duration,
+        fallback_ttl: Duration,
+    ) -> Result<Self, HandlerError> {
+        let empty = Self::empty(ttl, fallback_ttl);
         if tile_response.tiles.is_empty() {
             return Ok(empty);
         }
@@ -186,15 +206,60 @@ impl Tiles {
         })
     }
 
-    pub fn empty(ttl: u32) -> Self {
+    pub fn empty(ttl: Duration, fallback_ttl: Duration) -> Self {
         Self {
             content: TilesContent::Empty,
-            expiry: SystemTime::now() + Duration::from_secs(ttl as u64),
+            expiry: SystemTime::now() + ttl,
+            fallback_expiry: SystemTime::now() + fallback_ttl,
         }
     }
 
     pub fn expired(&self) -> bool {
         self.expiry <= SystemTime::now()
+    }
+
+    pub fn fallback_expired(&self) -> bool {
+        self.fallback_expiry <= SystemTime::now()
+    }
+
+    pub fn to_response(&self, cache_control_header: bool) -> HttpResponse {
+        match &self.content {
+            TilesContent::Json(json) => {
+                let mut builder = HttpResponse::Ok();
+                if cache_control_header {
+                    builder.insert_header(self.cache_control_header());
+                }
+                builder
+                    .content_type("application/json")
+                    .body(json.to_owned())
+            }
+            TilesContent::Empty => {
+                let mut builder = HttpResponse::NoContent();
+                if cache_control_header {
+                    builder.insert_header(self.cache_control_header());
+                }
+                builder.finish()
+            }
+        }
+    }
+
+    /// Return the Tiles' `Cache-Control` header
+    fn cache_control_header(&self) -> impl TryIntoHeaderPair {
+        let max_age = (self.expiry.duration_since(SystemTime::now()))
+            .unwrap_or_default()
+            .as_secs();
+        let stale_if_error = (self.fallback_expiry.duration_since(SystemTime::now()))
+            .unwrap_or_default()
+            .as_secs();
+        let header_value = CacheControl(vec![
+            CacheDirective::Private,
+            CacheDirective::MaxAge(max_age as u32),
+            CacheDirective::Extension(
+                "stale-if-error".to_owned(),
+                Some(stale_if_error.to_string()),
+            ),
+        ]);
+        ("Cache-Control", header_value)
     }
 }
 
