@@ -2,7 +2,6 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_location::Location;
 use lazy_static::lazy_static;
-use rand::{thread_rng, Rng};
 
 use crate::{
     adm,
@@ -20,22 +19,6 @@ use crate::{
 lazy_static! {
     static ref EMPTY_TILES: String = serde_json::to_string(&adm::TileResponse { tiles: vec![] })
         .expect("Couldn't serialize EMPTY_TILES");
-}
-
-/// Calculate the ttl from the settings by taking the tiles_ttl
-/// and calculating a jitter that is no more than 50% of the total TTL.
-/// It is recommended that "jitter" be 10%.
-pub fn add_jitter(settings: &Settings) -> u32 {
-    let mut rng = thread_rng();
-    let ftl = settings.tiles_ttl as f32;
-    let offset = ftl * (std::cmp::min(settings.jitter, 50) as f32 * 0.01);
-    if offset == 0.0 {
-        // Don't panic gen_range with an empty range (a tiles_ttl or jitter of
-        // 0 was specified)
-        return 0;
-    }
-    let jit = rng.gen_range(0.0 - offset..offset);
-    (ftl + jit) as u32
 }
 
 /// Handler for `.../v1/tiles` endpoint
@@ -102,18 +85,18 @@ pub async fn get_tiles(
             match &*tiles_state {
                 TilesState::Populating => {
                     // Another task is currently populating this entry and will
-                    // complete shortly. 204 until then instead of queueing
+                    // complete shortly. 304 until then instead of queueing
                     // more redundant requests
                     trace!("get_tiles: Another task Populating");
                     metrics.incr("tiles_cache.miss.populating");
-                    return Ok(HttpResponse::NoContent().finish());
+                    return Ok(HttpResponse::NotModified().finish());
                 }
                 TilesState::Fresh { tiles } => {
                     expired = tiles.expired();
                     if !expired {
                         trace!("get_tiles: cache hit: {:?}", audience_key);
                         metrics.incr("tiles_cache.hit");
-                        return Ok(content_response(&tiles.content));
+                        return Ok(tiles.to_response(settings.cache_control_header));
                     }
                     // Needs refreshing
                 }
@@ -125,7 +108,8 @@ pub async fn get_tiles(
                         audience_key
                     );
                     metrics.incr("tiles_cache.hit.refreshing");
-                    return Ok(content_response(&tiles.content));
+                    // expired() and maybe fallback_expired()
+                    return Ok(fallback_response(settings, tiles));
                 }
             }
         }
@@ -158,7 +142,11 @@ pub async fn get_tiles(
 
     match result {
         Ok(response) => {
-            let tiles = cache::Tiles::new(response, add_jitter(&state.settings))?;
+            let tiles = cache::Tiles::new(
+                response,
+                settings.tiles_ttl_with_jitter(),
+                settings.tiles_fallback_ttl_with_jitter(),
+            )?;
             trace!(
                 "get_tiles: cache miss{}: {:?}",
                 if expired { " (expired)" } else { "" },
@@ -168,43 +156,49 @@ pub async fn get_tiles(
             handle.insert(TilesState::Fresh {
                 tiles: tiles.clone(),
             });
-            Ok(content_response(&tiles.content))
+            Ok(tiles.to_response(settings.cache_control_header))
         }
         Err(e) => {
-            // Add some kind of stats to Retrieving or RetrievingFirst?
-            // do we need a kill switch if we're restricting like this already?
-            match e.kind() {
+            metrics.incr_with_tags("tiles.get.error", Some(&tags));
+
+            if matches!(e.kind(), HandlerErrorKind::BadAdmResponse(_)) {
                 // Handle a bad response from ADM specially.
                 // Report it to metrics and sentry, but also store an empty record
                 // into the cache so that we don't stampede the ADM servers.
-                HandlerErrorKind::BadAdmResponse(_es) => {
-                    warn!("Bad response from ADM: {:?}", e);
-                    // Merge in the error tags, which should already include the
-                    // error string as `error`
-                    tags.extend(e.tags.clone());
-                    tags.add_tag("level", "warning");
-                    metrics.incr_with_tags("tiles.invalid", Some(&tags));
-                    // write an empty tile set into the cache for this result.
-                    handle.insert(TilesState::Fresh {
-                        tiles: Tiles::empty(add_jitter(&state.settings)),
-                    });
-                    // Report the error directly to sentry
-                    l_sentry::report(sentry::event_from_error(&e), &tags);
-                    warn!("ADM Server error: {:?}", e);
-                    // Return a 204 to the client.
-                    Ok(HttpResponse::NoContent().finish())
-                }
-                _ => Err(e),
+                warn!("Bad response from ADM: {:?}", e);
+                // Merge in the error tags, which should already include the
+                // error string as `error`
+                tags.extend(e.tags.clone());
+                tags.add_tag("level", "warning");
+                metrics.incr_with_tags("tiles.invalid", Some(&tags));
+                // write an empty tile set into the cache for this result.
+                handle.insert(TilesState::Fresh {
+                    tiles: Tiles::empty(
+                        settings.tiles_ttl_with_jitter(),
+                        settings.tiles_fallback_ttl_with_jitter(),
+                    ),
+                });
+                // Report the error directly to sentry
+                l_sentry::report(&e, &tags);
+                warn!("ADM Server error: {:?}", e);
+                // Return a 204 to the client.
+                return Ok(HttpResponse::NoContent().finish());
             }
+
+            // A general error occurred, try rendering fallback Tiles
+            if let Some(tiles) = handle.fallback_tiles {
+                return Ok(fallback_response(settings, &tiles));
+            }
+            Err(e)
         }
     }
 }
-
-fn content_response(content: &cache::TilesContent) -> HttpResponse {
-    match content {
-        cache::TilesContent::Json(json) => HttpResponse::Ok()
-            .content_type("application/json")
-            .body(json.to_owned()),
-        cache::TilesContent::Empty => HttpResponse::NoContent().finish(),
+/// Render stale (`expired`) fallback tiles
+fn fallback_response(settings: &Settings, tiles: &cache::Tiles) -> HttpResponse {
+    if tiles.fallback_expired() {
+        // Totally expired so no `Cache-Control` header
+        HttpResponse::NoContent().finish()
+    } else {
+        tiles.to_response(settings.cache_control_header)
     }
 }

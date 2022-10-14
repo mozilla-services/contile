@@ -53,10 +53,15 @@ pub struct SentryWrapperMiddleware<S> {
     service: Rc<S>,
 }
 
+/// Report a [HandlerError] with [crate::tags::Tags] directly to sentry
+pub fn report(err: &HandlerError, tags: &Tags) {
+    report_event(event_from_error(err), tags)
+}
+
 /// Report an error with [crate::tags::Tags] and [Event] directly to sentry
 ///
 /// And [Event] can be derived using `event_from_error(HandlerError)`
-pub fn report(mut event: Event<'static>, tags: &Tags) {
+fn report_event(mut event: Event<'static>, tags: &Tags) {
     let tags = tags.clone();
     event.tags = tags.clone().tag_tree();
     event.extra = tags.extra_tree();
@@ -109,7 +114,7 @@ where
                     {
                         for event in events {
                             trace!("Sentry: found an error stored in request: {:?}", &event);
-                            report(event, &tags);
+                            report_event(event, &tags);
                         }
                     }
                     if let Some(events) = sresp
@@ -119,7 +124,7 @@ where
                     {
                         for event in events {
                             trace!("Sentry: Found an error stored in response: {:?}", &event);
-                            report(event, &tags);
+                            report_event(event, &tags);
                         }
                     }
                 }
@@ -127,7 +132,7 @@ where
                     if let Some(herr) = e.as_error::<HandlerError>() {
                         if herr.kind().is_sentry_event() {
                             tags.extend(herr.tags.clone());
-                            report(event_from_error(herr), &tags);
+                            report(herr, &tags);
                         } else if let Some(label) = herr.kind().metric_label() {
                             metrics.incr_with_tags(label).send()
                         }
