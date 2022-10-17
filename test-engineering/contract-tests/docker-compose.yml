@@ -33,18 +33,19 @@ services:
       CONTILE_ADM_DEFAULTS: '{
         "advertiser_urls": [],
         "click_hosts": [
-            "example.com",
-            "example.org",
-            "dunbroch.co.uk"
+          "example.com",
+          "example.org",
+          "dunbroch.co.uk"
         ],
         "impression_hosts": [
-            "example.com",
-            "example.org",
-            "dunbroch.co.uk"
+          "example.com",
+          "example.org",
+          "dunbroch.co.uk"
         ],
         "image_hosts": [
           "example.com",
-          "example.org"
+          "example.org",
+          "dunbroch.co.uk"
         ]
       }'
       CONTILE_ADM_SUB1: sub1_test

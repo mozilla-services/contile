@@ -1,12 +1,23 @@
 {
   "Example COM": {
-    "US": [
+    "AU": [
       {
-        "host": "www.example.com",
+        "host": "www.example.com.au",
         "paths": [
           {
             "value": "/",
-            "matching": "prefix"
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "CA": [
+      {
+        "host": "www.example.ca",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
           }
         ]
       }
@@ -18,6 +29,39 @@
           {
             "value": "/",
             "matching": "prefix"
+          }
+        ]
+      }
+    ],
+    "DE": [
+      {
+        "host": "www.example.de",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "ES": [
+      {
+        "host": "www.example.es",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "FR": [
+      {
+        "host": "www.example.fr",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
           }
         ]
       }
@@ -42,75 +86,20 @@
         ]
       }
     ],
-    "IT": [
-      {
-        "host": "www.example.it",
-        "paths": [
-          {
-            "value": "/",
-            "matching": "exact"
-          }
-        ]
-      }
-    ],
-    "AU": [
-      {
-        "host": "www.example.com.au",
-        "paths": [
-          {
-            "value": "/",
-            "matching": "exact"
-          }
-        ]
-      }
-    ],
-    "CA": [
-      {
-        "host": "www.example.ca",
-        "paths": [
-          {
-            "value": "/",
-            "matching": "exact"
-          }
-        ]
-      }
-    ],
-    "DE": [
-      {
-        "host": "www.example.de",
-        "paths": [
-          {
-            "value": "/",
-            "matching": "exact"
-          }
-        ]
-      }
-    ],
-    "FR": [
-      {
-        "host": "www.example.fr",
-        "paths": [
-          {
-            "value": "/",
-            "matching": "exact"
-          }
-        ]
-      }
-    ],
-    "ES": [
-      {
-        "host": "www.example.es",
-        "paths": [
-          {
-            "value": "/",
-            "matching": "exact"
-          }
-        ]
-      }
-    ],
     "IN": [
       {
         "host": "www.example.in",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "exact"
+          }
+        ]
+      }
+    ],
+    "IT": [
+      {
+        "host": "www.example.it",
         "paths": [
           {
             "value": "/",
@@ -129,10 +118,21 @@
           }
         ]
       }
+    ],
+    "US": [
+      {
+        "host": "www.example.com",
+        "paths": [
+          {
+            "value": "/",
+            "matching": "prefix"
+          }
+        ]
+      }
     ]
   },
   "Example ORG": {
-    "US": [
+    "CN": [
       {
         "host": "www.example.org",
         "paths": [
@@ -154,7 +154,7 @@
         ]
       }
     ],
-    "CN": [
+    "US": [
       {
         "host": "www.example.org",
         "paths": [
