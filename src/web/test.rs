@@ -12,7 +12,9 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer,
 };
 use cadence::{SpyMetricSink, StatsdClient};
+use crossbeam_channel::Receiver;
 use futures::{channel::mpsc, StreamExt};
+use regex::Regex;
 use serde_json::{json, Value};
 use tokio::sync::RwLock;
 use url::Url;
@@ -126,6 +128,11 @@ impl MockAdm {
             .into_owned()
             .collect()
     }
+
+    /// Set the mock AdM to respond with a 5xx error
+    fn set_response_error(&mut self) {
+        self.request_rx.close();
+    }
 }
 
 /// Bind a mock of the AdM Tiles API to a random port on localhost
@@ -134,7 +141,7 @@ fn init_mock_adm(response: String) -> MockAdm {
         req: HttpRequest,
         resp: web::Data<String>,
         tx: web::Data<futures::channel::mpsc::UnboundedSender<String>>,
-    ) -> HttpResponse {
+    ) -> actix_web::error::Result<HttpResponse> {
         trace!(
             "mock_adm: path: {:#?} query_string: {:#?} {:#?} {:#?}",
             req.path(),
@@ -144,10 +151,11 @@ fn init_mock_adm(response: String) -> MockAdm {
         );
         // TODO: pass more data for validation
         tx.unbounded_send(req.query_string().to_owned())
-            .expect("Failed to send");
-        HttpResponse::Ok()
+            // set_response_error called
+            .map_err(actix_web::error::ErrorServiceUnavailable)?;
+        Ok(HttpResponse::Ok()
             .content_type("application/json")
-            .body(resp.get_ref().to_owned())
+            .body(resp.get_ref().to_owned()))
     }
 
     let (tx, request_rx) = mpsc::unbounded::<String>();
@@ -184,6 +192,19 @@ pub fn advertiser_filters() -> HashMap<String, AdmAdvertiserFilterSettings> {
         .to_string(),
     )
     .unwrap()
+}
+
+/// Find all metric lines emitted from spy with matching prefixes
+fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
+    spy.try_iter()
+        .filter_map(|m| {
+            let m = String::from_utf8(m).unwrap();
+            prefixes
+                .iter()
+                .any(|prefix| m.starts_with(prefix))
+                .then_some(m)
+        })
+        .collect()
 }
 
 /// Basic integration test
@@ -717,18 +738,8 @@ async fn metrics() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
-    // Find all metric lines with matching prefixes
-    let find_metrics = |prefixes: &[&str]| -> Vec<_> {
-        spy.try_iter()
-            .filter_map(|m| {
-                let m = String::from_utf8(m).unwrap();
-                prefixes.iter().any(|name| m.starts_with(name)).then_some(m)
-            })
-            .collect()
-    };
-
     let prefixes = &["contile.tiles.get:1", "contile.tiles.adm.request:1"];
-    let metrics = find_metrics(prefixes);
+    let metrics = find_metrics(&spy, prefixes);
     assert_eq!(metrics.len(), 2);
     let get_metric = &metrics[0];
     assert!(get_metric.contains("ua.form_factor:desktop"));
@@ -742,7 +753,7 @@ async fn metrics() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let metrics = find_metrics(prefixes);
+    let metrics = find_metrics(&spy, prefixes);
     assert_eq!(metrics.len(), 2);
     let get_metric = &metrics[0];
     assert!(get_metric.contains("ua.form_factor:phone"));
@@ -800,4 +811,137 @@ async fn zero_jitter() {
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
+}
+
+#[actix_web::test]
+async fn cache_header() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
+        location_test_header: Some("x-test-location".to_owned()),
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .insert_header(("X-Forwarded-For", TEST_ADDR))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let cache_header = resp
+        .headers()
+        .get("Cache-Control")
+        .expect("No Cache-Control header")
+        .to_str()
+        .expect("Invalid Cache-Control header");
+    let directives: Vec<_> = cache_header.split(", ").collect();
+    assert_eq!(directives.len(), 3);
+    assert_eq!(directives[0], "private");
+
+    /// Parse a numeric value of a header directive into a u32
+    ///
+    /// E.g.:
+    /// find_directive(&vec!["private", "max-age=5"], "max-age") -> 5
+    fn find_directive(directives: &[&str], name: &str) -> u32 {
+        let re = Regex::new(&format!(r"{}=(\d+)", name)).unwrap();
+        directives
+            .iter()
+            .filter_map(|directive| {
+                re.captures(directive)
+                    .and_then(|captures| captures.get(1))
+                    .and_then(|value| value.as_str().parse::<u32>().ok())
+            })
+            .next()
+            .unwrap()
+    }
+
+    assert!(directives
+        .iter()
+        .any(|directive| directive.starts_with("max-age=")));
+    let max_age = find_directive(&directives, "max-age");
+    assert!(max_age > 0);
+    // less than tiles_ttl plus jitter
+    assert!(max_age < settings.tiles_ttl * 2);
+
+    assert!(directives
+        .iter()
+        .any(|directive| directive.starts_with("stale-if-error=")));
+    let stale_if_error = find_directive(&directives, "stale-if-error");
+    assert!(stale_if_error > settings.tiles_ttl);
+    // less than fallback_tiles_ttl plus jitter
+    assert!(stale_if_error < settings.tiles_fallback_ttl * 2);
+
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert_eq!(tiles.len(), 2);
+}
+
+#[actix_web::test]
+async fn fallback_on_error() {
+    let mut adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let tiles_ttl = 2;
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url.clone(),
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
+        location_test_header: Some("x-test-location".to_owned()),
+        tiles_ttl,
+        ..get_test_settings()
+    };
+    let (app, spy) = init_app_with_spy!(settings).await;
+
+    // Load the cache
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .insert_header(("X-Forwarded-For", TEST_ADDR))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    assert!(resp.headers().get("Cache-Control").is_some());
+
+    // Set adM to return an error then trigger a refresh (as the tiles expired)
+    adm.set_response_error();
+    rt::time::sleep(Duration::from_secs(tiles_ttl as u64)).await;
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .insert_header(("X-Forwarded-For", TEST_ADDR))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let cache_header = resp
+        .headers()
+        .get("Cache-Control")
+        .expect("No Cache-Control header")
+        .to_str()
+        .expect("Invalid Cache-Control header");
+    let directives: Vec<_> = cache_header.split(", ").collect();
+    assert_eq!(directives[0], "private");
+    // We should fall back on errors, so max-age=0
+    assert!(directives
+        .iter()
+        .any(|directive| directive.starts_with("max-age=0")));
+    assert!(directives
+        .iter()
+        .any(|directive| directive.starts_with("stale-if-error=")));
+
+    let metrics: Vec<_> = find_metrics(&spy, &["contile.tiles."])
+        .into_iter()
+        .map(|m| m.split_once('|').unwrap().0.to_owned())
+        .collect();
+    assert_eq!(
+        metrics,
+        vec![
+            "contile.tiles.get:1",
+            "contile.tiles.adm.request:1",
+            "contile.tiles.get:1",
+            "contile.tiles.adm.request:1",
+            "contile.tiles.get.error:1"
+        ]
+    );
 }

@@ -18,7 +18,7 @@ use crate::{
     server::ServerState,
     settings::Settings,
     tags::Tags,
-    web::middleware::sentry::report,
+    web::middleware::sentry as l_sentry,
     web::DeviceInfo,
 };
 
@@ -280,7 +280,7 @@ pub async fn get_tiles(
                 }
                 Err(e) => {
                     // quietly report the error, and drop the tile.
-                    report(sentry::event_from_error(&e), tags);
+                    l_sentry::report(&e, tags);
                     continue;
                 }
             }
