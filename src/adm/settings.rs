@@ -123,7 +123,7 @@ impl Default for PathFilter {
 /// that contains the components.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>
+    pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>,
 }
 
 pub fn break_hosts(host: String) -> Vec<String> {
@@ -244,22 +244,19 @@ pub struct AdmDefaults {
     pub(crate) ignore_dmas: Option<Vec<u8>>,
 }
 
-/*
 #[derive(Debug, Default, Clone)]
-pub struct AdmFilterSettings {
-    bucket: Option<url::Url>,
-    pub advertisers: HashMap<String, AdmAdvertiserFilterSettings>,
+pub struct AdmAdvertiserSettings {
+    pub adm_advertisers: HashMap<String, AdmAdvertiserFilterSettings>,
 }
 
-impl Serialize for AdmFilterSettings {
+impl Serialize for AdmAdvertiserSettings {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.collect_map(self.advertisers.clone())
+        serializer.collect_map(self.adm_advertisers.clone())
     }
 }
-*/
 
 /// Create AdmSettings from a string serialized JSON format
 impl AdmFilter {
@@ -293,7 +290,7 @@ impl AdmFilter {
     /// updated later by the automatic bucket reader, so we skip processing of that for now.
     pub fn advertisers_from_string(
         settings_str: &str,
-    ) -> Result<HashMap<String, AdmAdvertiserFilterSettings>, ConfigError> {
+    ) -> Result<AdmAdvertiserSettings, ConfigError> {
         // because of the unstructured JSON format, decode this by hand.
         // Note, Contile will only read this data. It will never write it so serialization is less important.
         //
@@ -303,12 +300,13 @@ impl AdmFilter {
                 "No ADM settings string specified".to_string(),
             ));
         }
-        let parsed: HashMap<String, Value> = serde_json::from_str(settings_str)
+        let parsed: HashMap<String, HashMap<String, Value>> = serde_json::from_str(settings_str)
             .map_err(|e| ConfigError::Message(format!("ADM Settings parse error: {:?}", e)))?;
+        let adm_settings: HashMap<String, Value> = parsed.get("adm_advertisers").unwrap().clone();
         let mut advertisers: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
         // first level `ADVERTISER: AdvertiserFilterSettings`
-        for (advertiser, value) in parsed {
-            // second level `COUNTRY:Vec<AdvertiserUrlFilter> 
+        for (advertiser, value) in adm_settings {
+            // second level `COUNTRY:Vec<AdvertiserUrlFilter>
             let mut countries: HashMap<String, Vec<AdvertiserUrlFilter>> = HashMap::new();
             //let mut delete = false;
             for (key, value) in value.as_object().ok_or_else(|| {
@@ -390,13 +388,15 @@ impl AdmFilter {
 
         trace!("Parsed Advertiser list: {:?}", &advertisers);
 
-        Ok(advertisers)
+        Ok(AdmAdvertiserSettings {
+            adm_advertisers: advertisers,
+        })
     }
 
     #[cfg(test)]
-    pub fn advertisers_to_string(filters: HashMap<String, AdmAdvertiserFilterSettings>) -> String {
+    pub fn advertisers_to_string(filters: AdmAdvertiserSettings) -> String {
         let mut result: serde_json::Map<String, Value> = serde_json::Map::new();
-        for (advertiser, settings) in filters {
+        for (advertiser, settings) in filters.adm_advertisers {
             let mut adv_value: serde_json::Map<String, Value> = serde_json::Map::new();
             for (country_name, country_paths) in settings.countries {
                 adv_value.insert(country_name, serde_json::json!(country_paths));
@@ -409,14 +409,19 @@ impl AdmFilter {
 
             result.insert(advertiser, Value::Object(adv_value));
         }
-        Value::Object(result).to_string()
+        let mut adm_settings = serde_json::Map::new();
+        adm_settings.insert(
+            "adm_advertisers".to_string(),
+            serde_json::to_value(result).unwrap(),
+        );
+        Value::Object(adm_settings).to_string()
     }
 
     /// Try to fetch the ADM settings from a Google Storage bucket url.
     pub async fn advertisers_from_settings_bucket(
         cloud_storage: &cloud_storage::Client,
         settings_bucket: &url::Url,
-    ) -> Result<HashMap<String, AdmAdvertiserFilterSettings>, ConfigError> {
+    ) -> Result<AdmAdvertiserSettings, ConfigError> {
         let settings_str = settings_bucket.as_str();
         if settings_bucket.scheme() != "gs" {
             return Err(ConfigError::Message(format!(
@@ -555,7 +560,9 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
 
         let advertiser_filters =
             if source_url.is_some() || (settings.adm_settings.is_empty() && settings.debug) {
-                HashMap::new()
+                AdmAdvertiserSettings {
+                    adm_advertisers: HashMap::new(),
+                }
             } else {
                 AdmFilter::advertisers_from_string(&settings_str).map_err(|e| {
                     HandlerError::internal(&format!(

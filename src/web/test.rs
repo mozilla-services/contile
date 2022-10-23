@@ -20,7 +20,10 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use crate::{
-    adm::{AdmAdvertiserFilterSettings, AdmFilter, AdvertiserUrlFilter},
+    adm::{
+        settings::AdmAdvertiserSettings, AdmAdvertiserFilterSettings, AdmFilter,
+        AdvertiserUrlFilter,
+    },
     build_app,
     error::{HandlerError, HandlerResult},
     server::{cache, location::location_config_from_settings, ServerState},
@@ -176,9 +179,9 @@ fn init_mock_adm(response: String) -> MockAdm {
     }
 }
 
-pub fn advertiser_filters() -> HashMap<String, AdmAdvertiserFilterSettings> {
+pub fn advertiser_filters() -> AdmAdvertiserSettings {
     AdmFilter::advertisers_from_string(
-        &json!({
+        &json!({"adm_advertisers":{
             "Acme": {
                 "US": [{ "host": "www.acme.biz" }],
             },
@@ -188,7 +191,7 @@ pub fn advertiser_filters() -> HashMap<String, AdmAdvertiserFilterSettings> {
             "Los Pollos Hermanos": {
                 "US": [{ "host": "www.lph-nm.biz" }],
             },
-        })
+        }})
         .to_string(),
     )
     .unwrap()
@@ -202,7 +205,7 @@ fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
             prefixes
                 .iter()
                 .any(|prefix| m.starts_with(prefix))
-                .then(||m)
+                .then(|| m)
         })
         .collect()
 }
@@ -399,7 +402,7 @@ async fn basic_all_bad_reply() {
 async fn basic_filtered() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     let mut adm_settings = advertiser_filters();
-    adm_settings.insert(
+    adm_settings.adm_advertisers.insert(
         "Example".to_owned(),
         AdmAdvertiserFilterSettings {
             countries: HashMap::from([(
@@ -413,7 +416,7 @@ async fn basic_filtered() {
             ..Default::default()
         },
     );
-    adm_settings.remove("dunder mifflin");
+    adm_settings.adm_advertisers.remove("dunder mifflin");
 
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
@@ -674,9 +677,12 @@ async fn include_regions() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
     let mut adm_settings = advertiser_filters();
-    adm_settings.remove(&"Los Pollos Hermanos".to_lowercase());
+    adm_settings
+        .adm_advertisers
+        .remove(&"Los Pollos Hermanos".to_lowercase());
     // set Dunder Mifflin to only serve Mexico.
     let a_s = adm_settings
+        .adm_advertisers
         .get_mut(&"Dunder Mifflin".to_lowercase())
         .expect("No Dunder Mifflin tile");
     a_s.countries

@@ -11,7 +11,9 @@ pub mod settings;
 mod tiles;
 
 pub use filter::{spawn_updater, AdmFilter};
+pub(crate) use settings::AdmPse;
 #[cfg(test)]
-pub(crate) use settings::{break_hosts, AdmDefaults, AdvertiserUrlFilter};
-pub(crate) use settings::{AdmAdvertiserFilterSettings, AdmPse};
+pub(crate) use settings::{
+    break_hosts, AdmAdvertiserFilterSettings, AdmDefaults, AdvertiserUrlFilter,
+};
 pub use tiles::{get_tiles, TileResponse};

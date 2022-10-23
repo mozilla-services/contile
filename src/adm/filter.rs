@@ -1,10 +1,5 @@
 use std::{
-    borrow::Cow,
-    collections::{HashMap, HashSet},
-    fmt::Debug,
-    iter::FromIterator,
-    sync::Arc,
-    time::Duration,
+    borrow::Cow, collections::HashSet, fmt::Debug, iter::FromIterator, sync::Arc, time::Duration,
 };
 
 use actix_web::{http::Uri, rt};
@@ -14,8 +9,8 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use super::{
+    settings::AdmAdvertiserSettings,
     tiles::{AdmTile, Tile},
-    AdmAdvertiserFilterSettings,
 };
 use crate::{
     adm::settings::{AdmDefaults, AdvertiserUrlFilter, PathFilter, PathMatching},
@@ -46,7 +41,7 @@ lazy_static! {
 #[derive(Default, Clone, Debug)]
 pub struct AdmFilter {
     /// Filter settings by Advertiser name
-    pub advertiser_filters: HashMap<String, AdmAdvertiserFilterSettings>,
+    pub advertiser_filters: AdmAdvertiserSettings,
     /// Ignored (not included but also not reported to Sentry) Advertiser names
     pub ignore_list: HashSet<String>,
     /// Temporary list of advertisers with legacy images built into firefox
@@ -201,7 +196,7 @@ impl AdmFilter {
                             self.source, e
                         ))
                     })?;
-            for (adv, setting) in advertiser_filters {
+            for (adv, setting) in advertiser_filters.adm_advertisers {
                 /*
                                 if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);
@@ -209,7 +204,9 @@ impl AdmFilter {
                 };
                  */
 
-                self.advertiser_filters.insert(adv.to_lowercase(), setting);
+                self.advertiser_filters
+                    .adm_advertisers
+                    .insert(adv.to_lowercase(), setting);
             }
             self.last_updated = Some(chrono::Utc::now());
         }
@@ -389,7 +386,11 @@ impl AdmFilter {
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        match self.advertiser_filters.get(&tile.name.to_lowercase()) {
+        match self
+            .advertiser_filters
+            .adm_advertisers
+            .get(&tile.name.to_lowercase())
+        {
             Some(filter) => {
                 // Apply any additional tile filtering here.
                 if filter.countries.get(&location.country()).is_none() {
@@ -577,6 +578,7 @@ mod tests {
             ..Default::default()
         };
         let settings = advertiser_filters
+            .adm_advertisers
             .get("acme")
             .unwrap()
             .countries
