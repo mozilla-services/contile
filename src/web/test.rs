@@ -202,7 +202,7 @@ fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
             prefixes
                 .iter()
                 .any(|prefix| m.starts_with(prefix))
-                .then_some(m)
+                .then(||m)
         })
         .collect()
 }

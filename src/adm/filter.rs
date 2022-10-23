@@ -202,10 +202,13 @@ impl AdmFilter {
                         ))
                     })?;
             for (adv, setting) in advertiser_filters {
-                if setting.delete {
+                /*
+                                if setting.delete {
                     trace!("Removing advertiser {:?}", &adv);
                     self.advertiser_filters.remove(&adv.to_lowercase());
                 };
+                 */
+
                 self.advertiser_filters.insert(adv.to_lowercase(), setting);
             }
             self.last_updated = Some(chrono::Utc::now());

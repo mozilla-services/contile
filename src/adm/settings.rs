@@ -123,9 +123,7 @@ impl Default for PathFilter {
 /// that contains the components.
 #[derive(Clone, Debug, Deserialize, Default, Serialize)]
 pub struct AdmAdvertiserFilterSettings {
-    pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>,
-    #[serde(default)]
-    pub(crate) delete: bool,
+    pub(crate) countries: HashMap<String, Vec<AdvertiserUrlFilter>>
 }
 
 pub fn break_hosts(host: String) -> Vec<String> {
@@ -286,9 +284,6 @@ impl AdmFilter {
     ///              ]
     ///             }
     ///         ]
-    ///     },
-    ///     "Obsolete": {
-    ///         "delete": True
     ///     }
     /// }
     /// ```
@@ -313,18 +308,14 @@ impl AdmFilter {
         let mut advertisers: HashMap<String, AdmAdvertiserFilterSettings> = HashMap::new();
         // first level `ADVERTISER: AdvertiserFilterSettings`
         for (advertiser, value) in parsed {
-            // second level `COUNTRY:Vec<AdvertiserUrlFilter> | "delete": bool`
+            // second level `COUNTRY:Vec<AdvertiserUrlFilter> 
             let mut countries: HashMap<String, Vec<AdvertiserUrlFilter>> = HashMap::new();
-            let mut delete = false;
+            //let mut delete = false;
             for (key, value) in value.as_object().ok_or_else(|| {
                 ConfigError::Message(format!("Invalid advertiser info {}", &advertiser))
             })? {
                 // Delete allows us to delete this advertiser. It may appear at the same
                 // level as the country listings.
-                if key.to_lowercase() == "delete" {
-                    delete = value.as_bool().unwrap_or_default();
-                    continue;
-                }
                 if key.len() > 2 {
                     warn!("Invalid country detected: {}", key);
                     continue;
@@ -393,7 +384,7 @@ impl AdmFilter {
             }
             advertisers.insert(
                 advertiser.to_lowercase(),
-                AdmAdvertiserFilterSettings { countries, delete },
+                AdmAdvertiserFilterSettings { countries },
             );
         }
 
@@ -410,9 +401,12 @@ impl AdmFilter {
             for (country_name, country_paths) in settings.countries {
                 adv_value.insert(country_name, serde_json::json!(country_paths));
             }
-            if settings.delete {
+            /*
+                        if settings.delete {
                 adv_value.insert("delete".to_owned(), Value::Bool(settings.delete));
             }
+             */
+
             result.insert(advertiser, Value::Object(adv_value));
         }
         Value::Object(result).to_string()
@@ -613,7 +607,7 @@ mod tests {
         );
         let mut settings = Settings::with_env_and_config_file(&None, true).unwrap();
         let result = HandlerResult::<AdmFilter>::from(&mut settings).unwrap();
-        assert!(result.ignore_list == result_list);
+        assert_eq!(result.ignore_list, result_list);
     }
 
     #[test]
