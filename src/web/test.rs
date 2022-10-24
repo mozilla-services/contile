@@ -205,7 +205,7 @@ fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
             prefixes
                 .iter()
                 .any(|prefix| m.starts_with(prefix))
-                .then(|| m)
+                .then_some(m)
         })
         .collect()
 }
@@ -413,7 +413,6 @@ async fn basic_filtered() {
                 }]
                 .to_vec(),
             )]),
-            ..Default::default()
         },
     );
     adm_settings.adm_advertisers.remove("dunder mifflin");
@@ -566,11 +565,14 @@ async fn empty_tiles() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     // test empty responses of an included country (US)
     let adm_settings_json = json!({
-        "Foo": {
-            "US": [
-                { "host": "www.foo.bar" }
-            ]
+        "adm_advertisers":{
+            "Foo": {
+                "US": [
+                    { "host": "www.foo.bar" }
+                ]
+            }
         }
+
     });
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
@@ -603,13 +605,15 @@ async fn empty_tiles_excluded_country() {
     // Specify valid advertisers with no per country information. This will
     // "exclude" US locations.
     let filters = AdmFilter::advertisers_from_string(
-        &json!({
+        &json!({"adm_advertisers":{
             "Acme": {
              },
             "Dunder Mifflin": {
             },
             "Los Pollos Hermanos": {
             },
+        }
+
         })
         .to_string(),
     )

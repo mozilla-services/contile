@@ -401,12 +401,6 @@ impl AdmFilter {
             for (country_name, country_paths) in settings.countries {
                 adv_value.insert(country_name, serde_json::json!(country_paths));
             }
-            /*
-                        if settings.delete {
-                adv_value.insert("delete".to_owned(), Value::Bool(settings.delete));
-            }
-             */
-
             result.insert(advertiser, Value::Object(adv_value));
         }
         let mut adm_settings = serde_json::Map::new();
@@ -619,7 +613,7 @@ mod tests {
 
     #[test]
     pub fn test_valid_path_filters() {
-        let adm_settings = r#"{"test-adv": {
+        let adm_settings = r#"{"adm_advertisers":{"test-adv": {
             "US": [
                 {
                     "host": "foo.com",
@@ -643,7 +637,7 @@ mod tests {
                     "host": "foo.mx"
                 }
             ]
-        }}"#;
+        }}}"#;
         let result = AdmFilter::advertisers_from_string(adm_settings);
         debug!("result: {:?}", &result);
         assert!(result.is_ok());
@@ -651,7 +645,7 @@ mod tests {
 
     #[test]
     pub fn test_invalid_prefix_path_filters() {
-        let adm_settings = r#"{"test-adv": {
+        let adm_settings = r#"{"adm_advertisers":{"test-adv": {
             "US": [
                 {
                     "host": "foo.com",
@@ -667,7 +661,7 @@ mod tests {
                     ]
                 }
             ]
-        }}"#;
+        }}}"#;
         assert!(AdmFilter::advertisers_from_string(adm_settings).is_err());
     }
 

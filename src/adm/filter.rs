@@ -196,14 +196,8 @@ impl AdmFilter {
                             self.source, e
                         ))
                     })?;
+            self.advertiser_filters.adm_advertisers.clear();
             for (adv, setting) in advertiser_filters.adm_advertisers {
-                /*
-                                if setting.delete {
-                    trace!("Removing advertiser {:?}", &adv);
-                    self.advertiser_filters.remove(&adv.to_lowercase());
-                };
-                 */
-
                 self.advertiser_filters
                     .adm_advertisers
                     .insert(adv.to_lowercase(), setting);
@@ -537,7 +531,8 @@ mod tests {
 
     #[test]
     fn check_advertiser() {
-        let s = r#"{
+        let s = r#"{"adm_advertisers":{
+
             "Acme": {
                 "US": [
                 {
@@ -561,7 +556,8 @@ mod tests {
                 }
                 ]
             }
-        }"#;
+        }
+    }"#;
         let advertiser_filters = AdmFilter::advertisers_from_string(s).unwrap();
         let filter = AdmFilter {
             advertiser_filters: advertiser_filters.clone(),
