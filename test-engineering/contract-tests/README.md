@@ -1,4 +1,4 @@
-# contile-contract-tests
+# Contile Contract Tests
 
 This directory contains the automated contract test suite for the Mozilla Tile 
 Service (MTS). Passing contract tests are a prerequisite for moving to the next 
@@ -14,13 +14,14 @@ the individual components of the suite.
 **Test Scenario: success_tiles_cached_for_identical_proxy_params** 
 ![Sequence diagram of the integration tests][sequence_diagram]
 
-To run the contract tests locally, execute the following from the repository root:
+### client
 
-```text
-docker compose \ 
--f test-engineering\contract-tests\docker-compose.yml \ 
-up --abort-on-container-exit --build
-```
+The `client` directory contains a Python-based test framework for the
+contract tests. The HTTP client used in the framework requests tiles from the
+MTS and performs checks against the responses. The framework implements response
+models for the MTS API.
+
+For more details see the client [README][client_readme]
 
 ### partner
 
@@ -39,26 +40,73 @@ MTS.
 
 For more details see the partner [README][partner_readme]
 
-### client
-
-The `client` directory contains a Python-based test framework for the
-contract tests. The HTTP client used in the framework requests tiles from the
-MTS and performs checks against the responses. The framework implements response
-models for the MTS API.
-
-For more details see the client [README][client_readme]
-
 ### volumes
 
 The `volumes` directory contains subdirectories which will be mounted as
 volumes into the Docker containers used in the contract test suite:
 
-- the `volumes/partner` directory contains a YML file which defines every
-response that the API returns keyed by form-factor and then os-family
-- the `volumes/contile` directory contains files that need to be provided to a
-MTS Docker container such as a partner settings file
 - the `volumes/client` directory contains a YML file which defines every test
 scenario that the contract test suite will run
+- the `volumes/contile` directory contains files that need to be provided to a
+MTS Docker container such as a partner settings file
+- the `volumes/partner` directory contains a YML file which defines every
+response that the API returns keyed by form-factor and then os-family
+
+
+## Local Execution
+
+To run the contract tests locally, execute the following from the repository root:
+
+**Build Contile Docker Image**
+```shell
+docker build -t app:build .
+```
+
+**Build Contract Test Docker Images & Execute Tests**
+```shell
+docker compose \
+    -f test-engineering\contract-tests\docker-compose.yml \
+    up --abort-on-container-exit --build
+```
+
+## Debugging
+
+The contract testing system is optimized to run within a set of related docker images.
+
+### client
+
+See the `Debugging` section of the client [README][client_readme] 
+
+### Contile
+
+To run the contile service, and it's dependant partner service locally, execute the 
+following from the contract-tests root:
+
+```shell
+docker-compose run -p 8000:8000 contile
+```
+
+Contile runs, by default, on `http://localhost:8000/`.
+However, it may be necessary to run the tests outside of docker, in order to debug 
+functions or manually verify expected results.
+
+**Fetching Tiles**
+
+Contile will attempt to look up your IP address if you access it using Firefox. 
+The easiest way to get a test response back would be to craft a curl request. 
+For example (presuming that Contile is running on `http://localhost:8000/v1/tiles`):
+
+```sh
+curl -v \
+    -H "User-Agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'" \
+    -H "X-Forwarded-For: '89.160.20.115'" \
+    "http://localhost:8000/v1/tiles"
+```
+
+### partner
+
+See the `Local Execution` and `Debugging` sections of the partner [README][partner_readme] 
+
 
 [client_readme]: ./client/README.md
 [contract-test-repo]: https://github.com/mozilla-services/contile-integration-tests
