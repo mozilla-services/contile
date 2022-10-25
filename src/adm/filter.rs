@@ -198,7 +198,7 @@ impl AdmFilter {
                     })?;
             self.advertiser_filters.adm_advertisers.clear();
             for (adv, setting) in advertiser_filters.adm_advertisers {
-                for (country, _) in &setting {
+                for country in setting.keys() {
                     if !self.defaults.include_regions.contains(country) {
                         self.defaults.include_regions.push(country.clone());
                     }
