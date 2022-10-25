@@ -1,27 +1,41 @@
-{"Acme": {
-    "US": [
-        { "host": "www.acme.biz",
-            "paths": [
-                {
-                    "value": "/",
-                    "matching": "exact"
-                }
-            ]
-        },
-        { "host": "acme.biz" }
-    ]
-},
-"Dunder Mifflin": {
-    "US": [
-        { "host": "www.dunderm.biz" },
-        { "host": "dunderm.biz" }
-    ],
-    "position": 1
-},
-"Los Pollos Hermanos": {
-    "MX": [
-        { "host": "www.lph-nm.biz" },
-        { "host": "lph-mx.co.mx" }
-    ]
-}
+{
+   "adm_advertisers":{
+      "Acme":{
+         "US":[
+            {
+               "host":"www.acme.biz",
+               "paths":[
+                  {
+                     "value":"/",
+                     "matching":"exact"
+                  }
+               ]
+            },
+            {
+               "host":"acme.biz"
+            }
+         ]
+      },
+      "Dunder Mifflin":{
+         "US":[
+            {
+               "host":"www.dunderm.biz"
+            },
+            {
+               "host":"dunderm.biz"
+            }
+         ],
+         "position":1
+      },
+      "Los Pollos Hermanos":{
+         "MX":[
+            {
+               "host":"www.lph-nm.biz"
+            },
+            {
+               "host":"lph-mx.co.mx"
+            }
+         ]
+      }
+   }
 }
