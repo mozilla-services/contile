@@ -46,6 +46,11 @@ services:
           "example.com",
           "example.org",
           "dunbroch.co.uk"
+        ],
+        "include_regions":[
+          "US",
+          "GB",
+          "CN"
         ]
       }'
       CONTILE_ADM_SUB1: sub1_test
