@@ -271,9 +271,31 @@ pub struct AdmDefaults {
     pub(crate) ignore_dmas: Option<Vec<u8>>,
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct AdmAdvertiserSettings {
     pub adm_advertisers: HashMap<String, HashMap<String, Vec<AdvertiserUrlFilter>>>,
+}
+
+impl<'de> Deserialize<'de> for AdmAdvertiserSettings {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct InnerAdmAdvertiserSettings {
+            adm_advertisers: HashMap<String, HashMap<String, Vec<AdvertiserUrlFilter>>>,
+        }
+
+        let inner = InnerAdmAdvertiserSettings::deserialize(deserializer)?;
+        let mut lowercased_map = HashMap::new();
+        for (key, value) in inner.adm_advertisers {
+            lowercased_map.insert(key.to_lowercase(), value);
+        }
+
+        Ok(AdmAdvertiserSettings {
+            adm_advertisers: lowercased_map,
+        })
+    }
 }
 
 impl Serialize for AdmAdvertiserSettings {
@@ -486,9 +508,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
         } else {
             serde_json::from_str(&settings_str)
                 .map_err(|e| ConfigError::Message(format!("Could not read ADM Settings: {:?}", e)))
-                .unwrap_or(AdmAdvertiserSettings {
-                    adm_advertisers: HashMap::new(),
-                })
+                .unwrap()
         };
         let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))

@@ -380,7 +380,11 @@ impl AdmFilter {
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        match self.advertiser_filters.adm_advertisers.get(&tile.name) {
+        match self
+            .advertiser_filters
+            .adm_advertisers
+            .get(&tile.name.to_lowercase())
+        {
             Some(filter) => {
                 // Apply any additional tile filtering here.
                 if filter.get(&location.country()).is_none() {
