@@ -380,14 +380,10 @@ impl AdmFilter {
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
-        match self
-            .advertiser_filters
-            .adm_advertisers
-            .get(&tile.name.to_lowercase())
-        {
+        match self.advertiser_filters.adm_advertisers.get(&tile.name) {
             Some(filter) => {
                 // Apply any additional tile filtering here.
-                if filter.countries.get(&location.country()).is_none() {
+                if filter.get(&location.country()).is_none() {
                     trace!(
                         "Rejecting tile: region {:?} not included",
                         location.country()
@@ -409,7 +405,7 @@ impl AdmFilter {
                     return Ok(None);
                 }
 
-                let adv_filter = filter.countries.get(&location.country()).unwrap();
+                let adv_filter = filter.get(&location.country()).unwrap();
                 if let Err(e) = self.check_advertiser(adv_filter, &mut tile, tags) {
                     trace!("Rejecting tile: bad adv");
                     metrics.incr_with_tags("filter.adm.err.invalid_advertiser", Some(tags));
@@ -461,6 +457,7 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
+    use crate::adm::settings::AdmAdvertiserSettings;
     use crate::adm::AdmDefaults;
     use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::tags::Tags;
@@ -558,7 +555,7 @@ mod tests {
             }
         }
     }"#;
-        let advertiser_filters = AdmFilter::advertisers_from_string(s).unwrap();
+        let advertiser_filters: AdmAdvertiserSettings = serde_json::from_str(s).unwrap();
         let filter = AdmFilter {
             advertiser_filters: advertiser_filters.clone(),
             defaults: AdmDefaults {
@@ -577,7 +574,6 @@ mod tests {
             .adm_advertisers
             .get("acme")
             .unwrap()
-            .countries
             .get("US")
             .unwrap();
         let mut tags = Tags::default();

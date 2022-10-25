@@ -20,10 +20,7 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use crate::{
-    adm::{
-        settings::AdmAdvertiserSettings, AdmAdvertiserFilterSettings, AdmFilter,
-        AdvertiserUrlFilter,
-    },
+    adm::{settings::AdmAdvertiserSettings, AdmFilter, AdvertiserUrlFilter},
     build_app,
     error::{HandlerError, HandlerResult},
     server::{cache, location::location_config_from_settings, ServerState},
@@ -180,7 +177,7 @@ fn init_mock_adm(response: String) -> MockAdm {
 }
 
 pub fn advertiser_filters() -> AdmAdvertiserSettings {
-    AdmFilter::advertisers_from_string(
+    serde_json::from_str(
         &json!({"adm_advertisers":{
             "Acme": {
                 "US": [{ "host": "www.acme.biz" }],
@@ -404,16 +401,14 @@ async fn basic_filtered() {
     let mut adm_settings = advertiser_filters();
     adm_settings.adm_advertisers.insert(
         "Example".to_owned(),
-        AdmAdvertiserFilterSettings {
-            countries: HashMap::from([(
-                "US".to_owned(),
-                [AdvertiserUrlFilter {
-                    host: "www.example.ninja".to_owned(),
-                    ..Default::default()
-                }]
-                .to_vec(),
-            )]),
-        },
+        HashMap::from([(
+            "US".to_owned(),
+            [AdvertiserUrlFilter {
+                host: "www.example.ninja".to_owned(),
+                ..Default::default()
+            }]
+            .to_vec(),
+        )]),
     );
     adm_settings.adm_advertisers.remove("dunder mifflin");
 
@@ -604,21 +599,18 @@ async fn empty_tiles_excluded_country() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
     // Specify valid advertisers with no per country information. This will
     // "exclude" US locations.
-    let filters = AdmFilter::advertisers_from_string(
-        &json!({"adm_advertisers":{
-            "Acme": {
-             },
-            "Dunder Mifflin": {
-            },
-            "Los Pollos Hermanos": {
-            },
-        }
+    let filters = json!({"adm_advertisers":{
+        "Acme": {
+         },
+        "Dunder Mifflin": {
+        },
+        "Los Pollos Hermanos": {
+        },
+    }
 
-        })
-        .to_string(),
-    )
-    .unwrap();
-    let adm_settings = AdmFilter::advertisers_to_string(filters);
+    })
+    .to_string();
+    let adm_settings = filters;
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
         adm_settings,
@@ -689,9 +681,8 @@ async fn include_regions() {
         .adm_advertisers
         .get_mut(&"Dunder Mifflin".to_lowercase())
         .expect("No Dunder Mifflin tile");
-    a_s.countries
-        .insert("MX".into(), a_s.countries.get("US").unwrap().clone());
-    a_s.countries.remove("US");
+    a_s.insert("MX".into(), a_s.get("US").unwrap().clone());
+    a_s.remove("US");
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
         adm_settings: AdmFilter::advertisers_to_string(adm_settings),
