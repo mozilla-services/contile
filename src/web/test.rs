@@ -54,6 +54,7 @@ fn get_test_settings() -> Settings {
                 .to_vec(),
                 impression_hosts: [crate::adm::settings::break_hosts("example.net".to_owned())]
                     .to_vec(),
+                include_regions: ["US".to_string(), "MX".to_string()].to_vec(),
                 ..Default::default()
             })
             .to_string(),
@@ -202,7 +203,7 @@ fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
             prefixes
                 .iter()
                 .any(|prefix| m.starts_with(prefix))
-                .then_some(m)
+                .then(|| m)
         })
         .collect()
 }
@@ -227,6 +228,7 @@ async fn basic() {
                     crate::adm::break_hosts("example.com".to_owned())
                 ]
                 .to_vec(),
+                include_regions: ["US".to_string(), "MX".to_string()].to_vec(),
                 ..Default::default()
             })
             .to_string(),

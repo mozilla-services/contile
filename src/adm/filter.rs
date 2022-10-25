@@ -198,6 +198,11 @@ impl AdmFilter {
                     })?;
             self.advertiser_filters.adm_advertisers.clear();
             for (adv, setting) in advertiser_filters.adm_advertisers {
+                for (country, _) in &setting {
+                    if !self.defaults.include_regions.contains(country) {
+                        self.defaults.include_regions.push(country.clone());
+                    }
+                }
                 self.advertiser_filters
                     .adm_advertisers
                     .insert(adv.to_lowercase(), setting);

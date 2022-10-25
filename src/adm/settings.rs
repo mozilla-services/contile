@@ -265,8 +265,8 @@ pub struct AdmDefaults {
     /// valid position for the tile
     pub(crate) position: Option<u8>,
     /// Optional set of valid countries for the tile (e.g ["US", "GB"])
-    //#[serde(default)]
-    //pub(crate) include_regions: Vec<String>,
+    #[serde(default)]
+    pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
 }
