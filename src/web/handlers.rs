@@ -159,8 +159,6 @@ pub async fn get_tiles(
             Ok(tiles.to_response(settings.cache_control_header))
         }
         Err(e) => {
-            metrics.incr_with_tags("tiles.get.error", Some(&tags));
-
             if matches!(e.kind(), HandlerErrorKind::BadAdmResponse(_)) {
                 // Handle a bad response from ADM specially.
                 // Report it to metrics and sentry, but also store an empty record
@@ -184,6 +182,16 @@ pub async fn get_tiles(
                 // Return a 204 to the client.
                 return Ok(HttpResponse::NoContent().finish());
             }
+
+            match e.kind() {
+                HandlerErrorKind::Reqwest(e) if e.is_timeout() => tags.add_tag("reason", "timeout"),
+                HandlerErrorKind::Reqwest(e) if e.is_connect() => tags.add_tag("reason", "connect"),
+                _ => (),
+            }
+            if handle.fallback_tiles.is_some() {
+                tags.add_tag("fallback", "true");
+            }
+            metrics.incr_with_tags("tiles.get.error", Some(&tags));
 
             // A general error occurred, try rendering fallback Tiles
             if let Some(tiles) = handle.fallback_tiles {

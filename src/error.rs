@@ -133,6 +133,8 @@ impl HandlerErrorKind {
     pub fn metric_label(&self) -> Option<&'static str> {
         match self {
             HandlerErrorKind::InvalidUA => Some("request.error.invalid_ua"),
+            // HandlerErrorKind::Reqest(e) if e.is_timeout() || e.is_connect())
+            // metrics emitted elsewhere (in handlers::get_tiles)
             _ => None,
         }
     }
@@ -140,6 +142,7 @@ impl HandlerErrorKind {
     /// Whether this error should trigger a Sentry event
     pub fn is_sentry_event(&self) -> bool {
         !matches!(self, HandlerErrorKind::InvalidUA)
+            && !matches!(self, HandlerErrorKind::Reqwest(e) if e.is_timeout() || e.is_connect())
     }
 
     pub fn as_response_string(&self) -> String {
