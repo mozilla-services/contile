@@ -9,13 +9,14 @@ checks.
 
 The framework implements response models for the MTS and partner APIs.
 
-For more details on contract test design, refer to the contile-contract-tests
+For more details on contract test design, refer to the Contile Contract Tests
 [README][contract_tests_readme].
 
-## Scenarios
+## Overview
 
-The client is instructed on request and response check actions via steps recorded in a
-scenario file. A scenario is defined by a name, description and steps.
+The client is instructed on request and response check actions via scenarios, 
+recorded in the `scenarios.yml` file. A scenario is defined by a name, a description 
+and steps.
 
 ### Steps
 
@@ -112,4 +113,73 @@ Example:
                 value: '5'
 ```
 
+## Debugging
+
+To execute the test scenarios outside the client Docker container, expose the Contile 
+and partner API ports in the docker-compose.yml, set environment variables and use a 
+pytest command. It is recommended to execute the tests within a Python virtual 
+environment to prevent dependency cross contamination.
+
+### Environment Setup
+
+Install all requirements via [pip-tools][pip-tools]:
+
+```shell
+pip-sync requirements.txt dev-requirements.txt
+```
+
+With requirements installed run the code checks and test via [tox][tox]:
+
+```shell
+tox
+```
+
+See the tox configuration in the `tox.ini` for the list of environments this
+will run.
+
+### Execution
+
+1. Modify `test-engineering/contract-tests/docker-compose.yml`
+
+    In the partner definition, expose port 5000 by adding the following:
+    ```yaml
+    ports:
+      - "5000:5000"
+    ```
+
+    In the Contile definition, expose port 8000 by adding the following:
+    ```yaml
+    ports:
+      - "8000:8000"
+    ```
+
+2. Run Contile and partner docker containers.
+
+   Execute the following from the project root:
+   ```shell
+   docker compose -f test-engineering/contract-tests/docker-compose.yml up contile
+   ```
+
+3. Run the contract tests
+
+    Execute the following from the project root:
+    ```shell
+    CONTILE_URL=http://localhost:8000 \
+        PARTNER_URL=http://localhost:5000 \
+        SCENARIOS_FILE=test-engineering/contract-tests/volumes/client/scenarios.yml \
+        pytest test-engineering/contract-tests/client/tests/test_contile.py --vv
+    ```
+    * Environment variables can alternatively be set in a pytest.ini file or through an 
+      IDE configuration
+    * Tests can be run individually using [-k _expr_][pytest-k]. 
+      
+      Example executing the `success_desktop_windows` scenario:
+      ```shell
+      pytest test-engineering/contract-tests/client/tests/test_contile.py \
+          -k success_desktop_windows
+      ```
+
 [contract_tests_readme]: ../README.md
+[pip-tools]: https://pypi.org/project/pip-tools/
+[tox]: https://pypi.org/project/tox/
+[pytest-k]: https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name
