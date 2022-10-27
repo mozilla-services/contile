@@ -202,7 +202,7 @@ impl AdmFilter {
             for (adv, setting) in advertiser_filters.adm_advertisers {
                 self.all_include_regions.clear();
                 for country in setting.keys() {
-                     self.all_include_regions.insert(country.clone());
+                    self.all_include_regions.insert(country.clone());
                 }
                 self.advertiser_filters
                     .adm_advertisers
@@ -239,10 +239,7 @@ impl AdmFilter {
 
         for filter in filters {
             if host == filter.host {
-                let paths = filter
-                    .paths
-                    .as_ref()
-                    .unwrap_or_else(|| &DEFAULT_PATH_FILTER);
+                let paths = filter.paths.as_ref().unwrap_or(&DEFAULT_PATH_FILTER);
                 for rule in paths {
                     match rule.matching {
                         // Note that the original path is used for exact matching
