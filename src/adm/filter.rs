@@ -9,6 +9,7 @@ use std::{
 
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
+use cadence::{CountedExt, StatsdClient};
 use lazy_static::lazy_static;
 use tokio::sync::RwLock;
 use url::Url;
@@ -106,6 +107,7 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
 pub async fn spawn_updater(
     filter: &Arc<RwLock<AdmFilter>>,
     storage_client: cloud_storage::Client,
+    metrics: Arc<StatsdClient>,
 ) -> HandlerResult<()> {
     if !filter.read().await.is_cloud() {
         return Ok(());
@@ -116,9 +118,13 @@ pub async fn spawn_updater(
         loop {
             let mut filter = mfilter.write().await;
             match filter.requires_update(&storage_client).await {
-                Ok(true) => filter.update(&storage_client).await.unwrap_or_else(|e| {
-                    filter.report(&e, &mut tags);
-                }),
+                Ok(true) => {
+                    metrics.incr("adm.filter.update").ok();
+                    filter.update(&storage_client).await.unwrap_or_else(|e| {
+                        metrics.incr("adm.filter.update.error").ok();
+                        filter.report(&e, &mut tags);
+                    })
+                }
                 Ok(false) => {}
                 Err(e) => {
                     filter.report(&e, &mut tags);
