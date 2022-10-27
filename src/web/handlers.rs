@@ -40,8 +40,7 @@ pub async fn get_tiles(
         .partner_filter
         .read()
         .await
-        .defaults
-        .include_regions
+        .all_include_regions
         .contains(&location.country())
     {
         trace!("get_tiles: country not included: {:?}", location.country());

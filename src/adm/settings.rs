@@ -264,9 +264,6 @@ pub struct AdmDefaults {
     pub(crate) image_hosts: Vec<Vec<String>>,
     /// valid position for the tile
     pub(crate) position: Option<u8>,
-    /// Optional set of valid countries for the tile (e.g ["US", "GB"])
-    #[serde(default)]
-    pub(crate) include_regions: Vec<String>,
     pub(crate) ignore_advertisers: Option<Vec<String>>,
     pub(crate) ignore_dmas: Option<Vec<u8>>,
 }
@@ -521,6 +518,14 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
                 .map_err(|e| ConfigError::Message(format!("Could not read ADM Settings: {:?}", e)))
                 .unwrap()
         };
+
+        let mut all_include_regions = HashSet::new();
+        for (_, setting) in advertiser_filters.clone().adm_advertisers {
+            for country in setting.keys() {
+                all_include_regions.insert(country.clone());
+            }
+        }
+
         let ignore_list: HashSet<String> = serde_json::from_str(&ignore_list).map_err(|e| {
             HandlerError::internal(&format!("Invalid ADM Ignore list specification: {:?}", e))
         })?;
@@ -531,6 +536,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             advertiser_filters,
             ignore_list,
             legacy_list,
+            all_include_regions,
             last_updated: source.starts_with("gs://").then(chrono::Utc::now),
             source: Some(source),
             source_url,

@@ -48,6 +48,7 @@ pub struct AdmFilter {
     /// Temporary list of advertisers with legacy images built into firefox
     /// for pre 91 tile support.
     pub legacy_list: HashSet<String>,
+    pub all_include_regions: HashSet<String>,
     pub source: Option<String>,
     pub source_url: Option<url::Url>,
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
@@ -199,10 +200,9 @@ impl AdmFilter {
                     })?;
             self.advertiser_filters.adm_advertisers.clear();
             for (adv, setting) in advertiser_filters.adm_advertisers {
+                self.all_include_regions.clear();
                 for country in setting.keys() {
-                    if !self.defaults.include_regions.contains(country) {
-                        self.defaults.include_regions.push(country.clone());
-                    }
+                     self.all_include_regions.insert(country.clone());
                 }
                 self.advertiser_filters
                     .adm_advertisers
