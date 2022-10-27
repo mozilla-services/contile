@@ -29,6 +29,7 @@ lazy_static! {
         all.extend(opt_click_params);
         all
     };
+    static ref DEFAULT_PATH_FILTER: Vec<PathFilter> = vec![PathFilter::default()];
 }
 
 #[allow(rustdoc::private_intra_doc_links)]
