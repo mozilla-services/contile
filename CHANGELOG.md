@@ -1,3 +1,78 @@
+<a name="1.9.0"></a>
+## 1.9.0 (2022-10-26)
+
+
+#### Chore
+
+*   don't unpin the rust version (#455) ([d9e6b452](https://github.com/mozilla-services/contile/commit/d9e6b452357dae13b3fffc579f6b4974fe3516a4))
+*   Quarterly dependency updates (#454) ([56b6e239](https://github.com/mozilla-services/contile/commit/56b6e23912ae580234bb68579a78bf0ac74f9d9e))
+*   update rust (to 1.62.1, the latest circleci image) (#435) ([58007a34](https://github.com/mozilla-services/contile/commit/58007a341cc6502594c1b765010041f3cb1ab8e5))
+*   update python requirements in contract-tests (#414) ([4b89c8aa](https://github.com/mozilla-services/contile/commit/4b89c8aa65d314f98edfa1fef202af95fce0b075))
+*   prefer CIRCLE_SHA1 vs CIRCLE_TAG in circle's cache key (#381) ([0d820002](https://github.com/mozilla-services/contile/commit/0d820002a515f3c27028e07fd39728ccade791cc), closes [#380](https://github.com/mozilla-services/contile/issues/380))
+* **deps:**
+  *  bump fastapi in /test-engineering/contract-tests/partner (#452) ([35eb9337](https://github.com/mozilla-services/contile/commit/35eb9337d7f97e78860b75ef888bafd5bde1537c))
+  *  bump pydantic in /test-engineering/contract-tests/client (#450) ([0996baa9](https://github.com/mozilla-services/contile/commit/0996baa9d1d223a3b8741e844d803bdb6c25abfc))
+  *  bump pytest in /test-engineering/contract-tests/client (#449) ([b22a9618](https://github.com/mozilla-services/contile/commit/b22a9618449c38c6d0093d255f6ab2b289563826))
+  *  bump fastapi in /test-engineering/contract-tests/partner (#448) ([70b476ce](https://github.com/mozilla-services/contile/commit/70b476ce87cecb18896fb1bbbb485ae051471bcb))
+  *  bump pydantic in /test-engineering/contract-tests/client (#444) ([7c34d6c0](https://github.com/mozilla-services/contile/commit/7c34d6c0cbc0b3e37d02c7370f6a401cab87de9a))
+  *  bump fastapi in /test-engineering/contract-tests/partner (#443) ([99ce0dc1](https://github.com/mozilla-services/contile/commit/99ce0dc1279084540581c0fb8b3e6820cfa420d8))
+  *  bump uvicorn[standard] (#442) ([c47f6251](https://github.com/mozilla-services/contile/commit/c47f6251d9f8f5d26dff7da027da167e9cf38d4a))
+  *  bump fastapi in /test-engineering/contract-tests/partner (#441) ([bbbcdffa](https://github.com/mozilla-services/contile/commit/bbbcdffa3d1cdea25d32ac6a848af9956268eea6))
+  *  bump fastapi in /test-engineering/contract-tests/partner (#437) ([b01e6a96](https://github.com/mozilla-services/contile/commit/b01e6a96653a7e86fa0c5e47a999c7fa4581ff29))
+  *  bump pydantic in /test-engineering/contract-tests/client (#434) ([13c2907d](https://github.com/mozilla-services/contile/commit/13c2907dc0bc24865709547139a935c63b87cb29))
+  *  bump fastapi in /test-engineering/contract-tests/partner (#421) ([50381f7e](https://github.com/mozilla-services/contile/commit/50381f7e4560d3dfb811473981ade0c929a63904))
+* **deps-dev:**
+  *  bump black in /test-engineering/contract-tests/client (#466) ([2a7ece01](https://github.com/mozilla-services/contile/commit/2a7ece0177008e197c5feb9f20c1c04a2a32f805))
+  *  bump types-requests (#465) ([539c9740](https://github.com/mozilla-services/contile/commit/539c974045d97680383c524e68d7e1332840438d))
+  *  bump mypy in /test-engineering/contract-tests/client (#461) ([f35dfd13](https://github.com/mozilla-services/contile/commit/f35dfd13a11efc2459529bd67c4786d64c0ba947))
+  *  bump types-pyyaml (#459) ([f0416d5c](https://github.com/mozilla-services/contile/commit/f0416d5cb7815458d63dc9eaa42c93d85ea95cfd))
+  *  bump types-requests (#463) ([c03f8a60](https://github.com/mozilla-services/contile/commit/c03f8a60fcb99b0b5da711910a18d11cda128139))
+  *  bump types-requests (#447) ([ffbe2ff7](https://github.com/mozilla-services/contile/commit/ffbe2ff754fbade7ed09e56eaa2e7906f548376e))
+  *  bump black in /test-engineering/contract-tests/client (#445) ([75a926f7](https://github.com/mozilla-services/contile/commit/75a926f7e957c4c04f80b467202c580671447971))
+  *  bump types-requests (#438) ([a793dfcc](https://github.com/mozilla-services/contile/commit/a793dfcc4563be00a3a50966baa80ffb22f84777))
+  *  bump types-requests (#433) ([e796998c](https://github.com/mozilla-services/contile/commit/e796998cfbc1fe914b973d5a6ff269472e8d462b))
+  *  bump types-pyyaml (#429) ([f3e589b3](https://github.com/mozilla-services/contile/commit/f3e589b3d238e722b9937a14ddfa6947ed72480d))
+  *  bump types-requests (#432) ([a8ba12c0](https://github.com/mozilla-services/contile/commit/a8ba12c021aa8971632bc8f576a0a81c3e274370))
+  *  bump types-requests (#424) ([106ee19a](https://github.com/mozilla-services/contile/commit/106ee19ae2b89c1b6e3cc2ba4e0c9427210f8a31))
+  *  bump mypy in /test-engineering/contract-tests/client (#425) ([1941940e](https://github.com/mozilla-services/contile/commit/1941940e40efbd7f21a589f04e502180a7777f2e))
+  *  bump types-pyyaml (#418) ([3489f703](https://github.com/mozilla-services/contile/commit/3489f703553598d14f145ef7585da27d1db245a5))
+  *  bump types-pyyaml (#419) ([e4fad1f5](https://github.com/mozilla-services/contile/commit/e4fad1f5416124bf9bc6d305af4092d588f1e1ee))
+  *  bump types-requests (#420) ([9dfedb10](https://github.com/mozilla-services/contile/commit/9dfedb10871aa09d736b03f81dcc17fabf415692))
+
+#### Features
+
+*   move common connect/timeout errors from sentry to metrics (#471) ([f98b8104](https://github.com/mozilla-services/contile/commit/f98b8104a3af30de68e5c7189b9057d5b4798440), closes [#467](https://github.com/mozilla-services/contile/issues/467))
+*   add the fallback protocol (#464) ([56ee834f](https://github.com/mozilla-services/contile/commit/56ee834fb02dd0311ceeae3106d1daa765ab1da0), closes [#305](https://github.com/mozilla-services/contile/issues/305), [#376](https://github.com/mozilla-services/contile/issues/376))
+*   upgrade to actix-web 4 (#387) ([bd526568](https://github.com/mozilla-services/contile/commit/bd526568cccae1ce42890e3c7c7691b83e3b80d1), closes [#386](https://github.com/mozilla-services/contile/issues/386))
+*   add tags to ADM errors. (#385) ([f6876cf6](https://github.com/mozilla-services/contile/commit/f6876cf679afe62feffde0b95032b9cf26782adb), closes [#384](https://github.com/mozilla-services/contile/issues/384))
+
+#### Doc
+
+*   Add test & debugging doc (#451) ([22a62ceb](https://github.com/mozilla-services/contile/commit/22a62ceb9ddf7b4bc00e2bb1723df5bdf1ed18ce))
+
+#### Bug Fixes
+
+*   don't panic gen_range with an empty range (#428) ([c6218b1d](https://github.com/mozilla-services/contile/commit/c6218b1dd278373ee3ced3086b313e40cc2ae55f), closes [#427](https://github.com/mozilla-services/contile/issues/427))
+*   Add get_id_token function and Authorization header ([7e1f090c](https://github.com/mozilla-services/contile/commit/7e1f090c655af9beba658bd9bfee21e83a2769f1))
+*   add check for image_hosts (#378) ([f9649c50](https://github.com/mozilla-services/contile/commit/f9649c501f7c657b8217066c26031e1a446cb9e2))
+
+#### Test
+
+*   add contract tests for tiles caching (#431) ([8e43e071](https://github.com/mozilla-services/contile/commit/8e43e07181e84718328db98cb837bfa6b3ca0cc1))
+*   update contract-tests sequence diagram (#426) ([8ab95c12](https://github.com/mozilla-services/contile/commit/8ab95c127071ea302dd6194545d680600cea4abf))
+*   add capability to specify service in client scenarios step (#422) ([9d95f7ef](https://github.com/mozilla-services/contile/commit/9d95f7ef98a69b9f62851f32c9d54e4f2b67e21c))
+*   add capability of querying and clearing record of requests to partner API (#415) ([0b9c0f7d](https://github.com/mozilla-services/contile/commit/0b9c0f7d21851804b248e984cf95b8742a00d35e))
+*   Merge contile-integration-test repository into contile ([885c9786](https://github.com/mozilla-services/contile/commit/885c9786946337fe28034873fe58cfd9015efa37))
+*   upgrade contile-integration-tests Docker images v22.1.2 (#398) ([82100167](https://github.com/mozilla-services/contile/commit/821001672d8f8e982cda26f9486fef647699b966))
+*   rename contile integration tests to contract tests (#391) ([e4d93310](https://github.com/mozilla-services/contile/commit/e4d9331039c86a52014a1a34b02c66f8e5d241de))
+*   return JSON in response content for smoke tests (#395) ([c5fa2abc](https://github.com/mozilla-services/contile/commit/c5fa2abcc2d75a39ca306fb2f8ac5fe1c15a34be))
+
+#### Refactor
+
+*   Use async friendly RwLocks in async code paths (#394) ([64a401b7](https://github.com/mozilla-services/contile/commit/64a401b7ea8f47887d9157a1d8542821fe7917e9))
+
+
+
 <a name="1.8.1"></a>
 ## 1.8.1 (2022-09-29)
 
