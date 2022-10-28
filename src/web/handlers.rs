@@ -145,6 +145,7 @@ pub async fn get_tiles(
                 response,
                 settings.tiles_ttl_with_jitter(),
                 settings.tiles_fallback_ttl_with_jitter(),
+                settings.excluded_countries_200,
             )?;
             trace!(
                 "get_tiles: cache miss{}: {:?}",
@@ -173,6 +174,7 @@ pub async fn get_tiles(
                     tiles: Tiles::empty(
                         settings.tiles_ttl_with_jitter(),
                         settings.tiles_fallback_ttl_with_jitter(),
+                        settings.excluded_countries_200,
                     ),
                 });
                 // Report the error directly to sentry

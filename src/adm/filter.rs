@@ -380,7 +380,6 @@ impl AdmFilter {
         device_info: &DeviceInfo,
         tags: &mut Tags,
         metrics: &Metrics,
-        no_country: &mut bool,
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
@@ -398,7 +397,6 @@ impl AdmFilter {
                         location.country()
                     );
                     metrics.incr_with_tags("filter.adm.err.invalid_location", Some(tags));
-                    *no_country = true;
                     return Ok(None);
                 }
                 // match to the version that we switched over from built in image management

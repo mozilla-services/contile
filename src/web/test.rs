@@ -385,6 +385,7 @@ async fn basic_all_bad_reply() {
         adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
         ..get_test_settings()
     };
+    settings.excluded_countries_200 = false;
     let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
@@ -611,6 +612,7 @@ async fn empty_tiles() {
         adm_settings: adm_settings_json.to_string(),
         ..get_test_settings()
     };
+    settings.excluded_countries_200 = false;
     let app = init_app!(settings).await;
 
     let req = test::TestRequest::get()
