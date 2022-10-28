@@ -380,6 +380,7 @@ impl AdmFilter {
         device_info: &DeviceInfo,
         tags: &mut Tags,
         metrics: &Metrics,
+        no_country: &mut bool,
     ) -> HandlerResult<Option<Tile>> {
         // Use strict matching for now, eventually, we may want to use backwards expanding domain
         // searches, (.e.g "xyz.example.com" would match "example.com")
@@ -392,13 +393,12 @@ impl AdmFilter {
                 // Apply any additional tile filtering here.
                 if filter.get(&location.country()).is_none() {
                     trace!(
-                        "Rejecting tile: region {:?} not included",
+                        "Rejecting tile: {:?} region {:?} not included",
+                        &tile.name,
                         location.country()
                     );
                     metrics.incr_with_tags("filter.adm.err.invalid_location", Some(tags));
-                    if self.excluded_countries_200 {
-                        return Err(HandlerErrorKind::NoTilesForCountry(location.country()).into());
-                    }
+                    *no_country = true;
                     return Ok(None);
                 }
                 // match to the version that we switched over from built in image management
@@ -446,6 +446,7 @@ impl AdmFilter {
                     );
                     return Ok(None);
                 }
+                trace!("allowing tile {:?}", &tile.name);
                 Ok(Some(Tile::from_adm_tile(tile)))
             }
             None => {

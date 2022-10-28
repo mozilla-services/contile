@@ -135,6 +135,7 @@ pub async fn get_tiles(
     headers: Option<&HeaderMap>,
 ) -> HandlerResult<TileResponse> {
     let settings = &state.settings;
+    let mut no_country: bool = false;
     let image_store = &state.img_store;
     let pse = AdmPse::appropriate_from_settings(&device_info, settings);
     let adm_url = Url::parse_with_params(
@@ -251,13 +252,15 @@ pub async fn get_tiles(
 
     let mut filtered: Vec<Tile> = Vec::new();
     let iter = response.tiles.into_iter();
+    let filter = state.partner_filter.read().await;
     for tile in iter {
-        if let Some(tile) = state.partner_filter.read().await.filter_and_process(
+        if let Some(tile) = filter.filter_and_process(
             tile,
             location,
             &device_info,
             tags,
             metrics,
+            &mut no_country,
         )? {
             filtered.push(tile);
         }
@@ -291,6 +294,9 @@ pub async fn get_tiles(
     if tiles.is_empty() {
         warn!("adm::get_tiles no valid tiles {}", adm_url);
         metrics.incr_with_tags("filter.adm.all_filtered", Some(tags));
+        if no_country && settings.excluded_countries_200 {
+            return Err(HandlerErrorKind::NoTilesForCountry(location.country()).into());
+        }
     }
 
     Ok(TileResponse { tiles })

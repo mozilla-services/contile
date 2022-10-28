@@ -448,6 +448,43 @@ async fn basic_filtered() {
 }
 
 #[actix_web::test]
+async fn basic_filtered2() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    // Ensure the filtering process returns unfiltered Tiles
+    let filters = json!({"adm_advertisers":{
+        "Acme": {
+            "US": [{ "host": "www.acme.biz" }],
+         },
+        "Dunder Mifflin": {
+        },
+        "Los Pollos Hermanos": {
+        },
+    }
+
+    })
+    .to_string();
+    let adm_settings = filters;
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings,
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert_eq!(tiles.len(), 1);
+    let tile1 = &tiles[0];
+    assert_eq!(tile1["name"], "Acme");
+}
+
+#[actix_web::test]
 async fn basic_default() {
     let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
 
