@@ -1,46 +1,41 @@
-{"DEFAULT": {
-    "advertiser_urls": [{ "host": "example.com" }],
-    "impression_hosts": ["example.net"],
-    "click_hosts":["example.com"],
-    "include_regions": [
-        "US",
-        "GB",
-        "IT",
-        "AU",
-        "CA",
-        "DE",
-        "FR",
-        "ES",
-        "IN",
-        "MX",
-        "CN"
-    ]
-},
-"Acme": {
-    "advertiser_urls": [
-        { "host": "www.acme.biz",
-            "paths": [
-                {
-                    "value": "/",
-                    "matching": "exact"
-                }
-            ]
-        },
-        { "host": "acme.biz" }
-    ],
-    "position": 0
-},
-"Dunder Mifflin": {
-    "advertiser_urls": [
-        { "host": "www.dunderm.biz" },
-        { "host": "dunderm.biz" }
-    ],
-    "position": 1
-},
-"Los Pollos Hermanos": {
-    "advertiser_urls": [
-        { "host": "www.lph-nm.biz" },
-        { "host": "lph-mx.co.mx" }
-    ]
-}
+{
+   "adm_advertisers":{
+      "Acme":{
+         "US":[
+            {
+               "host":"www.acme.biz",
+               "paths":[
+                  {
+                     "value":"/",
+                     "matching":"exact"
+                  }
+               ]
+            },
+            {
+               "host":"acme.biz"
+            }
+         ]
+      },
+      "Dunder Mifflin":{
+         "US":[
+            {
+               "host":"www.dunderm.biz"
+            },
+            {
+               "host":"dunderm.biz"
+            }
+         ],
+         "position":1
+      },
+      "Los Pollos Hermanos":{
+         "MX":[
+            {
+               "host":"www.lph-nm.biz"
+            },
+            {
+               "host":"lph-mx.co.mx"
+            }
+         ]
+      }
+   }
 }

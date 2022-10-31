@@ -208,7 +208,7 @@ mod tests {
         }
         assert!(err.tags.extra.get("ua") == Some(&ua_str.to_owned()));
         assert!(err.tags.extra.get("name") == Some(&"chrome".to_owned()));
-        dbg!(err.tags);
+        trace!("tags: {:?}", err.tags);
     }
 
     #[test]

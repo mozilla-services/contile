@@ -37,7 +37,7 @@ pub async fn get_tiles(
 
     let settings = &state.settings;
     if !state
-        .filter
+        .partner_filter
         .read()
         .await
         .all_include_regions
@@ -56,7 +56,6 @@ pub async fn get_tiles(
         };
         return Ok(response);
     }
-
     let audience_key = cache::AudienceKey {
         country_code: location.country(),
         region_code: if location.region() != "" {
@@ -146,6 +145,7 @@ pub async fn get_tiles(
                 response,
                 settings.tiles_ttl_with_jitter(),
                 settings.tiles_fallback_ttl_with_jitter(),
+                settings.excluded_countries_200,
             )?;
             trace!(
                 "get_tiles: cache miss{}: {:?}",
@@ -174,6 +174,7 @@ pub async fn get_tiles(
                     tiles: Tiles::empty(
                         settings.tiles_ttl_with_jitter(),
                         settings.tiles_fallback_ttl_with_jitter(),
+                        settings.excluded_countries_200,
                     ),
                 });
                 // Report the error directly to sentry
