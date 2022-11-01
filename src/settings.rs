@@ -1,13 +1,12 @@
 //! Application settings objects and initialization
 
-use std::{convert::TryFrom, path::PathBuf, time::Duration};
+use std::{path::PathBuf, time::Duration};
 
 use actix_web::{dev::ServiceRequest, web::Data, HttpRequest};
 use config::{Config, ConfigError, Environment, File};
 use rand::{thread_rng, Rng};
 use serde::Deserialize;
 
-use crate::adm::AdmFilterSettings;
 use crate::server::{img_storage::StorageSettings, ServerState};
 
 static PREFIX: &str = "contile";
@@ -35,9 +34,6 @@ impl std::fmt::Display for TestModes {
     }
 }
 
-// TODO: Call this `EnvSettings` that serializes into
-// real `Settings`?
-//
 /// Configuration settings and options
 ///
 /// Each of these can be specified as an environment variable by
@@ -131,6 +127,8 @@ pub struct Settings {
     pub adm_ignore_advertisers: Option<String>,
     /// a JSON list of advertisers to allow for versions of firefox less than 91.
     pub adm_has_legacy_image: Option<String>,
+    /// a JSON structure of the default ADM settings
+    pub adm_defaults: Option<String>,
     /// Percentage of overall time for fetch "jitter" (applied to `tiles_ttl` and tiles_fallback_ttl`)
     pub jitter: u8,
 }
@@ -182,6 +180,7 @@ impl Default for Settings {
             adm_has_legacy_image: Some(
                 r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
             ),
+            adm_defaults: None,
             // +/- 10% of time for jitter.
             jitter: 10,
         }
@@ -203,7 +202,6 @@ impl Settings {
 
         // preflight check the storage
         let _ = StorageSettings::from(&*self);
-        AdmFilterSettings::try_from(&mut *self)?;
         Ok(())
     }
 
@@ -215,6 +213,7 @@ impl Settings {
         let mut builder = Config::builder();
         // Merge the config file if supplied
         if let Some(config_filename) = filename {
+            debug!("Reading settings from {}", &config_filename);
             builder = builder.add_source(File::with_name(config_filename));
         }
         // Merge the environment overrides
@@ -222,6 +221,7 @@ impl Settings {
             .add_source(Environment::with_prefix(&PREFIX.to_uppercase()))
             .build()?;
 
+        debug!("deserializing {:?}", &s);
         Ok(match s.try_deserialize::<Self>() {
             Ok(mut s) => {
                 trace!("raw Settings: {:?}", &s);

@@ -148,6 +148,7 @@ impl HandlerErrorKind {
     pub fn as_response_string(&self) -> String {
         match self {
             HandlerErrorKind::General(_) | HandlerErrorKind::Internal(_) => self.to_string(),
+            // Not really an error
             HandlerErrorKind::Reqwest(_) => {
                 "An error occurred while trying to request data".to_string()
             }

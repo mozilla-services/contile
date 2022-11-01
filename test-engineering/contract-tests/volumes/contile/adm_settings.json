@@ -1,104 +1,188 @@
 {
+  "adm_advertisers": {
     "Example COM": {
-        "advertiser_urls": [
+      "AU": [
+        {
+          "host": "www.example.com.au",
+          "paths": [
             {
-                "host": "www.example.com"
-            },
-            {
-                "host": "www.example.co.uk"
-            },
-            {
-                "host": "www.example.it"
-            },
-            {
-                "host": "www.example.com.au"
-            },
-            {
-                "host": "www.example.ca"
-            },
-            {
-                "host": "www.example.de"
-            },
-            {
-                "host": "www.example.fr"
-            },
-            {
-                "host": "www.example.es"
-            },
-            {
-                "host": "www.example.in"
-            },
-            {
-                "host": "www.example.com.mx"
+              "value": "/",
+              "matching": "exact"
             }
-        ],
-        "click_hosts": [],
-        "impression_hosts": [],
-        "include_regions": [],
-        "position": 1
+          ]
+        }
+      ],
+      "CA": [
+        {
+          "host": "www.example.ca",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "CN": [
+        {
+          "host": "www.example.com",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ],
+      "DE": [
+        {
+          "host": "www.example.de",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "ES": [
+        {
+          "host": "www.example.es",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "FR": [
+        {
+          "host": "www.example.fr",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "GB": [
+        {
+          "host": "www.example.co.uk",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        },
+        {
+          "host": "www.example.com",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ],
+      "IN": [
+        {
+          "host": "www.example.in",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "IT": [
+        {
+          "host": "www.example.it",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "MX": [
+        {
+          "host": "www.example.com.mx",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "US": [
+        {
+          "host": "www.example.com",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ]
     },
     "Example ORG": {
-        "advertiser_urls": [
+      "CN": [
+        {
+          "host": "www.example.org",
+          "paths": [
             {
-                "host": "www.example.org"
+              "value": "/",
+              "matching": "prefix"
             }
-        ],
-        "click_hosts": [
-            "example.org"
-        ],
-        "impression_hosts": [
-            "example.org"
-        ],
-        "include_regions": [],
-        "position": 1
+          ]
+        }
+      ],
+      "GB": [
+        {
+          "host": "www.example.org",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ],
+      "US": [
+        {
+          "host": "www.example.org",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ]
     },
     "DunBroch": {
-        "advertiser_urls": [
+      "GB": [
+        {
+          "host": "www.dunbroch.co.uk",
+          "paths": [
             {
-                "host": "www.dunbroch.co.uk",
-                "paths": [
-                    {
-                        "value": "/gb_desktop_macos/",
-                        "matching": "prefix"
-                    },
-                    {
-                        "value": "/gb_desktop_linux",
-                        "matching": "exact"
-                    }
-                ]
+              "value": "/gb_desktop_macos/",
+              "matching": "prefix"
+            },
+            {
+              "value": "/gb_desktop_linux",
+              "matching": "exact"
             }
-        ],
-        "click_hosts": [
-            "dunbroch.co.uk"
-        ],
-        "impression_hosts": [
-            "dunbroch.co.uk"
-        ],
-        "include_regions": [
-            "GB"
-        ],
-        "position": 2
-    },
-    "DEFAULT": {
-        "advertiser_urls": [],
-        "click_hosts": [
-            "example.com"
-        ],
-        "impression_hosts": [
-            "example.com"
-        ],
-        "include_regions": [
-            "US",
-            "GB",
-            "IT",
-            "AU",
-            "CA",
-            "DE",
-            "FR",
-            "ES",
-            "IN",
-            "MX",
-            "CN"
-        ]
+          ]
+        }
+      ]
     }
+  }
 }

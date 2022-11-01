@@ -1,38 +1,17 @@
 {
+  "adm_advertisers": {
     "DunBroch": {
-        "advertiser_urls": [
+      "GB": [
+        {
+          "host": "www.dunbroch.co.uk",
+          "paths": [
             {
-                "host": "www.dunbroch.co.uk",
-                "paths": [
-                    {
-                        "value": "/gb_desktop",
-                        "matching": "prefix"
-                    }
-                ]
+              "value": "/gb_desktop",
+              "matching": "prefix"
             }
-        ],
-        "click_hosts": [
-            "dunbroch.co.uk"
-        ],
-        "impression_hosts": [
-            "dunbroch.co.uk"
-        ],
-        "include_regions": [
-            "GB"
-        ],
-        "position": 2
-    },
-    "DEFAULT": {
-        "advertiser_urls": [],
-        "click_hosts": [
-            "example.com"
-        ],
-        "impression_hosts": [
-            "example.com"
-        ],
-        "include_regions": [
-            "US",
-            "GB"
-        ]
+          ]
+        }
+      ]
     }
+  }
 }

@@ -41,7 +41,7 @@ pub struct ServerState {
     pub reqwest_client: reqwest::Client,
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
-    pub filter: Arc<RwLock<AdmFilter>>,
+    pub partner_filter: Arc<RwLock<AdmFilter>>,
     pub img_store: Option<ImageStore>,
     pub excluded_dmas: Option<Vec<u16>>,
     pub start_up: Instant,
@@ -54,7 +54,7 @@ impl Clone for ServerState {
             reqwest_client: self.reqwest_client.clone(),
             tiles_cache: self.tiles_cache.clone(),
             settings: self.settings.clone(),
-            filter: self.filter.clone(),
+            partner_filter: self.partner_filter.clone(),
             img_store: self.img_store.clone(),
             excluded_dmas: self.excluded_dmas.clone(),
             start_up: self.start_up,
@@ -116,13 +116,15 @@ impl Server {
         let storage_client = cloud_storage::Client::builder()
             .client(req.clone())
             .build()?;
-        let mut raw_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
+        let mut partner_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         // try to update from the bucket if possible.
-        if raw_filter.is_cloud() {
-            raw_filter.update(&storage_client).await?
+        if partner_filter.is_cloud() {
+            partner_filter.update(&storage_client).await?
         }
-        let filter = Arc::new(RwLock::new(raw_filter));
-        spawn_updater(&filter, storage_client, Arc::clone(&metrics)).await?;
+        let refresh_rate = partner_filter.refresh_rate;
+        let is_cloud = partner_filter.is_cloud();
+        let filter = Arc::new(RwLock::new(partner_filter));
+        spawn_updater(is_cloud, refresh_rate, &filter, storage_client, Arc::clone(&metrics))?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let img_store = ImageStore::create(&settings, Arc::clone(&metrics), &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
@@ -137,7 +139,7 @@ impl Server {
             reqwest_client: req,
             tiles_cache: tiles_cache.clone(),
             settings: settings.clone(),
-            filter,
+            partner_filter: filter,
             img_store,
             excluded_dmas,
             start_up: Instant::now(),

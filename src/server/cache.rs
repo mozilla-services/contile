@@ -186,6 +186,8 @@ pub struct Tiles {
     /// upstream service outages). `fallback_expiry` is when we stop serving
     /// this stale Tiles completely
     fallback_expiry: SystemTime,
+    /// Return OK instead of NoContent
+    always_ok: bool,
 }
 
 impl Tiles {
@@ -193,8 +195,9 @@ impl Tiles {
         tile_response: TileResponse,
         ttl: Duration,
         fallback_ttl: Duration,
+        always_ok: bool,
     ) -> Result<Self, HandlerError> {
-        let empty = Self::empty(ttl, fallback_ttl);
+        let empty = Self::empty(ttl, fallback_ttl, always_ok);
         if tile_response.tiles.is_empty() {
             return Ok(empty);
         }
@@ -206,11 +209,12 @@ impl Tiles {
         })
     }
 
-    pub fn empty(ttl: Duration, fallback_ttl: Duration) -> Self {
+    pub fn empty(ttl: Duration, fallback_ttl: Duration, always_ok: bool) -> Self {
         Self {
             content: TilesContent::Empty,
             expiry: SystemTime::now() + ttl,
             fallback_expiry: SystemTime::now() + fallback_ttl,
+            always_ok,
         }
     }
 
@@ -234,7 +238,11 @@ impl Tiles {
                     .body(json.to_owned())
             }
             TilesContent::Empty => {
-                let mut builder = HttpResponse::NoContent();
+                let mut builder = if self.always_ok {
+                    HttpResponse::Ok()
+                } else {
+                    HttpResponse::NoContent()
+                };
                 if cache_control_header {
                     builder.insert_header(self.cache_control_header());
                 }

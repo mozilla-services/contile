@@ -303,7 +303,7 @@ scenarios:
                 impression_url: 'https://example.org/gb_desktop_macos?id=0002'
                 url: 'https://www.example.org/gb_desktop_macos'
 
-  - name: success_200_OK_exluded_region
+  - name: success_200_OK_excluded_region
     description: Test that Contile returns a 200 OK with an empty tiles array for excluded regions
     steps:
       - request:
@@ -411,7 +411,7 @@ scenarios:
 
   - name: success_tiles_cache_expired
     description: >
-      Test that Contile requests tiles from the partner, when its cached tiles are 
+      Test that Contile requests tiles from the partner, when its cached tiles are
       expired
     steps:
       - request:
@@ -498,7 +498,7 @@ scenarios:
                     - name: accept
                       value: '*/*'
                     - name: user-agent
-                      value: 'contile/1.8.1'
+                      value: 'contile/1.9.0'
                     - name: host
                       value: 'partner:5000'
                   path: '/tilesp/desktop'

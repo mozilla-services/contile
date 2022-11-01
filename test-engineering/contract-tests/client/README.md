@@ -3,8 +3,8 @@
 This directory contains a Python-based test framework for the contract tests.
 The HTTP client used in the framework supports:
 
-* Requests for tiles from the MTS, with response checks. 
-* Requests for the history of requests from the MTS to the partner API with response 
+* Requests for tiles from the MTS, with response checks.
+* Requests for the history of requests from the MTS to the partner API with response
 checks.
 
 The framework implements response models for the MTS and partner APIs.
@@ -22,7 +22,7 @@ and steps.
 
 #### Contile Service
 
-* To direct requests to the MTS service, set the `service` value of `request` to 
+* To direct requests to the MTS service, set the `service` value of `request` to
 `contile`
 * The expected content for a `200 OK` response is a collection of tiles.
 
@@ -57,7 +57,7 @@ Example:
 
 #### Partner Service
 
-* To direct requests to the partner service, set the `service` value of `request` to 
+* To direct requests to the partner service, set the `service` value of `request` to
 `partner`
 * The expected content for a `200 OK` response is a collection of records.
     * Each `record` represents a distinct request made by the MTS to the partner.
@@ -84,7 +84,7 @@ Example:
               - name: accept
                 value: '*/*'
               - name: user-agent
-                value: 'contile/1.8.0'
+                value: 'contile/1.8.2'
               - name: host
                 value: 'partner:5000'
             path: '/tilesp/desktop'

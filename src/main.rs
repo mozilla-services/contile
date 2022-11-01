@@ -15,11 +15,13 @@ Usage: contile [options]
 Options:
     -h, --help               Show this message.
     --config=CONFIGFILE      Configuration file path.
+    --debug-settings         Turn on logging to Debug settings
 ";
 
 #[derive(Debug, Deserialize)]
 struct Args {
     flag_config: Option<String>,
+    flag_debug_settings: Option<bool>,
 }
 
 use contile::{logging, server, settings};
@@ -29,6 +31,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
+    // Optionally turn on logging easier to display any errors around
+    // logging intialization.
+    if Some(true) == args.flag_debug_settings {
+        init_logging(true).expect("could not initilalize logging");
+    }
     let settings = settings::Settings::with_env_and_config_file(&args.flag_config, false)?;
     init_logging(!settings.human_logs).expect("Logging failed to init");
     debug!("Intitializing... {}:{}", &settings.host, &settings.port);
