@@ -12,6 +12,7 @@ use actix_web::{
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
+use crate::web::handlers::EMPTY_TILES;
 use crate::{
     adm::TileResponse,
     error::HandlerError,
@@ -246,7 +247,11 @@ impl Tiles {
                 if cache_control_header {
                     builder.insert_header(self.cache_control_header());
                 }
-                builder.finish()
+                if self.always_ok {
+                    builder.body(EMPTY_TILES.as_str())
+                } else {
+                    builder.finish()
+                }
             }
         }
     }

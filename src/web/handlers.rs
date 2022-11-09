@@ -17,8 +17,9 @@ use crate::{
 };
 
 lazy_static! {
-    static ref EMPTY_TILES: String = serde_json::to_string(&adm::TileResponse { tiles: vec![] })
-        .expect("Couldn't serialize EMPTY_TILES");
+    pub static ref EMPTY_TILES: String =
+        serde_json::to_string(&adm::TileResponse { tiles: vec![] })
+            .expect("Couldn't serialize EMPTY_TILES");
 }
 
 /// Handler for `.../v1/tiles` endpoint
