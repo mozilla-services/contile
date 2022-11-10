@@ -248,7 +248,9 @@ impl Tiles {
                     builder.insert_header(self.cache_control_header());
                 }
                 if self.always_ok {
-                    builder.body(EMPTY_TILES.as_str())
+                    builder
+                        .content_type("application/json")
+                        .body(EMPTY_TILES.as_str())
                 } else {
                     builder.finish()
                 }

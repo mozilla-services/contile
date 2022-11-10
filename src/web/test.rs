@@ -661,6 +661,16 @@ async fn empty_tiles_returns_no_content() {
         .insert_header((header::USER_AGENT, UA_91))
         .to_request();
     let resp = test::call_service(&app, req).await;
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
     assert_eq!(resp.status(), StatusCode::OK);
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
@@ -672,7 +682,18 @@ async fn empty_tiles_returns_no_content() {
         .insert_header((header::USER_AGENT, UA_91))
         .to_request();
     let resp = test::call_service(&app, req).await;
+
     assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert_eq!(tiles.len(), 0);
