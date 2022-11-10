@@ -4,6 +4,7 @@ use std::{
 
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
+use cadence::{CountedExt, StatsdClient};
 use lazy_static::lazy_static;
 use tokio::sync::RwLock;
 use url::Url;
@@ -108,6 +109,7 @@ pub fn spawn_updater(
     refresh_rate: Duration,
     filter: &Arc<RwLock<AdmFilter>>,
     storage_client: cloud_storage::Client,
+    metrics: Arc<StatsdClient>,
 ) -> HandlerResult<()> {
     {
         if !(is_cloud) {
@@ -121,8 +123,10 @@ pub fn spawn_updater(
             {
                 match mfilter.read().await.requires_update(&storage_client).await {
                     Ok(true) => {
+                        metrics.incr("adm.filter.update").ok();
                         let mut filter = mfilter.write().await;
                         filter.update(&storage_client).await.unwrap_or_else(|e| {
+                            metrics.incr("adm.filter.update.error").ok();
                             filter.report(&e, &mut tags);
                         });
                     }

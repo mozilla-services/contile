@@ -124,7 +124,13 @@ impl Server {
         let refresh_rate = partner_filter.refresh_rate;
         let is_cloud = partner_filter.is_cloud();
         let filter = Arc::new(RwLock::new(partner_filter));
-        spawn_updater(is_cloud, refresh_rate, &filter, storage_client)?;
+        spawn_updater(
+            is_cloud,
+            refresh_rate,
+            &filter,
+            storage_client,
+            Arc::clone(&metrics),
+        )?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
         let img_store = ImageStore::create(&settings, Arc::clone(&metrics), &req).await?;
         let excluded_dmas = if let Some(exclude_dmas) = &settings.exclude_dma {
