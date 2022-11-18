@@ -632,6 +632,74 @@ async fn empty_tiles() {
 }
 
 #[actix_web::test]
+async fn empty_tiles_returns_no_content() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let filters = json!({"adm_advertisers":{
+        "Acme": {
+            "US":[
+                { "host": "www.foo.bar" }
+            ]
+         },
+        "Dunder Mifflin": {
+        },
+        "Los Pollos Hermanos": {
+        },
+    }
+
+    })
+    .to_string();
+    let adm_settings = filters;
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings,
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+    assert_eq!(resp.status(), StatusCode::OK);
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert_eq!(tiles.len(), 0);
+
+    // Ensure same result from cache
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    assert_eq!(tiles.len(), 0);
+}
+
+#[actix_web::test]
 async fn empty_tiles_excluded_country() {
     // ensure that a response where all candidate tiles have been filtered
     // out returns a 200 response.
