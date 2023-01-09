@@ -121,12 +121,13 @@ pub fn spawn_updater(
         let mut tags = crate::tags::Tags::default();
         loop {
             {
+                metrics.incr("filter.adm.update_check").ok();
                 match mfilter.read().await.requires_update(&storage_client).await {
                     Ok(true) => {
-                        metrics.incr("adm.filter.update").ok();
+                        metrics.incr("filter.adm.update").ok();
                         let mut filter = mfilter.write().await;
                         filter.update(&storage_client).await.unwrap_or_else(|e| {
-                            metrics.incr("adm.filter.update.error").ok();
+                            metrics.incr("filter.adm.update.error").ok();
                             filter.report(&e, &mut tags);
                         });
                     }
