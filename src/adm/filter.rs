@@ -4,7 +4,7 @@ use std::{
 
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
-use cadence::{CountedExt, StatsdClient};
+use cadence::{CountedExt, SpyMetricSink, StatsdClient};
 use lazy_static::lazy_static;
 use tokio::sync::RwLock;
 use url::Url;
@@ -13,6 +13,7 @@ use super::{
     settings::AdmAdvertiserSettings,
     tiles::{AdmTile, Tile},
 };
+use crate::web::test::find_metrics;
 use crate::{
     adm::settings::{AdmDefaults, AdvertiserUrlFilter, PathFilter, PathMatching},
     error::{HandlerError, HandlerErrorKind, HandlerResult},
@@ -474,12 +475,11 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
+    use super::{check_url, AdmFilter};
     use crate::adm::settings::AdmAdvertiserSettings;
     use crate::adm::AdmDefaults;
     use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::tags::Tags;
-
-    use super::{check_url, AdmFilter};
 
     #[test]
     fn check_url_matches() {
@@ -741,4 +741,48 @@ mod tests {
             .check_image_hosts(&defaults, &mut tile, &mut tags)
             .is_ok());
     }
+}
+
+#[actix_web::test]
+async fn check_advertiser_metrics() {
+    let s = r#"{"adm_advertisers":{
+            "Acme": {
+                "US": [
+                {
+                    "host": "acme.biz",
+                    "paths": [
+                        { "value": "/ca/", "matching": "prefix" }
+                    ]
+                }
+              ]
+            }
+        }
+    }"#;
+    let advertiser_filters: AdmAdvertiserSettings = serde_json::from_str(s).unwrap();
+    let filter = AdmFilter {
+        advertiser_filters: advertiser_filters.clone(),
+        defaults: AdmDefaults {
+            ..Default::default()
+        },
+        source_url: Some(Url::parse("https://example.net").unwrap()),
+        ..Default::default()
+    };
+    let refresh_rate = Duration::from_secs(9999999999);
+    let adm_filter = Arc::new(RwLock::new(filter));
+
+    let (rx, sink) = SpyMetricSink::new();
+
+    spawn_updater(
+        true,
+        refresh_rate,
+        &adm_filter,
+        cloud_storage::Client::default(),
+        Arc::new(StatsdClient::builder("contile", sink).build()),
+    )
+    .unwrap();
+    rt::time::sleep(Duration::from_secs(1)).await;
+
+    let prefixes = &["contile.filter.adm.update.check.skip"];
+    let metrics = find_metrics(&rx, prefixes);
+    assert_eq!(metrics.len(), 1);
 }
