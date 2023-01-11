@@ -474,16 +474,16 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-    use std::time::Duration;
-    use actix_web::rt;
     use super::{check_url, AdmFilter};
     use crate::adm::settings::AdmAdvertiserSettings;
-    use crate::adm::{AdmDefaults, spawn_updater};
     use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
+    use crate::adm::{spawn_updater, AdmDefaults};
     use crate::tags::Tags;
     use crate::web::test::find_metrics;
+    use actix_web::rt;
     use cadence::{SpyMetricSink, StatsdClient};
+    use std::sync::Arc;
+    use std::time::Duration;
     use tokio::sync::RwLock;
     use url::Url;
 
@@ -748,8 +748,8 @@ mod tests {
             .is_ok());
     }
     #[actix_web::test]
-async fn check_advertiser_metrics() {
-    let s = r#"{"adm_advertisers":{
+    async fn check_advertiser_metrics() {
+        let s = r#"{"adm_advertisers":{
             "Acme": {
                 "US": [
                 {
@@ -762,34 +762,32 @@ async fn check_advertiser_metrics() {
             }
         }
     }"#;
-    let advertiser_filters: AdmAdvertiserSettings = serde_json::from_str(s).unwrap();
-    let filter = AdmFilter {
-        advertiser_filters: advertiser_filters.clone(),
-        defaults: AdmDefaults {
+        let advertiser_filters: AdmAdvertiserSettings = serde_json::from_str(s).unwrap();
+        let filter = AdmFilter {
+            advertiser_filters: advertiser_filters.clone(),
+            defaults: AdmDefaults {
+                ..Default::default()
+            },
+            source_url: Some(Url::parse("https://example.net").unwrap()),
             ..Default::default()
-        },
-        source_url: Some(Url::parse("https://example.net").unwrap()),
-        ..Default::default()
-    };
-    let refresh_rate = Duration::from_secs(9999999999);
-    let adm_filter = Arc::new(RwLock::new(filter));
+        };
+        let refresh_rate = Duration::from_secs(9999999999);
+        let adm_filter = Arc::new(RwLock::new(filter));
 
-    let (rx, sink) = SpyMetricSink::new();
+        let (rx, sink) = SpyMetricSink::new();
 
-    spawn_updater(
-        true,
-        refresh_rate,
-        &adm_filter,
-        cloud_storage::Client::default(),
-        Arc::new(StatsdClient::builder("contile", sink).build()),
-    )
-    .unwrap();
-    rt::time::sleep(Duration::from_secs(1)).await;
+        spawn_updater(
+            true,
+            refresh_rate,
+            &adm_filter,
+            cloud_storage::Client::default(),
+            Arc::new(StatsdClient::builder("contile", sink).build()),
+        )
+        .unwrap();
+        rt::time::sleep(Duration::from_secs(1)).await;
 
-    let prefixes = &["contile.filter.adm.update.check.skip"];
-    let metrics = find_metrics(&rx, prefixes);
-    assert_eq!(metrics.len(), 1);
+        let prefixes = &["contile.filter.adm.update.check.skip"];
+        let metrics = find_metrics(&rx, prefixes);
+        assert_eq!(metrics.len(), 1);
+    }
 }
-
-}
-
