@@ -1,3 +1,25 @@
+<a name="1.10.1"></a>
+## 1.10.1 (2023-01-11)
+
+
+#### Bug Fixes
+
+*   adm update metrics to be consistent (#496) ([bdcefeb6](https://github.com/mozilla-services/contile/commit/bdcefeb6f9614d4282e6de9a536ea21dff14c17e))
+
+#### Chore
+
+*   ignore dotenv rustsec (#497) ([5cde4799](https://github.com/mozilla-services/contile/commit/5cde4799b9eaad90e98dae2f27c0fa868fc51786))
+*   tag 1.10.0 (#488) ([ee32dced](https://github.com/mozilla-services/contile/commit/ee32dcedc56c9b22f3bdf520dc42b5828c560794))
+* **deps**
+  *  bump pydantic in /test-engineering/contract-tests/client (#494) ([6ec2e945](https://github.com/mozilla-services/contile/commit/6ec2e9455367f67f45a5a8ffe7f881f36c34a6fa))
+  *  bump pydantic in /test-engineering/contract-tests/client (#493) ([ee817a48](https://github.com/mozilla-services/contile/commit/ee817a48a6c0000dd10ed99f61c5817cf88fc7ae))
+* **deps-dev**
+  *  bump isort in /test-engineering/contract-tests/client (#492) ([74359184](https://github.com/mozilla-services/contile/commit/7435918481ba89333afa5f0a8d54bb39411c7fd1))
+  *  bump types-requests (#491) ([a2842dd8](https://github.com/mozilla-services/contile/commit/a2842dd8bbc21feb3fb011dcddcdadef952c42b1))
+  *  bump black in /test-engineering/contract-tests/client (#489) ([25a3b685](https://github.com/mozilla-services/contile/commit/25a3b68518e8bc8b65d7448136f9e45f39456cb7))
+
+
+
 <a name="1.10.0"></a>
 ## 1.10.0 (2022-12-14)
 
