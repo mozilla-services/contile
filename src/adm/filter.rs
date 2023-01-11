@@ -474,13 +474,18 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+    use std::time::Duration;
+    use actix_web::rt;
     use super::{check_url, AdmFilter};
     use crate::adm::settings::AdmAdvertiserSettings;
-    use crate::adm::AdmDefaults;
+    use crate::adm::{AdmDefaults, spawn_updater};
     use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::tags::Tags;
     use crate::web::test::find_metrics;
-    use cadence::SpyMetricSink;
+    use cadence::{SpyMetricSink, StatsdClient};
+    use tokio::sync::RwLock;
+    use url::Url;
 
     #[test]
     fn check_url_matches() {
@@ -742,9 +747,7 @@ mod tests {
             .check_image_hosts(&defaults, &mut tile, &mut tags)
             .is_ok());
     }
-}
-
-#[actix_web::test]
+    #[actix_web::test]
 async fn check_advertiser_metrics() {
     let s = r#"{"adm_advertisers":{
             "Acme": {
@@ -787,3 +790,6 @@ async fn check_advertiser_metrics() {
     let metrics = find_metrics(&rx, prefixes);
     assert_eq!(metrics.len(), 1);
 }
+
+}
+
