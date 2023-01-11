@@ -4,7 +4,7 @@ use std::{
 
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
-use cadence::{CountedExt, SpyMetricSink, StatsdClient};
+use cadence::{CountedExt, StatsdClient};
 use lazy_static::lazy_static;
 use tokio::sync::RwLock;
 use url::Url;
@@ -13,7 +13,6 @@ use super::{
     settings::AdmAdvertiserSettings,
     tiles::{AdmTile, Tile},
 };
-use crate::web::test::find_metrics;
 use crate::{
     adm::settings::{AdmDefaults, AdvertiserUrlFilter, PathFilter, PathMatching},
     error::{HandlerError, HandlerErrorKind, HandlerResult},
@@ -480,6 +479,8 @@ mod tests {
     use crate::adm::AdmDefaults;
     use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::tags::Tags;
+    use crate::web::test::find_metrics;
+    use cadence::SpyMetricSink;
 
     #[test]
     fn check_url_matches() {
