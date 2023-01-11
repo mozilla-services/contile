@@ -195,7 +195,7 @@ pub fn advertiser_filters() -> AdmAdvertiserSettings {
 }
 
 /// Find all metric lines emitted from spy with matching prefixes
-fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
+pub fn find_metrics(spy: &Receiver<Vec<u8>>, prefixes: &[&str]) -> Vec<String> {
     spy.try_iter()
         .filter_map(|m| {
             let m = String::from_utf8(m).unwrap();

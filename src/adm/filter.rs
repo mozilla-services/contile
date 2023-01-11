@@ -123,16 +123,23 @@ pub fn spawn_updater(
             {
                 match mfilter.read().await.requires_update(&storage_client).await {
                     Ok(true) => {
-                        metrics.incr("adm.filter.update").ok();
                         let mut filter = mfilter.write().await;
-                        filter.update(&storage_client).await.unwrap_or_else(|e| {
-                            metrics.incr("adm.filter.update.error").ok();
-                            filter.report(&e, &mut tags);
-                        });
+                        match filter.update(&storage_client).await {
+                            Ok(_) => {
+                                metrics.incr("filter.adm.update.ok").ok();
+                            }
+                            Err(e) => {
+                                filter.report(&e, &mut tags);
+                                metrics.incr("filter.adm.update.error").ok();
+                            }
+                        }
                     }
-                    Ok(false) => {}
+                    Ok(false) => {
+                        metrics.incr("filter.adm.update.check.skip").ok();
+                    }
                     Err(e) => {
                         mfilter.read().await.report(&e, &mut tags);
+                        metrics.incr("filter.adm.update.check.error").ok();
                     }
                 }
             }
@@ -467,12 +474,18 @@ impl AdmFilter {
 
 #[cfg(test)]
 mod tests {
-    use crate::adm::settings::AdmAdvertiserSettings;
-    use crate::adm::AdmDefaults;
-    use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
-    use crate::tags::Tags;
-
     use super::{check_url, AdmFilter};
+    use crate::adm::settings::AdmAdvertiserSettings;
+    use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
+    use crate::adm::{spawn_updater, AdmDefaults};
+    use crate::tags::Tags;
+    use crate::web::test::find_metrics;
+    use actix_web::rt;
+    use cadence::{SpyMetricSink, StatsdClient};
+    use std::sync::Arc;
+    use std::time::Duration;
+    use tokio::sync::RwLock;
+    use url::Url;
 
     #[test]
     fn check_url_matches() {
@@ -733,5 +746,48 @@ mod tests {
         assert!(filter
             .check_image_hosts(&defaults, &mut tile, &mut tags)
             .is_ok());
+    }
+    #[actix_web::test]
+    async fn check_advertiser_metrics() {
+        let s = r#"{"adm_advertisers":{
+            "Acme": {
+                "US": [
+                {
+                    "host": "acme.biz",
+                    "paths": [
+                        { "value": "/ca/", "matching": "prefix" }
+                    ]
+                }
+              ]
+            }
+        }
+    }"#;
+        let advertiser_filters: AdmAdvertiserSettings = serde_json::from_str(s).unwrap();
+        let filter = AdmFilter {
+            advertiser_filters: advertiser_filters.clone(),
+            defaults: AdmDefaults {
+                ..Default::default()
+            },
+            source_url: Some(Url::parse("https://example.net").unwrap()),
+            ..Default::default()
+        };
+        let refresh_rate = Duration::from_secs(9999999999);
+        let adm_filter = Arc::new(RwLock::new(filter));
+
+        let (rx, sink) = SpyMetricSink::new();
+
+        spawn_updater(
+            true,
+            refresh_rate,
+            &adm_filter,
+            cloud_storage::Client::default(),
+            Arc::new(StatsdClient::builder("contile", sink).build()),
+        )
+        .unwrap();
+        rt::time::sleep(Duration::from_secs(1)).await;
+
+        let prefixes = &["contile.filter.adm.update.check.skip"];
+        let metrics = find_metrics(&rx, prefixes);
+        assert_eq!(metrics.len(), 1);
     }
 }
