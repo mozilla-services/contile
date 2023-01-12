@@ -98,10 +98,6 @@ fn check_url(url: Url, species: &'static str, filter: &[Vec<String>]) -> Handler
     Err(HandlerErrorKind::UnexpectedHost(species, host).into())
 }
 
-// Clippy complains about the lock being held across the await for `requires_update` and `update`.
-// However these are fairly atomic, and do async calls on the shared filter. Not sure how to avoid
-// those.
-#[allow(clippy::await_holding_lock)]
 /// Background updater.
 ///
 pub fn spawn_updater(
@@ -121,7 +117,9 @@ pub fn spawn_updater(
         let mut tags = crate::tags::Tags::default();
         loop {
             {
-                match mfilter.read().await.requires_update(&storage_client).await {
+                // Do the check inside of a scope so that the read lock can be released right away.
+                let should_update = { mfilter.read().await.requires_update(&storage_client).await };
+                match should_update {
                     Ok(true) => {
                         let mut filter = mfilter.write().await;
                         match filter.update(&storage_client).await {
