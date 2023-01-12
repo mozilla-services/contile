@@ -1,3 +1,13 @@
+<a name="1.10.2"></a>
+## 1.10.2 (2023-01-12)
+
+
+#### Bug Fixes
+
+*   fix: resolve the deadlock in the filter updater (#499)  ([5febfda](https://github.com/mozilla-services/contile/commit/5febfda28f9476f31c3b9575a80337adc671317d))
+
+
+
 <a name="1.10.1"></a>
 ## 1.10.1 (2023-01-11)
 
