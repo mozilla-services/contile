@@ -361,38 +361,6 @@ impl AdmFilter {
         );
         Value::Object(adm_settings).to_string()
     }
-
-    /// Try to fetch the ADM settings from a Google Storage bucket url.
-    pub async fn advertisers_from_settings_bucket(
-        cloud_storage: &cloud_storage::Client,
-        settings_bucket: &url::Url,
-    ) -> Result<AdmAdvertiserSettings, ConfigError> {
-        let settings_str = settings_bucket.as_str();
-        if settings_bucket.scheme() != "gs" {
-            return Err(ConfigError::Message(format!(
-                "Improper bucket URL: {:?}",
-                settings_str
-            )));
-        }
-        let bucket_name = settings_bucket
-            .host()
-            .ok_or_else(|| {
-                ConfigError::Message(format!("Invalid adm settings bucket name {}", settings_str))
-            })?
-            .to_string();
-        let path = settings_bucket.path().trim_start_matches('/');
-        let contents = cloud_storage
-            .object()
-            .download(&bucket_name, path)
-            .await
-            .map_err(|e| ConfigError::Message(format!("Could not download settings: {:?}", e)))?;
-        serde_json::from_str(
-            &String::from_utf8(contents).map_err(|e| {
-                ConfigError::Message(format!("Could not read ADM Settings: {:?}", e))
-            })?,
-        )
-        .map_err(|e| ConfigError::Message(format!("Could not read ADM Settings: {:?}", e)))
-    }
 }
 
 /// Attempt to read the AdmSettings as either a path to a JSON file, or as a JSON string.
@@ -537,7 +505,7 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             ignore_list,
             legacy_list,
             all_include_regions,
-            last_updated: source.starts_with("gs://").then(chrono::Utc::now),
+            last_updated: None,
             source: Some(source),
             source_url,
             refresh_rate: std::time::Duration::from_secs(refresh_rate),

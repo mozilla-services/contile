@@ -112,39 +112,39 @@ pub fn spawn_updater(
             return Ok(());
         }
     }
-    let mfilter = filter.clone();
+    let mfilter = Arc::clone(filter);
     rt::spawn(async move {
-        let mut tags = crate::tags::Tags::default();
         loop {
-            {
-                // Do the check inside of a scope so that the read lock can be released right away.
-                let should_update = { mfilter.read().await.requires_update(&storage_client).await };
-                match should_update {
-                    Ok(true) => {
-                        let mut filter = mfilter.write().await;
-                        match filter.update(&storage_client).await {
-                            Ok(_) => {
-                                metrics.incr("filter.adm.update.ok").ok();
-                            }
-                            Err(e) => {
-                                filter.report(&e, &mut tags);
-                                metrics.incr("filter.adm.update.error").ok();
-                            }
-                        }
-                    }
-                    Ok(false) => {
-                        metrics.incr("filter.adm.update.check.skip").ok();
-                    }
-                    Err(e) => {
-                        mfilter.read().await.report(&e, &mut tags);
-                        metrics.incr("filter.adm.update.check.error").ok();
-                    }
-                }
-            }
+            updater(&mfilter, &storage_client, &metrics).await;
             rt::time::sleep(refresh_rate).await;
         }
     });
     Ok(())
+}
+
+/// Update `AdmFilter` from the Cloud Storage settings if they've been updated
+async fn updater(
+    filter: &Arc<RwLock<AdmFilter>>,
+    storage_client: &cloud_storage::Client,
+    metrics: &Arc<StatsdClient>,
+) {
+    // Do the check before matching so that the read lock can be released right away.
+    let result = filter.read().await.fetch_new_settings(storage_client).await;
+    match result {
+        Ok(Some(new_settings)) => {
+            filter.write().await.update(new_settings);
+            trace!("AdmFilter updated from cloud storage");
+            metrics.incr("filter.adm.update.ok").ok();
+        }
+        Ok(None) => {
+            metrics.incr("filter.adm.update.check.skip").ok();
+        }
+        Err(e) => {
+            trace!("AdmFilter update failed: {:?}", e);
+            metrics.incr("filter.adm.update.check.error").ok();
+            l_sentry::report(&e, &e.tags);
+        }
+    }
 }
 
 /// Filter a given tile data set provided by ADM and validate the various elements
@@ -166,14 +166,15 @@ impl AdmFilter {
         l_sentry::report(error, &merged_tags);
     }
 
-    /// check to see if the bucket has been modified since the last time we updated.
-    pub async fn requires_update(
+    /// Check if the bucket has been modified since the last time we updated,
+    /// returning new `AdmAdvertiserSettings` if so.
+    pub async fn fetch_new_settings(
         &self,
         storage_client: &cloud_storage::Client,
-    ) -> HandlerResult<bool> {
+    ) -> HandlerResult<Option<AdmAdvertiserSettings>> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
-            return Ok(false);
+            return Ok(None);
         }
         if let Some(bucket) = &self.source_url {
             let host = bucket
@@ -182,44 +183,40 @@ impl AdmFilter {
                     HandlerError::internal(&format!("Missing bucket Host {:?}", self.source))
                 })?
                 .to_string();
-            let obj = storage_client
-                .object()
-                .read(&host, bucket.path().trim_start_matches('/'))
-                .await?;
+            let path = bucket.path().trim_start_matches('/');
+            let obj = storage_client.object().read(&host, path).await?;
             if let Some(updated) = self.last_updated {
-                // if the bucket is older than when we last checked, do nothing.
-                return Ok(updated <= obj.updated);
+                // if the object is older than the last update, do nothing
+                if obj.updated < updated {
+                    return Ok(None);
+                }
             };
-            return Ok(true);
+
+            let bytes = storage_client.object().download(&host, path).await?;
+            let contents = String::from_utf8(bytes).map_err(|e| {
+                HandlerErrorKind::General(format!("Could not read ADM Settings: {:?}", e))
+            })?;
+            let new_settings = serde_json::from_str(&contents).map_err(|e| {
+                HandlerErrorKind::General(format!("Could not read ADM Settings: {:?}", e))
+            })?;
+            return Ok(Some(new_settings));
         }
-        Ok(false)
+        Ok(None)
     }
 
-    /// Try to update the ADM filter data from the remote bucket.
-    pub async fn update(&mut self, storage_client: &cloud_storage::Client) -> HandlerResult<()> {
-        if let Some(bucket) = &self.source_url {
-            let advertiser_filters =
-                AdmFilter::advertisers_from_settings_bucket(storage_client, bucket)
-                    .await
-                    .map_err(|e| {
-                        HandlerError::internal(&format!(
-                            "Invalid bucket data in {:?}: {:?}",
-                            self.source, e
-                        ))
-                    })?;
-            self.advertiser_filters.adm_advertisers.clear();
-            for (adv, setting) in advertiser_filters.adm_advertisers {
-                self.all_include_regions.clear();
-                for country in setting.keys() {
-                    self.all_include_regions.insert(country.clone());
-                }
-                self.advertiser_filters
-                    .adm_advertisers
-                    .insert(adv.to_lowercase(), setting);
+    /// Clear and update the ADM filter data from new `AdmAdvertiserSettings`
+    pub fn update(&mut self, settings: AdmAdvertiserSettings) {
+        self.all_include_regions.clear();
+        self.advertiser_filters.adm_advertisers.clear();
+        for (adv, setting) in settings.adm_advertisers {
+            for country in setting.keys() {
+                self.all_include_regions.insert(country.clone());
             }
-            self.last_updated = Some(chrono::Utc::now());
+            self.advertiser_filters
+                .adm_advertisers
+                .insert(adv.to_lowercase(), setting);
         }
-        Ok(())
+        self.last_updated = Some(chrono::Utc::now());
     }
 
     /// Check the advertiser URL
