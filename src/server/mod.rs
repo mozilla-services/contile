@@ -119,7 +119,11 @@ impl Server {
         let mut partner_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         // try to update from the bucket if possible.
         if partner_filter.is_cloud() {
-            partner_filter.update(&storage_client).await?
+            let advertiser_settings = partner_filter
+                .fetch_new_settings(&storage_client)
+                .await?
+                .expect("Expected AdmAdvertiserSettings for is_cloud AdmFilter");
+            partner_filter.update(advertiser_settings);
         }
         let refresh_rate = partner_filter.refresh_rate;
         let is_cloud = partner_filter.is_cloud();
