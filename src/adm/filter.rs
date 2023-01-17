@@ -131,8 +131,8 @@ async fn updater(
     // Do the check before matching so that the read lock can be released right away.
     let result = filter.read().await.fetch_new_settings(storage_client).await;
     match result {
-        Ok(Some(new_settings)) => {
-            filter.write().await.update(new_settings);
+        Ok(Some((new_settings, last_updated))) => {
+            filter.write().await.update(new_settings, last_updated);
             trace!("AdmFilter updated from cloud storage");
             metrics.incr("filter.adm.update.ok").ok();
         }
@@ -171,7 +171,7 @@ impl AdmFilter {
     pub async fn fetch_new_settings(
         &self,
         storage_client: &cloud_storage::Client,
-    ) -> HandlerResult<Option<AdmAdvertiserSettings>> {
+    ) -> HandlerResult<Option<(AdmAdvertiserSettings, chrono::DateTime<chrono::Utc>)>> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
             return Ok(None);
@@ -186,8 +186,8 @@ impl AdmFilter {
             let path = bucket.path().trim_start_matches('/');
             let obj = storage_client.object().read(&host, path).await?;
             if let Some(updated) = self.last_updated {
-                // if the object is older than the last update, do nothing
-                if obj.updated < updated {
+                // if the remote object is not newer than the local object, do nothing
+                if obj.updated <= updated {
                     return Ok(None);
                 }
             };
@@ -199,13 +199,17 @@ impl AdmFilter {
             let new_settings = serde_json::from_str(&contents).map_err(|e| {
                 HandlerErrorKind::General(format!("Could not read ADM Settings: {:?}", e))
             })?;
-            return Ok(Some(new_settings));
+            return Ok(Some((new_settings, obj.updated)));
         }
         Ok(None)
     }
 
     /// Clear and update the ADM filter data from new `AdmAdvertiserSettings`
-    pub fn update(&mut self, settings: AdmAdvertiserSettings) {
+    pub fn update(
+        &mut self,
+        settings: AdmAdvertiserSettings,
+        last_updated: chrono::DateTime<chrono::Utc>,
+    ) {
         self.all_include_regions.clear();
         self.advertiser_filters.adm_advertisers.clear();
         for (adv, setting) in settings.adm_advertisers {
@@ -216,7 +220,7 @@ impl AdmFilter {
                 .adm_advertisers
                 .insert(adv.to_lowercase(), setting);
         }
-        self.last_updated = Some(chrono::Utc::now());
+        self.last_updated = Some(last_updated);
     }
 
     /// Check the advertiser URL
