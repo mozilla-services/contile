@@ -1,3 +1,12 @@
+<a name="1.10.3"></a>
+## 1.10.3 (2023-01-16)
+
+
+#### Bug Fixes
+*   fix: reduce the work done while holding the updater write lock (#504)  ([cf71155](https://github.com/mozilla-services/contile/commit/cf71155c0edaa9206abd14be61d5971f8c7e8f89))
+
+
+
 <a name="1.10.2"></a>
 ## 1.10.2 (2023-01-12)
 
