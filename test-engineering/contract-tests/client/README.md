@@ -122,20 +122,15 @@ environment to prevent dependency cross contamination.
 
 ### Environment Setup
 
-Install all requirements via [pip-tools][pip-tools]:
+This project uses [Poetry][poetry] for dependency management. For environment setup it 
+is recommended to use [pyenv][pyenv] and [pyenv-virtualenv][pyenv-virtualenv], as they 
+work nicely with Poetry.
 
+Project dependencies are listed in the `pyproject.toml` file.
+To install the dependencies execute:
 ```shell
-pip-sync requirements.txt dev-requirements.txt
+poetry install
 ```
-
-With requirements installed run the code checks and test via [tox][tox]:
-
-```shell
-tox
-```
-
-See the tox configuration in the `tox.ini` for the list of environments this
-will run.
 
 ### Execution
 
@@ -180,6 +175,7 @@ will run.
       ```
 
 [contract_tests_readme]: ../README.md
-[pip-tools]: https://pypi.org/project/pip-tools/
-[tox]: https://pypi.org/project/tox/
 [pytest-k]: https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name
+[poetry]: https://python-poetry.org/docs/#installation
+[pyenv]: https://github.com/pyenv/pyenv#installation
+[pyenv-virtualenv]: https://github.com/pyenv/pyenv-virtualenv#installation

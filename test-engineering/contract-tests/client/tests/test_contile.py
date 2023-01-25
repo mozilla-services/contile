@@ -7,10 +7,9 @@ from typing import Callable, Dict, List
 
 import pytest
 import requests
-from requests import Response as RequestsResponse
-
+from client_models import Service, Step
 from exceptions import PartnerRecordsNotClearedError
-from models import Service, Step
+from requests import Response as RequestsResponse
 
 
 @pytest.fixture(name="hosts", scope="session")

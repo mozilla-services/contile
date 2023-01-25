@@ -10,13 +10,13 @@ import os
 import pathlib
 import sys
 from multiprocessing import Manager
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from models import Records, Tiles
+from partner_models import Records, Tiles
 from record_keeper import RecordKeeper
 from responses import LoaderConfig, load_responses
 
@@ -45,7 +45,7 @@ app = FastAPI()
 
 # This is only included for client errors such as invalid query parameter values
 # or unknown query parameters.
-BODY_FROM_API_SPEC = {
+BODY_FROM_API_SPEC: Dict[str, Any] = {
     "status": {"code": "103", "text": "Invalid input"},
     "count": "0",
     "response": "1",

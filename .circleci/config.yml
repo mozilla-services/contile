@@ -6,6 +6,10 @@
 #
 version: 2.1
 
+orbs:
+  python: circleci/python@2.1.1
+
+
 parameters:
   rust-version:
     type: string
@@ -196,27 +200,29 @@ jobs:
             fi
 
   contract-test-checks:
-    docker:
-      - image: python:3.8
-    working_directory: "~/contile/test-engineering/contract-tests"
+    executor: python/default
+    working_directory: "~/contile/test-engineering/contract-tests/"
     steps:
       - checkout:
           path: ~/contile/
+      - python/install-packages:
+          pkg-manager: poetry
       - run:
-          name: Setup tox
+          name: isort
           command: |
-            python -m pip install --upgrade pip
-            python -m pip install tox
+            poetry run isort --check-only client partner
       - run:
-          name: Run tox checks for client
-          working_directory: client
+          name: black
           command: |
-            tox
+            poetry run black --quiet --diff --check client partner
       - run:
-          name: Run tox checks for partner
-          working_directory: partner
+          name: flake8
           command: |
-            tox
+            poetry run flake8 client partner
+      - run:
+          name: mypy
+          command: |
+            poetry run mypy client partner
 
   contract-tests:
     machine:

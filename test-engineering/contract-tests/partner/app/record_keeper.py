@@ -1,10 +1,9 @@
 from collections import Counter
-from multiprocessing.managers import SyncManager
-from typing import List, Tuple
+from multiprocessing.managers import ListProxy, SyncManager
+from typing import Any, List, Tuple
 
 from fastapi import Request
-
-from models import Header, QueryParameter, Record, RecordCount, Records
+from partner_models import Header, QueryParameter, Record, RecordCount, Records
 
 
 class RecordKeeper:
@@ -13,7 +12,7 @@ class RecordKeeper:
     def __init__(self, multi_process_manager: SyncManager) -> None:
         """Create an instance of RecordKeeper."""
 
-        self._records: List[Record] = multi_process_manager.list()
+        self._records: ListProxy[Any] = multi_process_manager.list()
 
     def add(self, request: Request) -> None:
         """Create record from Fast API Request and add record to the record keeper."""

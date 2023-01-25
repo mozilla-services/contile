@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict
 
 import yaml
-from models import ResponseFromFile
+from partner_models import ResponseFromFile
 
 logger = logging.getLogger("partner")
 

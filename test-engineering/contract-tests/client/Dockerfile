@@ -8,7 +8,13 @@ ENV PATH="${PYTHON_VENV}/bin:${PATH}"
 
 RUN python -m pip install --upgrade pip
 
-COPY requirements.txt /tmp/requirements.txt
+# Setup poetry and extract requirements
+RUN python -m pip install --no-cache-dir --quiet poetry
+WORKDIR /tmp
+COPY ./pyproject.toml ./poetry.lock /tmp/
+RUN poetry export --no-interaction --dev --output requirements.txt --without-hashes
+
+WORKDIR /
 RUN python -m pip install -r /tmp/requirements.txt
 
 COPY . /usr/src/client
