@@ -129,7 +129,7 @@ work nicely with Poetry.
 Project dependencies are listed in the `pyproject.toml` file.
 To install the dependencies execute:
 ```shell
-poetry install
+poetry install --without partner
 ```
 
 ### Execution

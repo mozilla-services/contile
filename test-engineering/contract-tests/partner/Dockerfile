@@ -27,17 +27,17 @@ RUN python -m pip install --upgrade pip
 RUN python -m pip install --no-cache-dir --quiet poetry
 WORKDIR /tmp
 COPY ./pyproject.toml ./poetry.lock /tmp/
-RUN poetry export --no-interaction --dev --output requirements.txt --without-hashes
+RUN poetry export --no-interaction --with partner --output requirements.txt --without-hashes
 
 WORKDIR /
 RUN python -m pip install -r /tmp/requirements.txt
 
-COPY config/ config/
+COPY partner/config/ config/
 
-COPY entrypoint.sh entrypoint.sh
+COPY partner/entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-COPY app/ /app/
+COPY partner/app/ /app/
 
 RUN chown app:app /app
 USER app
