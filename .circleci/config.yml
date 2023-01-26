@@ -6,10 +6,6 @@
 #
 version: 2.1
 
-orbs:
-  python: circleci/python@2.1.1
-
-
 parameters:
   rust-version:
     type: string
@@ -200,29 +196,29 @@ jobs:
             fi
 
   contract-test-checks:
-    executor: python/default
-    working_directory: "~/contile/test-engineering/contract-tests/"
+    docker:
+      - image: cimg/python:3.11
+    working_directory: "~/contile/test-engineering/contract-tests"
     steps:
       - checkout:
           path: ~/contile/
-      - python/install-packages:
-          pkg-manager: poetry
+      - run:
+          name: setup poetry
+          command: |
+            poetry -V
+            poetry install
       - run:
           name: isort
-          command: |
-            poetry run isort --check-only client partner
+          command: poetry run isort --check-only client partner
       - run:
           name: black
-          command: |
-            poetry run black --quiet --diff --check client partner
+          command: poetry run black --quiet --diff --check client partner
       - run:
           name: flake8
-          command: |
-            poetry run flake8 client partner
+          command: poetry run flake8 client partner
       - run:
           name: mypy
-          command: |
-            poetry run mypy client partner
+          command: poetry run mypy client partner
 
   contract-tests:
     machine:

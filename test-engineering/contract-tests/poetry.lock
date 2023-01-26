@@ -11,7 +11,6 @@ click = ">=8.0.0"
 mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0"
 platformdirs = ">=2"
-tomli = {version = ">=1.1.0", markers = "python_full_version < \"3.11.0a7\""}
 
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
@@ -83,7 +82,6 @@ python-versions = ">=3.7"
 
 [package.dependencies]
 mypy-extensions = ">=0.4.3"
-tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
 typing-extensions = ">=3.10"
 
 [package.extras]
@@ -152,14 +150,6 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "tomli"
-version = "2.0.1"
-description = "A lil' TOML parser"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[[package]]
 name = "types-pyyaml"
 version = "6.0.12.3"
 description = "Typing stubs for PyYAML"
@@ -196,8 +186,8 @@ python-versions = ">=3.7"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.10"
-content-hash = "422ddd74bfb55e37681269ffb1ef79347a158288df0a1a252c7877543e8b6601"
+python-versions = "^3.11"
+content-hash = "479fc10c4d4f1c46da51286e9e484e671f61d61ebbb40f603324ab8120dc79f0"
 
 [metadata.files]
 black = [
@@ -323,10 +313,6 @@ pydantic = [
 pyflakes = [
     {file = "pyflakes-3.0.1-py2.py3-none-any.whl", hash = "sha256:ec55bf7fe21fff7f1ad2f7da62363d749e2a470500eab1b555334b67aa1ef8cf"},
     {file = "pyflakes-3.0.1.tar.gz", hash = "sha256:ec8b276a6b60bd80defed25add7e439881c19e64850afd9b346283d4165fd0fd"},
-]
-tomli = [
-    {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
-    {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 types-pyyaml = [
     {file = "types-PyYAML-6.0.12.3.tar.gz", hash = "sha256:17ce17b3ead8f06e416a3b1d5b8ddc6cb82a422bb200254dd8b469434b045ffc"},
