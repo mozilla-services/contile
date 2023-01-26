@@ -10,7 +10,7 @@ import os
 import pathlib
 import sys
 from multiprocessing import Manager
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import FastAPI, Query, Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -45,7 +45,7 @@ app = FastAPI()
 
 # This is only included for client errors such as invalid query parameter values
 # or unknown query parameters.
-BODY_FROM_API_SPEC: Dict[str, Any] = {
+BODY_FROM_API_SPEC: dict[str, Any] = {
     "status": {"code": "103", "text": "Invalid input"},
     "count": "0",
     "response": "1",
@@ -120,7 +120,7 @@ class Endpoint(str, enum.Enum):
 
 # Map from supported API endpoint path to accepted form-factor query parameter
 # values. Example environment variables: 'phone,tablet' or 'desktop'.
-FORM_FACTORS: Dict[Endpoint, List[str]] = {
+FORM_FACTORS: dict[Endpoint, list[str]] = {
     Endpoint.mobile: [
         form_factor.strip().lower()
         for form_factor in os.environ["ACCEPTED_MOBILE_FORM_FACTORS"].split(",")
@@ -165,7 +165,7 @@ async def read_tilesp(
     # record requests made by Contile for later verification by client
     record_keeper.add(request)
 
-    unknown_query_params: List[str] = [
+    unknown_query_params: list[str] = [
         param for param in request.query_params if param not in ACCEPTED_QUERY_PARAMS
     ]
 

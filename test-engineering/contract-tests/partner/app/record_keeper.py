@@ -1,6 +1,5 @@
 from collections import Counter
-from multiprocessing.managers import ListProxy, SyncManager
-from typing import Any, List, Tuple
+from multiprocessing.managers import SyncManager
 
 from fastapi import Request
 from partner_models import Header, QueryParameter, Record, RecordCount, Records
@@ -12,16 +11,16 @@ class RecordKeeper:
     def __init__(self, multi_process_manager: SyncManager) -> None:
         """Create an instance of RecordKeeper."""
 
-        self._records: ListProxy[Any] = multi_process_manager.list()
+        self._records = multi_process_manager.list()
 
     def add(self, request: Request) -> None:
         """Create record from Fast API Request and add record to the record keeper."""
 
-        headers: Tuple[Header, ...] = tuple(
+        headers: tuple[Header, ...] = tuple(
             Header(name=name, value=value) for name, value in request.headers.items()
         )
 
-        query_parameters: Tuple[QueryParameter, ...] = tuple(
+        query_parameters: tuple[QueryParameter, ...] = tuple(
             QueryParameter(name=name, value=value)
             for name, value in request.query_params.multi_items()
         )
@@ -43,7 +42,7 @@ class RecordKeeper:
     def get_all(self) -> Records:
         """Return all records in the record keeper with a counter."""
 
-        records: List[RecordCount] = [
+        records: list[RecordCount] = [
             RecordCount(count=count, record=record)
             for record, count in Counter(self._records).items()
         ]

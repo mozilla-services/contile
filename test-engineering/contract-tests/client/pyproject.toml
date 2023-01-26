@@ -6,7 +6,7 @@ authors = ["Mozilla"]
 license = "Mozilla Public License Version 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.8.13"
+python = "^3.9"
 pytest = "^7.2.1"
 pydantic = "^1.10.4"
 pyyaml = "^6.0"

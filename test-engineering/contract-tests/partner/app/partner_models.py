@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from typing import Any, List, Tuple, Union
+from typing import Any, Union
 
 from pydantic import BaseModel
 
@@ -21,7 +21,7 @@ class Tile(BaseModel):
 class Tiles(BaseModel):
     """Model for a list of tiles returned to Contile."""
 
-    tiles: List[Tile]
+    tiles: list[Tile]
 
 
 class Header(BaseModel):
@@ -38,7 +38,7 @@ class ResponseFromFile(BaseModel):
     """Model that represents a Response as defined in responses.yml."""
 
     status_code: int
-    headers: List[Header]
+    headers: list[Header]
     content: Union[Tiles, Any]
     delay: float = 0.0
 
@@ -60,9 +60,9 @@ class Record(BaseModel):
         frozen = True
 
     method: str
-    headers: Tuple[Header, ...]
+    headers: tuple[Header, ...]
     path: str
-    query_parameters: Tuple[QueryParameter, ...]
+    query_parameters: tuple[QueryParameter, ...]
 
 
 class RecordCount(BaseModel):
@@ -75,4 +75,4 @@ class RecordCount(BaseModel):
 class Records(BaseModel):
     """Model for a list of requests sent by Contile and their send count."""
 
-    records: List[RecordCount]
+    records: list[RecordCount]
