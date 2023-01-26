@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Extra
 
@@ -67,7 +67,7 @@ class Tile(BaseModel, extra=Extra.allow):
     name: str
     click_url: str
     image_url: str
-    image_size: Optional[int]
+    image_size: int | None
     impression_url: str
     url: str
 
@@ -82,7 +82,7 @@ class Response(BaseModel):
     """Class that holds information about a HTTP response from Contile."""
 
     status_code: int
-    content: Union[Records, Tiles, Any]
+    content: Records | Tiles | Any
     headers: list[Header] = []
 
 

@@ -23,7 +23,7 @@ def fixture_hosts(request) -> dict[Service, str]:
 
 
 @pytest.fixture(name="clear_partner_records")
-def fixture_clear_partner_records(hosts: dict[Service, str]) -> Callable:
+def fixture_clear_partner_records(hosts: dict[Service, str]) -> Callable[[], None]:
     """Clear Contile request history on partner."""
 
     partner_host: str = hosts[Service.PARTNER]
@@ -38,7 +38,7 @@ def fixture_clear_partner_records(hosts: dict[Service, str]) -> Callable:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def fixture_function_teardown(clear_partner_records: Callable):
+def fixture_function_teardown(clear_partner_records: Callable[[], None]):
     """Execute instructions after each test."""
 
     yield  # Allow test to execute
