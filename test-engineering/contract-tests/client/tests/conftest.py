@@ -4,16 +4,14 @@
 
 import os
 import pathlib
-from typing import Dict, Union, Type
+from typing import Type, Union
 
 import pytest
 import yaml
-
-from models import Records, Scenario, Service, Tiles
-
+from client_models import Records, Scenario, Service, Tiles
 
 SERVICE_MODEL = Union[Type[Records], Type[Tiles]]
-SERVICE_MODELS: Dict[Service, SERVICE_MODEL] = {
+SERVICE_MODELS: dict[Service, SERVICE_MODEL] = {
     Service.PARTNER: Records,
     Service.CONTILE: Tiles,
 }

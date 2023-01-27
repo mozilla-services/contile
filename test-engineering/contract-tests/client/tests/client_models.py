@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from enum import Enum
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, Extra
 
@@ -28,7 +28,7 @@ class Request(BaseModel):
     service: Service
     method: str
     path: str
-    headers: List[Header] = []
+    headers: list[Header] = []
 
 
 class QueryParameter(BaseModel):
@@ -42,9 +42,9 @@ class Record(BaseModel):
     """Model that represents a request sent by Contile."""
 
     method: str
-    headers: List[Header]
+    headers: list[Header]
     path: str
-    query_parameters: List[QueryParameter]
+    query_parameters: list[QueryParameter]
 
 
 class RecordCount(BaseModel):
@@ -57,7 +57,7 @@ class RecordCount(BaseModel):
 class Records(BaseModel):
     """Model for a list of requests sent by Contile and their send count."""
 
-    records: List[RecordCount]
+    records: list[RecordCount]
 
 
 class Tile(BaseModel, extra=Extra.allow):
@@ -67,7 +67,7 @@ class Tile(BaseModel, extra=Extra.allow):
     name: str
     click_url: str
     image_url: str
-    image_size: Optional[int]
+    image_size: int | None
     impression_url: str
     url: str
 
@@ -75,15 +75,15 @@ class Tile(BaseModel, extra=Extra.allow):
 class Tiles(BaseModel):
     """Class that contains a list of Tiles returned by Contile."""
 
-    tiles: List[Tile]
+    tiles: list[Tile]
 
 
 class Response(BaseModel):
     """Class that holds information about a HTTP response from Contile."""
 
     status_code: int
-    content: Union[Records, Tiles, Any]
-    headers: List[Header] = []
+    content: Records | Tiles | Any
+    headers: list[Header] = []
 
 
 class Step(BaseModel):
@@ -98,4 +98,4 @@ class Scenario(BaseModel):
 
     name: str
     description: str
-    steps: List[Step]
+    steps: list[Step]

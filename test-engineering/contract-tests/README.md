@@ -52,7 +52,6 @@ MTS Docker container such as a partner settings file
 - the `volumes/partner` directory contains a YML file which defines every
 response that the API returns keyed by form-factor and then os-family
 
-
 ## Local Execution
 
 To run the contract tests locally, execute the following from the repository root:
@@ -64,9 +63,45 @@ docker build -t app:build .
 
 **Build Contract Test Docker Images & Execute Tests**
 ```shell
-docker compose \
-    -f test-engineering\contract-tests\docker-compose.yml \
-    up --abort-on-container-exit --build
+docker-compose \
+  -f test-engineering/contract-tests/docker-compose.yml \
+  -p contile-contract-tests \
+  up --abort-on-container-exit --build
+```
+
+### Import Sorting, Linting, Style Guide Enforcement & Static Type Checking
+
+This project uses [Poetry][poetry] for dependency management. For environment setup it 
+is recommended to use [pyenv][pyenv] and [pyenv-virtualenv][pyenv-virtualenv], as they 
+work nicely with Poetry.
+
+Project dependencies are listed in the `pyproject.toml` file.
+To install the dependencies execute:
+```shell
+poetry install
+```
+
+Contributors to this project are expected to execute the following tools. 
+Configurations are set in the `pyproject.toml` and `.flake8` files.
+
+**[isort][isort]**
+ ```shell
+poetry run isort client partner
+ ```
+  
+**[black][black]**
+ ```shell
+poetry run black client partner
+ ```
+
+**[flake8][flake8]**
+ ```shell
+poetry run flake8 client partner
+ ```
+
+**[mypy][mypy]**
+```shell
+poetry run mypy client partner
 ```
 
 ## Debugging
@@ -112,3 +147,10 @@ See the `Local Execution` and `Debugging` sections of the partner [README][partn
 [contract-test-repo]: https://github.com/mozilla-services/contile-integration-tests
 [partner_readme]: ./partner/README.md
 [sequence_diagram]: sequence_diagram.png
+[poetry]: https://python-poetry.org/docs/#installation
+[pyenv]: https://github.com/pyenv/pyenv#installation
+[pyenv-virtualenv]: https://github.com/pyenv/pyenv-virtualenv#installation
+[black]: https://black.readthedocs.io/en/stable/
+[flake8]: https://flake8.pycqa.org/en/latest/
+[isort]: https://pycqa.github.io/isort/
+[mypy]: https://mypy-lang.org/

@@ -6,10 +6,9 @@ import dataclasses
 import functools
 import logging
 from pathlib import Path
-from typing import Dict
 
 import yaml
-from models import ResponseFromFile
+from partner_models import ResponseFromFile
 
 logger = logging.getLogger("partner")
 
@@ -17,7 +16,7 @@ logger = logging.getLogger("partner")
 # Define type aliases for the functions in this module
 FormFactor = str
 OSFamily = str
-ResponsesFromFile = Dict[FormFactor, Dict[OSFamily, ResponseFromFile]]
+ResponsesFromFile = dict[FormFactor, dict[OSFamily, ResponseFromFile]]
 
 
 @dataclasses.dataclass(eq=True, frozen=True)

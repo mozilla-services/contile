@@ -2,7 +2,9 @@ version: "3"
 services:
   partner:
     image: partner
-    build: partner
+    build:
+      context: .
+      dockerfile: ./partner/Dockerfile
     container_name: partner
     environment:
       PORT: 5000
@@ -78,7 +80,9 @@ services:
     #  /bin/sh -c "hostname -I && bin/contile"
   client:
     image: client
-    build: client
+    build:
+      context: .
+      dockerfile: ./client/Dockerfile
     container_name: client
     depends_on:
       - partner

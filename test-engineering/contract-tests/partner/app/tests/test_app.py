@@ -42,7 +42,10 @@ def test_read_tilesp(client):
             {
                 "id": 12346,
                 "name": "Example COM",
-                "click_url": "https://example.com/desktop_macos_us_ny?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000",
+                "click_url": (
+                    "https://example.com/desktop_macos_us_ny?version=16.0.0&key=22.1"
+                    "&ci=6.2&ctag=1612376952400200000"
+                ),
                 "image_url": "https://example.com/desktop_macos_us_ny01.jpg",
                 "impression_url": "https://example.com/desktop_macos_us_ny?id=0001",
                 "advertiser_url": "https://www.example.com/desktop_macos_us_ny",
@@ -50,7 +53,10 @@ def test_read_tilesp(client):
             {
                 "id": 56790,
                 "name": "Example ORG",
-                "click_url": "https://example.org/desktop_macos_us_ny?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A",
+                "click_url": (
+                    "https://example.org/desktop_macos_us_ny?version=16.0.0&key=7.2"
+                    "&ci=8.9&ctag=E1DE38C8972D0281F5556659A"
+                ),
                 "image_url": "https://example.org/desktop_macos_us_ny02.jpg",
                 "impression_url": "https://example.org/desktop_macos_us_ny?id=0002",
                 "advertiser_url": "https://www.example.org/desktop_macos_us_ny",
@@ -63,7 +69,10 @@ def test_read_tilesp(client):
     "sub2",
     [
         "invalid-param",
-        "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz",
+        (
+            "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstu"
+            "vwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"
+        ),
         "🛒📈🤖",
     ],
     ids=["hyphen_in_value", "exceeds_max_characters", "emoji"],

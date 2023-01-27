@@ -203,20 +203,15 @@ shell to prevent environment variable cross contamination.
 
 ### Environment Setup
 
-Install all requirements via [pip-tools][pip-tools]:
+This project uses [Poetry][poetry] for dependency management. For environment setup it 
+is recommended to use [pyenv][pyenv] and [pyenv-virtualenv][pyenv-virtualenv], as they 
+work nicely with Poetry.
 
+Project dependencies are listed in the `pyproject.toml` file.
+To install the dependencies execute:
 ```shell
-pip-sync requirements.txt dev-requirements.txt
+poetry install
 ```
-
-With requirements installed run the code checks and test via [tox][tox]:
-
-```shell
-tox
-```
-
-See the tox configuration in the `tox.ini` for the list of environments this
-will run.
 
 The `services: partner` block of `contract-tests/docker-compose.yml` lists the 
 `environment` and `volumes` needed. The following environment variables are used by 
@@ -263,5 +258,6 @@ If different values are desired, you can either alter these files or you can cop
 into a new directory and use the `RESPONSES_DIR` environment variable for the 
 mock partner app.
 
-[tox]: https://pypi.org/project/tox/
-[pip-tools]: https://pypi.org/project/pip-tools/
+[poetry]: https://python-poetry.org/docs/#installation
+[pyenv]: https://github.com/pyenv/pyenv#installation
+[pyenv-virtualenv]: https://github.com/pyenv/pyenv-virtualenv#installation
