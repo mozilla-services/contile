@@ -8,11 +8,11 @@ black==22.12.0
     # via -r dev-requirements.in
 click==8.1.3
     # via black
-flake8==4.0.1
+flake8==6.0.0
     # via -r dev-requirements.in
 isort==5.11.4
     # via -r dev-requirements.in
-mccabe==0.6.1
+mccabe==0.7.0
     # via flake8
 mypy==0.991
     # via -r dev-requirements.in
@@ -24,9 +24,9 @@ pathspec==0.9.0
     # via black
 platformdirs==2.5.2
     # via black
-pycodestyle==2.8.0
+pycodestyle==2.10.0
     # via flake8
-pyflakes==2.4.0
+pyflakes==3.0.1
     # via flake8
 types-pyyaml==6.0.12.3
     # via -r dev-requirements.in
