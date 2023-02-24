@@ -23,3 +23,22 @@ scenarios:
         response:
           status_code: 204
           content: ''
+  - name: success_204_No_Content_unknown_form_factor
+    description: Test that Contile returns a 204 No Content for unknown form factors
+    steps:
+      - request:
+          service: contile
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: other and form-factor: other
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Raspberry Pi 3) Gecko/20100101 Firefox/91.0'
+            # The following 'X-Forwarded-For' header value will result in query values
+            # country-code: US, region-code: WA and dma-code: 819
+            - name: X-Forwarded-For
+              value: '216.160.83.62'
+        response:
+          status_code: 204
+          content: ''

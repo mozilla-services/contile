@@ -35,6 +35,7 @@ const UA_90: &str =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/90.0";
 const UA_IPHONE: &str =
     "Mozilla/5.0 (iPhone; CPU iPhone OS 14_8_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/91.0 Mobile/15E148 Safari/605.1.15";
+const UA_FORM_FACTOR_OTHER: &str = "Mozilla/5.0 (Raspberry Pi 3) Gecko/20100101 Firefox/91.0";
 const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
 const TEST_ADDR: &str = "216.160.83.56";
 
@@ -810,6 +811,32 @@ async fn include_regions() {
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
     assert_eq!(tiles.len(), 1);
     assert_eq!(&tiles[0]["name"], "Acme");
+}
+
+#[actix_web::test]
+async fn empty_tiles_unknown_form_factor_204() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_FORM_FACTOR_OTHER))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+    // Ensure same result from cache
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_FORM_FACTOR_OTHER))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::NO_CONTENT);
 }
 
 #[actix_web::test]
