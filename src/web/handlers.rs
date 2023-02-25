@@ -36,8 +36,7 @@ pub async fn get_tiles(
     trace!("get_tiles");
     metrics.incr("tiles.get");
 
-    let settings = &state.settings;
-    if let Some(response) = maybe_early_respond(&settings, &state, &location, &device_info).await {
+    if let Some(response) = maybe_early_respond(&state, &location, &device_info).await {
         return Ok(response);
     }
     let audience_key = cache::AudienceKey {
@@ -53,6 +52,7 @@ pub async fn get_tiles(
         legacy_only: device_info.legacy_only(),
     };
 
+    let settings = &state.settings;
     let mut tags = Tags::from_head(request.head(), settings);
     {
         tags.add_extra("audience_key", &format!("{:#?}", audience_key));
@@ -205,11 +205,15 @@ fn fallback_response(settings: &Settings, tiles: &cache::Tiles) -> HttpResponse 
 /// It returns a proper response if the early response is desired.
 /// Otherwise, it returns None.
 async fn maybe_early_respond(
-    settings: &Settings,
     state: &web::Data<ServerState>,
     location: &Location,
     device_info: &DeviceInfo,
 ) -> Option<HttpResponse> {
+    if matches!(&device_info.form_factor, FormFactor::Other) {
+        trace!("get_tiles: unknown form factor");
+        return Some(HttpResponse::NoContent().finish());
+    }
+
     if !state
         .partner_filter
         .read()
@@ -221,7 +225,7 @@ async fn maybe_early_respond(
         // Nothing to serve. We typically send a 204 for empty tiles but
         // optionally send 200 to resolve
         // https://github.com/mozilla-services/contile/issues/284
-        let response = if settings.excluded_countries_200 {
+        let response = if state.settings.excluded_countries_200 {
             HttpResponse::Ok()
                 .content_type("application/json")
                 .body(EMPTY_TILES.as_str())
@@ -229,11 +233,6 @@ async fn maybe_early_respond(
             HttpResponse::NoContent().finish()
         };
         return Some(response);
-    }
-
-    if matches!(&device_info.form_factor, FormFactor::Other) {
-        trace!("get_tiles: unknown form factor");
-        return Some(HttpResponse::NoContent().finish());
     }
 
     None
