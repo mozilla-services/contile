@@ -13,7 +13,7 @@ use crate::{
     },
     settings::Settings,
     tags::Tags,
-    web::{middleware::sentry as l_sentry, DeviceInfo},
+    web::{middleware::sentry as l_sentry, DeviceInfo, FormFactor},
 };
 
 lazy_static! {
@@ -36,25 +36,7 @@ pub async fn get_tiles(
     trace!("get_tiles");
     metrics.incr("tiles.get");
 
-    let settings = &state.settings;
-    if !state
-        .partner_filter
-        .read()
-        .await
-        .all_include_regions
-        .contains(&location.country())
-    {
-        trace!("get_tiles: country not included: {:?}", location.country());
-        // Nothing to serve. We typically send a 204 for empty tiles but
-        // optionally send 200 to resolve
-        // https://github.com/mozilla-services/contile/issues/284
-        let response = if settings.excluded_countries_200 {
-            HttpResponse::Ok()
-                .content_type("application/json")
-                .body(EMPTY_TILES.as_str())
-        } else {
-            HttpResponse::NoContent().finish()
-        };
+    if let Some(response) = maybe_early_respond(&state, &location, &device_info).await {
         return Ok(response);
     }
     let audience_key = cache::AudienceKey {
@@ -70,6 +52,7 @@ pub async fn get_tiles(
         legacy_only: device_info.legacy_only(),
     };
 
+    let settings = &state.settings;
     let mut tags = Tags::from_head(request.head(), settings);
     {
         tags.add_extra("audience_key", &format!("{:#?}", audience_key));
@@ -211,4 +194,46 @@ fn fallback_response(settings: &Settings, tiles: &cache::Tiles) -> HttpResponse 
     } else {
         tiles.to_response(settings.cache_control_header)
     }
+}
+
+/// Check if the tile request should be responded early.
+///
+/// This allows us to short circuit requests if:
+///   - they are not sent from regions of the live markets
+///   - they are sent from unknown device types (`form_factor == "other"`)
+///
+/// It returns a proper response if the early response is desired.
+/// Otherwise, it returns None.
+async fn maybe_early_respond(
+    state: &web::Data<ServerState>,
+    location: &Location,
+    device_info: &DeviceInfo,
+) -> Option<HttpResponse> {
+    if matches!(&device_info.form_factor, FormFactor::Other) {
+        trace!("get_tiles: unknown form factor");
+        return Some(HttpResponse::NoContent().finish());
+    }
+
+    if !state
+        .partner_filter
+        .read()
+        .await
+        .all_include_regions
+        .contains(&location.country())
+    {
+        trace!("get_tiles: country not included: {:?}", location.country());
+        // Nothing to serve. We typically send a 204 for empty tiles but
+        // optionally send 200 to resolve
+        // https://github.com/mozilla-services/contile/issues/284
+        let response = if state.settings.excluded_countries_200 {
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .body(EMPTY_TILES.as_str())
+        } else {
+            HttpResponse::NoContent().finish()
+        };
+        return Some(response);
+    }
+
+    None
 }
