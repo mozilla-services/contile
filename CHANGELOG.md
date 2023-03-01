@@ -1,3 +1,13 @@
+<a name="1.11.0"></a>
+## 1.11.0 (2023-03-01)
+
+
+#### Features
+
+*   feat: Return 204 for unknown form factors (#519)   ([74766fc](https://github.com/mozilla-services/contile/commit/74766fc633d3836b2add42b8d922310604c5a04a))
+
+
+
 <a name="1.10.3"></a>
 ## 1.10.3 (2023-01-16)
 
