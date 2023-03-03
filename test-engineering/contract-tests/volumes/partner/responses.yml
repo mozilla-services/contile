@@ -62,7 +62,9 @@ phone:
       content: {}
 
     ios:
-      delay: 5.0
+      # Contile uses a 10-seconds timeout in contract tests, make the delay
+      # slightly longer than that
+      delay: 12.0
       status_code: 200
       headers: []
       content:

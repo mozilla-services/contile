@@ -59,7 +59,9 @@ services:
       CONTILE_ADM_PARTNER_ID: partner_id_test
       CONTILE_ADM_HAS_LEGACY_IMAGE: '["Example ORG","Example COM"]'
       # Timeout requests to the ADM server after this many seconds (default: 5)
-      CONTILE_ADM_TIMEOUT: 2
+      # Use larger timeouts to mitigate the network latency issues on M1 laptops
+      CONTILE_ADM_TIMEOUT: 10
+      CONTILE_CONNECT_TIMEOUT: 10
       CONTILE_DEBUG: 1
       CONTILE_HOST: 0.0.0.0
       CONTILE_HUMAN_LOGS: 1
