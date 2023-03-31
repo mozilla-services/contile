@@ -137,19 +137,17 @@ pub async fn get_tiles(
     let settings = &state.settings;
     let image_store = &state.img_store;
     let pse = AdmPse::appropriate_from_settings(&device_info, settings);
+    let country_code = location
+        .country
+        .as_deref()
+        .unwrap_or(settings.fallback_country.as_ref());
     let adm_url = Url::parse_with_params(
         &pse.endpoint,
         &[
             ("partner", pse.partner_id.as_str()),
             ("sub1", pse.sub1.as_str()),
             ("sub2", "newtab"),
-            (
-                "country-code",
-                &(location
-                    .country
-                    .clone()
-                    .unwrap_or_else(|| settings.fallback_country.clone())),
-            ),
+            ("country-code", country_code),
             ("region-code", &location.region()),
             (
                 "dma-code",
@@ -179,6 +177,9 @@ pub async fn get_tiles(
         tags.add_tag("endpoint", "mobile");
     }
     tags.add_extra("adm_url", adm_url);
+
+    // Add `country_code` for ad fill instrumentation.
+    tags.add_tag("geo.country_code", country_code);
 
     metrics.incr_with_tags("tiles.adm.request", Some(tags));
     let response: AdmTileResponse = match state.settings.test_mode {

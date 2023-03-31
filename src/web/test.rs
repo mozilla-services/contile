@@ -880,6 +880,7 @@ async fn metrics() {
     assert!(get_metric.contains("ua.form_factor:desktop"));
     assert!(get_metric.contains("ua.os.family:windows"));
     assert!(!&metrics[1].contains("endpoint:mobile"));
+    assert!(&metrics[1].contains("geo.country_code"));
 
     let req = test::TestRequest::get()
         .uri("/v1/tiles")
@@ -894,6 +895,7 @@ async fn metrics() {
     assert!(get_metric.contains("ua.form_factor:phone"));
     assert!(get_metric.contains("ua.os.family:ios"));
     assert!(&metrics[1].contains("endpoint:mobile"));
+    assert!(&metrics[1].contains("geo.country_code"));
 }
 
 #[actix_web::test]
