@@ -140,7 +140,7 @@ pub async fn get_tiles(
     let country_code = location
         .country
         .as_deref()
-        .unwrap_or(settings.fallback_country.as_ref());
+        .unwrap_or_else(|| settings.fallback_country.as_ref());
     let adm_url = Url::parse_with_params(
         &pse.endpoint,
         &[
