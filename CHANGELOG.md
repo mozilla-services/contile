@@ -1,3 +1,17 @@
+<a name="1.11.1"></a>
+## 1.11.1 (2023-04-05)
+
+
+#### Features
+
+*   feat: Add country-code to metric tags for ad fill instrumentation (#526)    ([4150e34](https://github.com/mozilla-services/contile/commit/4150e34f61c6a5d87148164bea00217f41ced3f1))
+
+
+#### Chore
+
+*   chore: update dependencies for cargo audit (#525)   ([f4e92ad](https://github.com/mozilla-services/contile/commit/f4e92adebbf2b15960651ae1ca219d859abbbcec))
+
+
 <a name="1.11.0"></a>
 ## 1.11.0 (2023-03-01)
 

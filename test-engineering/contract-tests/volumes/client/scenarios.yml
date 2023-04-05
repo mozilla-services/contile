@@ -498,7 +498,7 @@ scenarios:
                     - name: accept
                       value: '*/*'
                     - name: user-agent
-                      value: 'contile/1.11.0'
+                      value: 'contile/1.11.1'
                     - name: host
                       value: 'partner:5000'
                   path: '/tilesp/desktop'
