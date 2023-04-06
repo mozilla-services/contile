@@ -189,6 +189,9 @@ pub fn advertiser_filters() -> AdmAdvertiserSettings {
             "Los Pollos Hermanos": {
                 "US": [{ "host": "www.lph-nm.biz" }],
             },
+            "Lasagna Come Out Tomorrow": {
+                "US": [{ "host": "www.lasagna.restaurant" }],
+            }
         }})
         .to_string(),
     )
@@ -440,8 +443,8 @@ async fn basic_filtered() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    // remember, we cap at `settings.adm_max_tiles` (currently 2)
-    assert_eq!(tiles.len(), 2);
+    // for desktop, we cap at `settings.adm_max_tiles` (currently 3)
+    assert_eq!(tiles.len(), 3);
     // Ensure the tile order from adM is preserved
     let tile1 = &tiles[0];
     assert_eq!(tile1["name"], "Acme");
@@ -460,6 +463,8 @@ async fn basic_filtered2() {
         "Dunder Mifflin": {
         },
         "Los Pollos Hermanos": {
+        },
+        "Lasagna Come Out Tomorrow": {
         },
     }
 
@@ -516,7 +521,44 @@ async fn basic_default() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    // remember, we cap at `settings.adm_max_tiles` (currently 2)
+    // for desktop, we cap at `settings.adm_max_tiles` (currently 3)
+    assert_eq!(tiles.len(), 3);
+    assert!(!tiles
+        .iter()
+        .any(|tile| tile["name"].as_str().unwrap() == "Lasagna Come Out Tomorrow"));
+}
+
+#[actix_web::test]
+async fn basic_mobile() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_IPHONE))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+    assert_eq!(
+        content_type
+            .unwrap()
+            .to_str()
+            .expect("Couldn't parse Content-Type"),
+        "application/json"
+    );
+
+    let result: Value = test::read_body_json(resp).await;
+    let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
+    // for mobile, we cap at `settings.adm_mobile_max_tiles` (currently 2)
     assert_eq!(tiles.len(), 2);
     assert!(!tiles
         .iter()
@@ -809,7 +851,7 @@ async fn include_regions() {
     // "Dunder Mifflin" should be filtered out
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    assert_eq!(tiles.len(), 1);
+    assert_eq!(tiles.len(), 2);
     assert_eq!(&tiles[0]["name"], "Acme");
 }
 
@@ -1014,7 +1056,7 @@ async fn cache_header() {
 
     let result: Value = test::read_body_json(resp).await;
     let tiles = result["tiles"].as_array().expect("!tiles.is_array()");
-    assert_eq!(tiles.len(), 2);
+    assert_eq!(tiles.len(), 3);
 }
 
 #[actix_web::test]
