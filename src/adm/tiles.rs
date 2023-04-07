@@ -253,13 +253,20 @@ pub async fn get_tiles(
     let mut filtered: Vec<Tile> = Vec::new();
     let iter = response.tiles.into_iter();
     let filter = state.partner_filter.read().await;
+    let max_tiles = usize::from(if device_info.is_mobile() {
+        settings
+            .adm_mobile_max_tiles
+            .unwrap_or(settings.adm_max_tiles)
+    } else {
+        settings.adm_max_tiles
+    });
     for tile in iter {
         if let Some(tile) =
             filter.filter_and_process(tile, location, &device_info, tags, metrics)?
         {
             filtered.push(tile);
         }
-        if filtered.len() == settings.adm_max_tiles as usize {
+        if filtered.len() == max_tiles {
             break;
         }
     }
