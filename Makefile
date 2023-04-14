@@ -1,13 +1,13 @@
-build-dev:
-	cargo build --tests
+build:
+	cargo build
 
-setup-grcov:
-	cargo install grcov
+setup-all: build setup-coverage-tools setup-rust-checks
 
-coverage: build-dev setup-grcov
-	RUSTFLAGS="-C instrument-coverage" cargo test
-	grcov . -s . --binary-path ./target/debug/ -t html --branch --ignore-not-existing -o ./target/debug/coverage/
-	rm *.profraw
+setup-coverage-tools:
+	cargo +stable install cargo-llvm-cov --locked
+
+coverage: setup-coverage-tools
+	cargo llvm-cov --open
 
 setup-rust-checks:
 	rustup component add rustfmt
