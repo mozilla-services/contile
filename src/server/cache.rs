@@ -309,19 +309,40 @@ async fn tiles_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
 
 #[cfg(test)]
 mod test_tile_cache {
-
     use super::TilesCache;
     use crate::server::TILES_CACHE_INITIAL_CAPACITY;
-    use cadence::{NopMetricSink, StatsdClient};
+    use actix_web::rt;
+    use cadence::{SpyMetricSink, StatsdClient};
     use std::{sync::Arc, time::Duration};
 
     #[actix_web::test]
     async fn test_spawn_periodic_reporter() {
         let tiles_cache = TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
-        let statsd_client = StatsdClient::builder("test", NopMetricSink).build();
+        let (spy, sink) = SpyMetricSink::new();
+        let statsd_client = StatsdClient::builder("test", sink).build();
 
         // Just checks that we can spawn the periodic reporter without issues.
         tiles_cache.spawn_periodic_reporter(Duration::from_secs(1), Arc::new(statsd_client));
+
+        rt::time::sleep(Duration::from_secs(2)).await;
+
+        let metrics: Vec<String> = spy
+            .try_iter()
+            .map(|m| String::from_utf8(m).unwrap())
+            .collect();
+        assert!(!metrics.is_empty());
+
+        let count_metrics = metrics
+            .iter()
+            .cloned()
+            .filter(|m| m.starts_with("test.tiles_cache.count"));
+        assert!(count_metrics.count() > 0);
+
+        let size_metrics = metrics
+            .iter()
+            .cloned()
+            .filter(|m| m.starts_with("test.tiles_cache.size"));
+        assert!(size_metrics.count() > 0);
     }
 }
 
