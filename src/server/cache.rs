@@ -306,3 +306,88 @@ async fn tiles_cache_periodic_reporter(cache: &TilesCache, metrics: &Metrics) {
     metrics.count("tiles_cache.count", cache_count);
     metrics.count("tiles_cache.size", cache_size as i64);
 }
+
+#[cfg(test)]
+mod test_tile_cache {
+    use super::TilesCache;
+    use crate::server::TILES_CACHE_INITIAL_CAPACITY;
+    use actix_web::rt;
+    use cadence::{SpyMetricSink, StatsdClient};
+    use std::{sync::Arc, time::Duration};
+
+    #[actix_web::test]
+    async fn test_spawn_periodic_reporter() {
+        let tiles_cache = TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
+        let (spy, sink) = SpyMetricSink::new();
+        let statsd_client = StatsdClient::builder("test", sink).build();
+
+        // Just checks that we can spawn the periodic reporter without issues.
+        tiles_cache.spawn_periodic_reporter(Duration::from_secs(1), Arc::new(statsd_client));
+
+        rt::time::sleep(Duration::from_secs(2)).await;
+
+        let metrics: Vec<String> = spy
+            .try_iter()
+            .map(|m| String::from_utf8(m).unwrap())
+            .collect();
+        assert!(!metrics.is_empty());
+
+        let count_metrics = metrics
+            .iter()
+            .cloned()
+            .filter(|m| m.starts_with("test.tiles_cache.count"));
+        assert!(count_metrics.count() > 0);
+
+        let size_metrics = metrics
+            .iter()
+            .cloned()
+            .filter(|m| m.starts_with("test.tiles_cache.size"));
+        assert!(size_metrics.count() > 0);
+    }
+}
+
+#[cfg(test)]
+mod test_tiles_state {
+    use super::{Tiles, TilesState};
+    use std::time::Duration;
+
+    #[test]
+    fn test_size_populating() {
+        let tiles_state = TilesState::Populating;
+        assert_eq!(tiles_state.size(), 0);
+    }
+
+    #[test]
+    fn test_size_fresh() {
+        let tiles_state = TilesState::Fresh {
+            tiles: Tiles::empty(Duration::from_secs(60), Duration::from_secs(60), true),
+        };
+        assert_eq!(tiles_state.size(), 0);
+    }
+
+    #[test]
+    fn test_size_refreshing() {
+        let tiles_state = TilesState::Refreshing {
+            tiles: Tiles::empty(Duration::from_secs(60), Duration::from_secs(60), true),
+        };
+        assert_eq!(tiles_state.size(), 0);
+    }
+}
+
+#[cfg(test)]
+mod test_tiles_content {
+    use super::TilesContent;
+
+    #[test]
+    fn test_size_json_with_title() {
+        let title = String::from("This is a title");
+        let tile_content = TilesContent::Json(title.clone());
+        assert_eq!(tile_content.size(), title.len());
+    }
+
+    #[test]
+    fn test_size_json_empty_title() {
+        let tile_content = TilesContent::Empty;
+        assert_eq!(tile_content.size(), 0);
+    }
+}
