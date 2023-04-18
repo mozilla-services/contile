@@ -2,6 +2,7 @@
 use std::{env, io::Cursor, sync::Arc};
 
 use actix_web::http::{header::HeaderValue, uri};
+use base64::Engine;
 use bytes::Bytes;
 use cadence::{CountedExt, StatsdClient};
 use chrono::{DateTime, Duration, Utc};
@@ -259,7 +260,7 @@ impl ImageStore {
 
     /// Generate a unique hash based on the content of the image
     pub fn as_hash(&self, source: &Bytes) -> String {
-        base64::encode_config(blake3::hash(source).as_bytes(), base64::URL_SAFE_NO_PAD)
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(blake3::hash(source).as_bytes())
     }
 
     /// Fetch the bytes for an image based on a URI
