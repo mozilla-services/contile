@@ -23,7 +23,7 @@ RUN \
     cp /app/target/release/${APPNAME} /app/bin
 
 
-FROM debian:buster-bullseye
+FROM debian:bullseye-slim
 ARG APPNAME
 
 # FROM debian:buster  # for debugging docker build
