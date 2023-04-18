@@ -10,7 +10,7 @@ parameters:
   rust-version:
     type: string
     # NOTE: Ensure this Rust version matches the builder's in ../Dockerfile
-    default: "1.64"
+    default: "1.68"
 
 commands:
   setup-rust:
