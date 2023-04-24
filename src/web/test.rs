@@ -915,9 +915,13 @@ async fn metrics() {
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
-    let prefixes = &["contile.tiles.get:1", "contile.tiles.adm.request:1"];
+    let prefixes = &[
+        "contile.tiles.get:1",
+        "contile.tiles.adm.request:1",
+        "contile.tiles.adm.response.tiles_count:4",
+    ];
     let metrics = find_metrics(&spy, prefixes);
-    assert_eq!(metrics.len(), 2);
+    assert_eq!(metrics.len(), 3);
     let get_metric = &metrics[0];
     assert!(get_metric.contains("ua.form_factor:desktop"));
     assert!(get_metric.contains("ua.os.family:windows"));
@@ -932,7 +936,7 @@ async fn metrics() {
     assert_eq!(resp.status(), StatusCode::OK);
 
     let metrics = find_metrics(&spy, prefixes);
-    assert_eq!(metrics.len(), 2);
+    assert_eq!(metrics.len(), 3);
     let get_metric = &metrics[0];
     assert!(get_metric.contains("ua.form_factor:phone"));
     assert!(get_metric.contains("ua.os.family:ios"));
@@ -1118,6 +1122,7 @@ async fn fallback_on_error() {
         vec![
             "contile.tiles.get:1",
             "contile.tiles.adm.request:1",
+            "contile.tiles.adm.response.tiles_count:4",
             "contile.tiles.get:1",
             "contile.tiles.adm.request:1",
             "contile.tiles.get.error:1"

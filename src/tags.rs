@@ -210,6 +210,28 @@ impl Tags {
     }
 }
 
+impl Extend<Tags> for Tags {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = Tags>,
+    {
+        for tag in iter {
+            self.extend(tag);
+        }
+    }
+}
+
+impl<'a> Extend<&'a Tags> for Tags {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = &'a Tags>,
+    {
+        for tag in iter {
+            self.extend(tag.clone());
+        }
+    }
+}
+
 impl FromRequest for Tags {
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
