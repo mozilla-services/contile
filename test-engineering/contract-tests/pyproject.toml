@@ -25,7 +25,7 @@ warn_unreachable = true
 [tool.poetry]
 name = "contract-tests"
 version = "0.1.0"
-description = "Contract tests for the Merino-py project"
+description = "Contract tests for the Contile project"
 authors = ["Mozilla"]
 license = "Mozilla Public License Version 2.0"
 
