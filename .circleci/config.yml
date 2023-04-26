@@ -280,6 +280,31 @@ jobs:
             exit 0
            fi
 
+  load-test-checks:
+    docker:
+      - image: cimg/python:3.11
+    working_directory: "~/contile/test-engineering/load"
+    steps:
+      - checkout:
+          path: ~/contile/
+      - run:
+          name: setup poetry
+          command: |
+            poetry -V
+            poetry install
+      - run:
+          name: isort
+          command: poetry run isort --check-only common locustfiles
+      - run:
+          name: black
+          command: poetry run black --quiet --diff --check common locustfiles
+      - run:
+          name: flake8
+          command: poetry run flake8 common locustfiles
+      - run:
+          name: mypy
+          command: poetry run mypy common locustfiles
+
 workflows:
   version: 2
   build-deploy:
@@ -303,6 +328,7 @@ workflows:
           requires:
           - build
           - contract-test-checks
+      - load-test-checks
       - deploy:
           requires:
             - build
