@@ -2,6 +2,7 @@
 use std::{env, io::Cursor, sync::Arc};
 
 use actix_web::http::{header::HeaderValue, uri};
+use base64::Engine;
 use bytes::Bytes;
 use cadence::{CountedExt, StatsdClient};
 use chrono::{DateTime, Duration, Utc};
@@ -228,7 +229,7 @@ impl ImageStore {
             tags.add_extra("url", &uri.to_string());
             tags.add_extra("format", fmt.extensions_str().first().unwrap_or(&"Unknown"));
             let mut err: HandlerError = HandlerErrorKind::BadImage("Image unreadable").into();
-            err.tags = tags;
+            *err.tags = tags;
             err
         })?;
         let rgb_img = img.to_rgb16();
@@ -259,7 +260,7 @@ impl ImageStore {
 
     /// Generate a unique hash based on the content of the image
     pub fn as_hash(&self, source: &Bytes) -> String {
-        base64::encode_config(blake3::hash(source).as_bytes(), base64::URL_SAFE_NO_PAD)
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(blake3::hash(source).as_bytes())
     }
 
     /// Fetch the bytes for an image based on a URI
@@ -321,7 +322,7 @@ impl ImageStore {
                     tags.add_extra("format", content_type);
                     let mut err: HandlerError =
                         HandlerErrorKind::BadImage("Invalid image format").into();
-                    err.tags = tags;
+                    *err.tags = tags;
                     return Err(err);
                 }
             };
@@ -332,7 +333,7 @@ impl ImageStore {
             tags.add_extra("metrics", &format!("{:?}", image_metrics));
             tags.add_extra("url", &uri.to_string());
             let mut err: HandlerError = HandlerErrorKind::BadImage("Non symmetric image").into();
-            err.tags = tags;
+            *err.tags = tags;
             return Err(err);
         }
         // Check image meta sizes
@@ -346,7 +347,7 @@ impl ImageStore {
             tags.add_extra("metrics", &format!("{:?}", image_metrics));
             tags.add_extra("url", &uri.to_string());
             let mut err: HandlerError = HandlerErrorKind::BadImage("Invalid image size").into();
-            err.tags = tags;
+            *err.tags = tags;
             return Err(err);
         }
         Ok(image_metrics)

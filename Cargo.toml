@@ -23,7 +23,7 @@ actix-web = { version = "4", default_features = false, features = ["macros"] }
 actix-web-location = { version = "0.7", features = ["actix-web-v4", "maxmind", "cadence"] }
 async-trait = "0.1"
 backtrace = "0.3"
-base64 = "0.13"
+base64 = "0.21"
 blake3 = "1"
 bytes = "1"
 cadence = "0.29"
@@ -34,7 +34,7 @@ cloud-storage = { git = "https://github.com/mozilla-services/cloud-storage-rs", 
 config = "0.13"
 dashmap = "5.3"
 futures = "0.3"
-gethostname = "0.2.1"
+gethostname = "0.4"
 hex = "0.4"
 image = "0.24"
 lazy_static = "1.4"
@@ -43,8 +43,8 @@ rand ="0.8"
 regex = "1"
 reqwest = { version = "0.11", features = ["json"] }
 serde = "1"
-sentry = "0.27"
-sentry-backtrace = "0.27"
+sentry = "0.30"
+sentry-backtrace = "0.30"
 serde_json = "1"
 scopeguard = "1.1"
 slog = { version = "2.7", features = ["max_level_trace", "release_max_level_info", "dynamic-keys"] }

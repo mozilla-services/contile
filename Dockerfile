@@ -4,7 +4,7 @@
 ARG APPNAME=contile
 
 # NOTE: Ensure builder's Rust version matches CI's in .circleci/config.yml
-FROM rust:1.64-slim-buster as builder
+FROM rust:1.68-slim-bullseye as builder
 ARG APPNAME
 ADD . /app
 WORKDIR /app
@@ -23,7 +23,7 @@ RUN \
     cp /app/target/release/${APPNAME} /app/bin
 
 
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 ARG APPNAME
 
 # FROM debian:buster  # for debugging docker build
