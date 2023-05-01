@@ -39,7 +39,7 @@ commands:
       - run:
           name: Rust Clippy
           command: |
-            cargo clippy --all --all-targets --all-features -- -D warnings -A clippy::result_large_err
+            cargo clippy --all --all-targets --all-features -- -D warnings
   cargo-build:
     steps:
       - run:

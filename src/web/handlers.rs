@@ -150,7 +150,7 @@ pub async fn get_tiles(
                 warn!("Bad response from ADM: {:?}", e);
                 // Merge in the error tags, which should already include the
                 // error string as `error`
-                tags.extend(e.tags.clone());
+                tags.extend(e.tags.as_ref().clone());
                 tags.add_tag("level", "warning");
                 metrics.incr_with_tags("tiles.invalid", Some(&tags));
                 // write an empty tile set into the cache for this result.

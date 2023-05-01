@@ -131,7 +131,7 @@ where
                 Some(e) => {
                     if let Some(herr) = e.as_error::<HandlerError>() {
                         if herr.kind().is_sentry_event() {
-                            tags.extend(herr.tags.clone());
+                            tags.extend(herr.tags.as_ref().clone());
                             report(herr, &tags);
                         } else if let Some(label) = herr.kind().metric_label() {
                             metrics.incr_with_tags(label).send()

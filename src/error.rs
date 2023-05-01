@@ -22,8 +22,8 @@ pub type HandlerResult<T> = result::Result<T, HandlerError>;
 #[derive(Debug)]
 pub struct HandlerError {
     kind: HandlerErrorKind,
-    pub(crate) backtrace: Backtrace,
-    pub tags: Tags,
+    pub(crate) backtrace: Box<Backtrace>,
+    pub tags: Box<Tags>,
 }
 
 /// The specific context types of HandlerError.
@@ -222,8 +222,8 @@ where
     fn from(item: T) -> Self {
         HandlerError {
             kind: HandlerErrorKind::from(item),
-            backtrace: Backtrace::new(),
-            tags: Tags::default(),
+            backtrace: Box::new(Backtrace::new()),
+            tags: Box::<Tags>::default(),
         }
     }
 }
