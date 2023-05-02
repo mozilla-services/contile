@@ -103,14 +103,12 @@ pub struct Settings {
     pub adm_sub1: Option<String>,
     /// adm Endpoint URL
     pub adm_endpoint_url: String,
-    /// max number of tiles returned to non-mobile clients (default: 3)
-    pub adm_max_tiles: u8,
     /// Mobile versions of the above
     pub adm_mobile_partner_id: Option<String>,
     pub adm_mobile_sub1: Option<String>,
     pub adm_mobile_endpoint_url: Option<String>,
-    /// max number of tiles returned to mobile clients (default: 2)
-    pub adm_mobile_max_tiles: Option<u8>,
+    /// max number of tiles returned to clients (default: 2)
+    pub adm_max_tiles: u8,
     /// number of tiles to query from ADM (default: 10)
     pub adm_query_tile_count: u8,
     /// Timeout requests to the ADM server after this many seconds (default: 5)
@@ -169,11 +167,10 @@ impl Default for Settings {
             adm_endpoint_url: "".to_owned(),
             adm_partner_id: None,
             adm_sub1: None,
-            adm_max_tiles: 3,
             adm_mobile_endpoint_url: None,
             adm_mobile_partner_id: None,
             adm_mobile_sub1: None,
-            adm_mobile_max_tiles: Some(2),
+            adm_max_tiles: 2,
             adm_query_tile_count: 10,
             adm_timeout: 5,
             adm_settings: "".to_owned(),

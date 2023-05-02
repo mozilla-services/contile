@@ -23,14 +23,6 @@
             "image_url": "https://cdn.example.com/805.jpg",
             "advertiser_url": "https://www.lph-nm.biz/?utm_source=google&utm_campaign=quux*{keyword}_m*{match-type}_d*BARBAZ_22",
             "impression_url": "https://example.net/static?id=ABAD1DEA"
-        },
-        {
-            "id": 907,
-            "name": "Lasagna Come Out Tomorrow",
-            "click_url": "https://example.com/ctp?version=16.0.0&key=5.5&ci=6.6&ctag=1680739594006000000",
-            "image_url": "https://cdn.example.com/907.jpg",
-            "advertiser_url": "https://www.lasagna.restaurant/?utm_source=google&utm_campaign=xyzzy*{keyword}_m*{match-type}_d*FRED_56",
-            "impression_url": "https://example.net/static?id=CAFED00D"
         }
     ]
 }
