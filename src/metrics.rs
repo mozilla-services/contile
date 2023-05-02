@@ -118,9 +118,7 @@ impl Metrics {
     /// Duration is calculated when this timer is dropped.
     pub fn start_timer(&mut self, label: &str, tags: Option<Tags>) {
         let mut mtags = self.tags.clone().unwrap_or_default();
-        if let Some(t) = tags {
-            mtags.extend(t)
-        }
+        Extend::extend(&mut mtags, tags.into_iter());
 
         trace!("⌚ Starting timer... {:?}", &label; &mtags);
         self.timer = Some(MetricTimer {
@@ -140,13 +138,10 @@ impl Metrics {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.incr_with_tags(label);
             let mut mtags = self.tags.clone().unwrap_or_default();
-            if let Some(tags) = tags {
-                mtags.extend(tags.clone());
-            }
-            for key in mtags.tags.keys().clone() {
-                if let Some(val) = mtags.tags.get(key) {
-                    tagged = tagged.with_tag(key, val.as_ref());
-                }
+            Extend::extend(&mut mtags, tags.into_iter());
+
+            for (key, val) in mtags.tags.iter() {
+                tagged = tagged.with_tag(key, val);
             }
             // Include any "hard coded" tags.
             // incr = incr.with_tag("version", env!("CARGO_PKG_VERSION"));
@@ -166,23 +161,18 @@ impl Metrics {
     }
 
     /// increment by count with [crate::tags::Tags] information
-    pub fn count_with_tags(&self, label: &str, count: i64, tags: Option<Tags>) {
+    pub fn count_with_tags(&self, label: &str, count: i64, tags: Option<&Tags>) {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.count_with_tags(label, count);
             let mut mtags = self.tags.clone().unwrap_or_default();
-            if let Some(tags) = tags {
-                mtags.extend(tags);
-            }
-            for key in mtags.tags.keys().clone() {
-                if let Some(val) = mtags.tags.get(key) {
-                    tagged = tagged.with_tag(key, val.as_ref());
-                }
+            Extend::extend(&mut mtags, tags.into_iter());
+
+            for (key, val) in mtags.tags.iter() {
+                tagged = tagged.with_tag(key, val);
             }
             // mix in the metric only tags.
-            for key in mtags.metric.keys().clone() {
-                if let Some(val) = mtags.metric.get(key) {
-                    tagged = tagged.with_tag(key, val.as_ref())
-                }
+            for (key, val) in mtags.metric.iter() {
+                tagged = tagged.with_tag(key, val);
             }
             // Include any "hard coded" tags.
             // incr = incr.with_tag("version", env!("CARGO_PKG_VERSION"));

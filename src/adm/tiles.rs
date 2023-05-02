@@ -245,6 +245,12 @@ pub async fn get_tiles(
                 })?
         }
     };
+    metrics.count_with_tags(
+        "tiles.adm.response.tiles_count",
+        response.tiles.len() as i64,
+        Some(tags),
+    );
+    // Keep this counter to facilitate the "zero" ad fill rate monitoring
     if response.tiles.is_empty() {
         warn!("adm::get_tiles empty response {}", adm_url);
         metrics.incr_with_tags("filter.adm.empty_response", Some(tags));
