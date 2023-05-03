@@ -1,7 +1,7 @@
 ## References
 
 JIRA: [DISCO-TODO](https://mozilla-hub.atlassian.net/browse/DISCO-TODO)
-GitHub: [#TODO](https://github.com/mozilla-services/merino-py/issues/TODO)
+GitHub: [#TODO](https://github.com/mozilla-services/contile/issues/TODO)
 
 ## Description
 <!-- Detail the purpose and impact of this PR, along with any other relevant information including: change highlights, screenshots, test instructions, etc .... -->
