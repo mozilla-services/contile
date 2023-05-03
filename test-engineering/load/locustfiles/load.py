@@ -10,6 +10,8 @@ from locust import LoadTestShape, User
 from locustfile import ContileFirefoxUser, ContileNonFirefoxUser
 from pydantic import BaseModel
 
+TickTuple = tuple[int, float, list[Type[User]] | None]
+
 
 class ShapeStage(BaseModel):
     """Data defining a shape stage."""
@@ -43,11 +45,11 @@ class ContileLoadTestShape(LoadTestShape):
             ShapeStage(run_time=self.RUN_TIME, users=0, spawn_rate=spawn_rate),
         ]
 
-    def tick(self) -> tuple[int, float, list[Type[User]] | None] | None:
+    def tick(self) -> TickTuple | None:
         """Override defining the desired distribution for Contile load testing.
 
         Returns:
-            tuple[int, float, list[Type[User]] | None]: Distribution parameters
+            TickTuple: Distribution parameters
                 user_count: Total user count
                 spawn_rate: Number of users to start/stop per second when changing
                             number of users
