@@ -1,6 +1,7 @@
 # These environment variables must be set in CircleCI UI
 #
 # DOCKERHUB_REPO - docker hub repo, format: <username>/<repo>
+# DOCKERHUB_CONTILE_LOAD_TEST_REPO - docker hub repo for performance test, format: <username>/<repo>
 # DOCKER_USER    - login info for docker hub
 # DOCKER_PASS
 #
@@ -13,6 +14,16 @@ parameters:
     default: "1.68"
 
 commands:
+  dockerhub-login:
+    steps:
+      - run:
+          name: Login to Dockerhub
+          command: |
+            if [ "${DOCKER_USER}" == "" ] || [ "${DOCKER_PASS}" == "" ]; then
+              echo "Skipping Login to DockerHub, credentials unavailable"
+            else
+              echo "${DOCKER_PASS}" | docker login -u="${DOCKER_USER}" --password-stdin
+            fi
   setup-rust:
     steps:
       - run:
@@ -131,14 +142,7 @@ jobs:
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
-      - run:
-          name: Login to Dockerhub
-          command: |
-            if [ "${DOCKER_USER}" == "" ] || [ "${DOCKER_PASS}" == "" ]; then
-              echo "Skipping Login to DockerHub, credentials unavailable"
-            else
-              echo "${DOCKER_PASS}" | docker login -u="${DOCKER_USER}" --password-stdin
-            fi
+      - dockerhub-login
       #- save-sccache-cache
       - checkout
       - write-version
@@ -305,6 +309,44 @@ jobs:
           name: mypy
           command: poetry run mypy common locustfiles
 
+  docker-image-publish-locust:
+    docker:
+      - image: cimg/base:2022.08
+    working_directory: "~/contile/test-engineering/load"
+    steps:
+      - checkout:
+          path: ~/contile/
+#      - run:
+#          name: Check for main branch
+#          command: |
+#            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
+#              echo "Skipping remaining steps in this job: load test only run on 'main'."
+#              circleci-agent step halt
+#            fi
+#      - run:
+#          name: Check for load test directive
+#          command: |
+#            if ! git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\|warn\]'; then
+#              echo "Skipping remaining steps in this job: load test not required."
+#              circleci-agent step halt
+#            fi
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build image
+          command: docker build -t contile-locust .
+      - dockerhub-login
+      - run:
+          name: Push to Docker Hub
+          command: |
+            DOCKER_TAG="${CIRCLE_SHA1}"
+            echo ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}
+            docker tag contile-locust ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}
+            docker tag contile-locust ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:latest
+            docker images
+            docker push "${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}"
+            docker push "${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:latest"
+
 workflows:
   version: 2
   build-deploy:
@@ -329,11 +371,15 @@ workflows:
           - build
           - contract-test-checks
       - load-test-checks
+      - docker-image-publish-locust:
+          requires:
+            - load-test-checks
       - deploy:
           requires:
             - build
             - test
             - contract-tests
+            - docker-image-publish-locust
           filters:
             tags:
               only: /.*/
