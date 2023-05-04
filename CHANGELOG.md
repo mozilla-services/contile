@@ -1,3 +1,12 @@
+<a name="1.11.3"></a>
+## 1.11.3 (2023-05-04)
+
+
+#### Chore
+
+*   chore: disable sentry's debug-images feature (#545)    ([eae0214](https://github.com/mozilla-services/contile/commit/eae0214c236014c91a5a6a5c2bcd29637c75399a))
+
+
 <a name="1.11.2"></a>
 ## 1.11.2 (2023-05-03)
 
