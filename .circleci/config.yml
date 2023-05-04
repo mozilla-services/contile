@@ -323,13 +323,13 @@ jobs:
 #              echo "Skipping remaining steps in this job: load test only run on 'main'."
 #              circleci-agent step halt
 #            fi
-#      - run:
-#          name: Check for load test directive
-#          command: |
-#            if ! git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\|warn\]'; then
-#              echo "Skipping remaining steps in this job: load test not required."
-#              circleci-agent step halt
-#            fi
+      - run:
+          name: Check for load test directive
+          command: |
+            if ! git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\|warn\]'; then
+              echo "Skipping remaining steps in this job: load test not required."
+              circleci-agent step halt
+            fi
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
