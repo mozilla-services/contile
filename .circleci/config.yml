@@ -373,6 +373,7 @@ workflows:
       - load-test-checks
       - docker-image-publish-locust:
           requires:
+            - checks
             - build
             - test
             - contract-tests
