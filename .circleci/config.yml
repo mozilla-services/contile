@@ -342,7 +342,15 @@ jobs:
           # modifying the Docker image tag name. The convention looks as follows:
           #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
           command: |
-            DOCKER_TAG="${CIRCLE_SHA1}"
+            if git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: warn\]'; then
+              echo "Load test requested. Slack warning will be output if test fails and deployment workflow for prod will proceed."
+              DOCKER_TAG="stage-loadtest-warn-${CIRCLE_SHA1}"
+            elif git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\]'; then
+              echo "Load test requested. Deployment workflow for prod will abort if load test fails."
+              DOCKER_TAG="stage-loadtest-abort-${CIRCLE_SHA1}"
+            else
+              DOCKER_TAG="stage-${CIRCLE_SHA1}"
+            fi
             echo ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}
             docker tag contile-locust ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}
             docker tag contile-locust ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:latest
