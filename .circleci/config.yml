@@ -136,9 +136,9 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
         environment:
-            RUST_BACKTRACE: 1
-            # XXX: begin_test_transaction doesn't play nice over threaded tests
-            RUST_TEST_THREADS: 1
+          RUST_BACKTRACE: 1
+          # XXX: begin_test_transaction doesn't play nice over threaded tests
+          RUST_TEST_THREADS: 1
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -234,55 +234,55 @@ jobs:
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
-         name: Restore Docker image cache
-         command: docker load -i /home/circleci/cache/docker.tar
+          name: Restore Docker image cache
+          command: docker load -i /home/circleci/cache/docker.tar
       - run:
-         name: Log in to the default Docker registry
-         command: |
-           echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+          name: Log in to the default Docker registry
+          command: |
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
-         name: Build client and partner images
-         command: |
-           docker-compose --version
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            build client partner
+          name: Build client and partner images
+          command: |
+            docker-compose --version
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             build client partner
       - run:
-         name: Run contract tests
-         command: |
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            up --abort-on-container-exit --force-recreate
+          name: Run contract tests
+          command: |
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             up --abort-on-container-exit --force-recreate
       - run:
           name: Run "tiles cache" contract tests
           command: |
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
-            up --abort-on-container-exit --force-recreate
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
+             up --abort-on-container-exit --force-recreate
       - run:
-         name: Run "204" contract tests
-         command: |
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            -f test-engineering/contract-tests/docker-compose.204.yml \
-            up --abort-on-container-exit --force-recreate
+          name: Run "204" contract tests
+          command: |
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract-tests/docker-compose.204.yml \
+             up --abort-on-container-exit --force-recreate
       - run:
-         name: Run "init_error" contract tests
-         command: |
-           set +e # We need this so that the run doesn't exit after docker-compose
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            -f test-engineering/contract-tests/docker-compose.init_error.yml \
-            up --abort-on-container-exit --exit-code contile --force-recreate
-           contile_exit_code=$?
-           if [ "${contile_exit_code}" -eq 0 ]; then
-            echo "Expected non-zero exit_code from Contile service"
-            exit 1
-           else
-            echo "Contile service exit_code: ${contile_exit_code}"
-            exit 0
-           fi
+          name: Run "init_error" contract tests
+          command: |
+            set +e # We need this so that the run doesn't exit after docker-compose
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract-tests/docker-compose.init_error.yml \
+             up --abort-on-container-exit --exit-code contile --force-recreate
+            contile_exit_code=$?
+            if [ "${contile_exit_code}" -eq 0 ]; then
+             echo "Expected non-zero exit_code from Contile service"
+             exit 1
+            else
+             echo "Contile service exit_code: ${contile_exit_code}"
+             exit 0
+            fi
 
   load-test-checks:
     docker:
@@ -338,6 +338,9 @@ jobs:
       - dockerhub-login
       - run:
           name: Push to Docker Hub
+          # The commit tag signals deployment and load test instructions to Jenkins by
+          # modifying the Docker image tag name. The convention looks as follows:
+          #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
           command: |
             DOCKER_TAG="${CIRCLE_SHA1}"
             echo ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}
@@ -368,8 +371,8 @@ workflows:
       - contract-test-checks
       - contract-tests:
           requires:
-          - build
-          - contract-test-checks
+            - build
+            - contract-test-checks
       - load-test-checks
       - docker-image-publish-locust:
           requires:
