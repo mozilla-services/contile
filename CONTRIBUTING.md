@@ -22,6 +22,9 @@ Before submitting a PR:
   pass and the code has been reviewed.
 - Your patch should include new tests that cover your changes. It is your and
   your reviewer's responsibility to ensure your patch includes adequate tests.
+- If making changes that may impact performance, it is recommended to execute a load test. Please see [Load Testing Opt-In [load test: (abort|warn)]](test-engineering/load/README.md#opt-in-execution-in-staging-and-production) documentation for more information.
+- For more information on understanding the release process, please see relevant information contained in the [README.md](README.md#releasing-to-production)
+documentation.
 
 When submitting a PR:
 - You agree to license your code under the project's open source license
