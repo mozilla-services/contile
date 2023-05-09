@@ -215,7 +215,7 @@ jobs:
           name: Check for main branch
           command: |
             if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "Skipping remaining steps in this job: load test only run on 'main'."
+              echo "Skipping remaining steps in this job: deployments only run on 'main'."
               circleci-agent step halt
             fi
       - setup_remote_docker
