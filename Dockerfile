@@ -2,10 +2,14 @@
 
 # Change this to be your application's name
 ARG APPNAME=contile
+# This build arg is used to pass the version (e.g. the commit SHA1 hash) from CI
+# when building the application.
+ARG VERSION=unset
 
 # NOTE: Ensure builder's Rust version matches CI's in .circleci/config.yml
 FROM rust:1.68-slim-bullseye as builder
 ARG APPNAME
+ARG VERSION
 ADD . /app
 WORKDIR /app
 
@@ -19,7 +23,7 @@ RUN \
     cargo --version && \
     rustc --version && \
     mkdir -m 755 bin && \
-    cargo build --release && \
+    CONTILE_VERSION=${VERSION} cargo build --release && \
     cp /app/target/release/${APPNAME} /app/bin
 
 
