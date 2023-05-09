@@ -201,7 +201,8 @@ jobs:
 
   docker-image-publish-stage:
     # The commit tag signals deployment and load test instructions to Jenkins by
-    # modifying the Docker image tag name. The convention looks as follows:
+    # modifying the Docker image tag name. Pushing a new Docker image to the Docker Hub registry
+    # triggers a webhook that starts the Jenkins deployment workflow. The convention looks as follows:
     #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
     docker:
       - image: docker:18.02.0-ce
@@ -213,23 +214,19 @@ jobs:
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
+          name: Check for main branch
+          command: |
+            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo "Skipping remaining steps in this job: deployments only run on 'main'."
+              circleci-agent step halt
+            fi
+      - run:
           name: Restore Docker image cache
           command: docker load -i /home/circleci/cache/docker.tar
+      - dockerhub-login
       - run:
           name: Deploy to Dockerhub
           command: |
-            if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              STAGE_DOCKER_TAG="${CIRCLE_SHA1}"
-            fi
-
-            if echo "${CIRCLE_BRANCH}" | grep '^feature\..*' > /dev/null; then
-              STAGE_DOCKER_TAG="${CIRCLE_BRANCH}"
-            fi
-
-            if [ -n "${CIRCLE_TAG}" ]; then
-              STAGE_DOCKER_TAG="$CIRCLE_TAG"
-            fi
-
             if git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: warn\]'; then
               echo "Load test requested. Slack warning will be output if test fails and deployment workflow for prod will proceed."
               STAGE_DOCKER_TAG="stage-loadtest-warn-${CIRCLE_SHA1}"
@@ -240,19 +237,12 @@ jobs:
               STAGE_DOCKER_TAG="stage-${CIRCLE_SHA1}"
             fi
 
-            if [ -n "${STAGE_DOCKER_TAG}" ]; then
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-              echo ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
-              docker tag app:build ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
-              docker images
-              docker push "${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}"
-            else
-              echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
-            fi
+            echo ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
+            docker tag app:build ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
+            docker images
+            docker push "${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}"
 
   docker-image-publish-prod:
-    # Pushing a new production Docker image to the Docker Hub registry triggers a
-    # webhook that starts the Jenkins deployment workflow.
     docker:
       - image: docker:18.02.0-ce
         auth:
@@ -263,43 +253,26 @@ jobs:
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
+          name: Check for main branch
+          command: |
+            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo "Skipping remaining steps in this job: deployments only run on 'main'."
+              circleci-agent step halt
+            fi
+      - run:
           name: Restore Docker image cache
           command: docker load -i /home/circleci/cache/docker.tar
+      - dockerhub-login
       - run:
           name: Deploy to Dockerhub
           command: |
-            if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              PROD_DOCKER_TAG="${CIRCLE_SHA1}"
-            fi
-
-            if echo "${CIRCLE_BRANCH}" | grep '^feature\..*' > /dev/null; then
-              PROD_DOCKER_TAG="${CIRCLE_BRANCH}"
-            fi
-
-            if [ -n "${CIRCLE_TAG}" ]; then
-              PROD_DOCKER_TAG="$CIRCLE_TAG"
-            fi
-
-            if git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: warn\]'; then
-              echo "Load test requested. Slack warning will be output if test fails and deployment workflow for prod will proceed."
-              PROD_DOCKER_TAG="prod-loadtest-warn-${CIRCLE_SHA1}"
-            elif git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\]'; then
-              echo "Load test requested. Deployment workflow for prod will abort if load test fails."
-              PROD_DOCKER_TAG="prod-loadtest-abort-${CIRCLE_SHA1}"
-            else
-              PROD_DOCKER_TAG="prod-${CIRCLE_SHA1}"
-            fi
-
-            if [ -n "${PROD_DOCKER_TAG}" ]; then
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-              echo ${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}
-              docker tag app:build ${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}
-              docker images
-              docker push "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
-              docker push "${DOCKERHUB_REPO}:latest"
-            else
-              echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
-            fi
+            PROD_DOCKER_TAG="prod-${CIRCLE_SHA1}"
+            echo "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+            docker tag app:build "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+            docker tag app:build "${DOCKERHUB_REPO}:latest"
+            docker images
+            docker push "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+            docker push "${DOCKERHUB_REPO}:latest"
 
   contract-test-checks:
     docker:
