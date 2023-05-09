@@ -136,9 +136,9 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
         environment:
-            RUST_BACKTRACE: 1
-            # XXX: begin_test_transaction doesn't play nice over threaded tests
-            RUST_TEST_THREADS: 1
+          RUST_BACKTRACE: 1
+          # XXX: begin_test_transaction doesn't play nice over threaded tests
+          RUST_TEST_THREADS: 1
     steps:
       - setup_remote_docker:
           docker_layer_caching: true
@@ -161,43 +161,80 @@ jobs:
           paths:
             - /home/circleci/cache
 
-  deploy:
+  docker-image-publish-stage:
+    # The commit tag signals deployment and load test instructions to Jenkins by
+    # modifying the Docker image tag name. Pushing a new Docker image to the Docker Hub registry
+    # triggers a webhook that starts the Jenkins deployment workflow. The convention looks as follows:
+    #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
     docker:
       - image: docker:18.02.0-ce
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
+      - run:
+          name: Check for main branch
+          command: |
+            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo "Skipping remaining steps in this job: deployments only run on 'main'."
+              circleci-agent step halt
+            fi
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
           name: Restore Docker image cache
           command: docker load -i /home/circleci/cache/docker.tar
+      - dockerhub-login
       - run:
           name: Deploy to Dockerhub
           command: |
-            if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              DOCKER_TAG="${CIRCLE_SHA1}"
-            fi
-
-            if echo "${CIRCLE_BRANCH}" | grep '^feature\..*' > /dev/null; then
-              DOCKER_TAG="${CIRCLE_BRANCH}"
-            fi
-
-            if [ -n "${CIRCLE_TAG}" ]; then
-              DOCKER_TAG="$CIRCLE_TAG"
-            fi
-
-            if [ -n "${DOCKER_TAG}" ]; then
-              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-              echo ${DOCKERHUB_REPO}:${DOCKER_TAG}
-              docker tag app:build ${DOCKERHUB_REPO}:${DOCKER_TAG}
-              docker images
-              docker push "${DOCKERHUB_REPO}:${DOCKER_TAG}"
+            if git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: warn\]'; then
+              echo "Load test requested. Slack warning will be output if test fails and deployment workflow for prod will proceed."
+              STAGE_DOCKER_TAG="stage-loadtest-warn-${CIRCLE_SHA1}"
+            elif git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\]'; then
+              echo "Load test requested. Deployment workflow for prod will abort if load test fails."
+              STAGE_DOCKER_TAG="stage-loadtest-abort-${CIRCLE_SHA1}"
             else
-              echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
+              STAGE_DOCKER_TAG="stage-${CIRCLE_SHA1}"
             fi
+
+            echo ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
+            docker tag app:build ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
+            docker images
+            docker push "${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}"
+
+  docker-image-publish-prod:
+    docker:
+      - image: docker:18.02.0-ce
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PASS
+    steps:
+      - run:
+          name: Check for main branch
+          command: |
+            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo "Skipping remaining steps in this job: deployments only run on 'main'."
+              circleci-agent step halt
+            fi
+      - setup_remote_docker
+      - restore_cache:
+          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Restore Docker image cache
+          command: docker load -i /home/circleci/cache/docker.tar
+      - dockerhub-login
+      - run:
+          name: Deploy to Dockerhub
+          command: |
+            PROD_DOCKER_TAG="prod-${CIRCLE_SHA1}"
+            echo "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+            docker tag app:build "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+            docker tag app:build "${DOCKERHUB_REPO}:latest"
+            docker images
+            docker push "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+            docker push "${DOCKERHUB_REPO}:latest"
 
   contract-test-checks:
     docker:
@@ -234,55 +271,55 @@ jobs:
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
-         name: Restore Docker image cache
-         command: docker load -i /home/circleci/cache/docker.tar
+          name: Restore Docker image cache
+          command: docker load -i /home/circleci/cache/docker.tar
       - run:
-         name: Log in to the default Docker registry
-         command: |
-           echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+          name: Log in to the default Docker registry
+          command: |
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
       - run:
-         name: Build client and partner images
-         command: |
-           docker-compose --version
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            build client partner
+          name: Build client and partner images
+          command: |
+            docker-compose --version
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             build client partner
       - run:
-         name: Run contract tests
-         command: |
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            up --abort-on-container-exit --force-recreate
+          name: Run contract tests
+          command: |
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             up --abort-on-container-exit --force-recreate
       - run:
           name: Run "tiles cache" contract tests
           command: |
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
-            up --abort-on-container-exit --force-recreate
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
+             up --abort-on-container-exit --force-recreate
       - run:
-         name: Run "204" contract tests
-         command: |
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            -f test-engineering/contract-tests/docker-compose.204.yml \
-            up --abort-on-container-exit --force-recreate
+          name: Run "204" contract tests
+          command: |
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract-tests/docker-compose.204.yml \
+             up --abort-on-container-exit --force-recreate
       - run:
-         name: Run "init_error" contract tests
-         command: |
-           set +e # We need this so that the run doesn't exit after docker-compose
-           docker-compose \
-            -f test-engineering/contract-tests/docker-compose.yml \
-            -f test-engineering/contract-tests/docker-compose.init_error.yml \
-            up --abort-on-container-exit --exit-code contile --force-recreate
-           contile_exit_code=$?
-           if [ "${contile_exit_code}" -eq 0 ]; then
-            echo "Expected non-zero exit_code from Contile service"
-            exit 1
-           else
-            echo "Contile service exit_code: ${contile_exit_code}"
-            exit 0
-           fi
+          name: Run "init_error" contract tests
+          command: |
+            set +e # We need this so that the run doesn't exit after docker-compose
+            docker-compose \
+             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract-tests/docker-compose.init_error.yml \
+             up --abort-on-container-exit --exit-code contile --force-recreate
+            contile_exit_code=$?
+            if [ "${contile_exit_code}" -eq 0 ]; then
+             echo "Expected non-zero exit_code from Contile service"
+             exit 1
+            else
+             echo "Contile service exit_code: ${contile_exit_code}"
+             exit 0
+            fi
 
   load-test-checks:
     docker:
@@ -368,19 +405,24 @@ workflows:
       - contract-test-checks
       - contract-tests:
           requires:
-          - build
-          - contract-test-checks
+            - build
+            - contract-test-checks
       - load-test-checks
       - docker-image-publish-locust:
           requires:
             - checks
-            - build
             - test
             - contract-tests
             - load-test-checks
-      - deploy:
+      - docker-image-publish-stage:
           requires:
             - docker-image-publish-locust
+          filters:
+            tags:
+              only: /.*/
+      - docker-image-publish-prod:
+          requires:
+            - docker-image-publish-stage
           filters:
             tags:
               only: /.*/
