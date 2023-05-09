@@ -200,8 +200,9 @@ jobs:
             fi
 
   docker-image-publish-stage:
-    # Pushing a new production Docker image to the Docker Hub registry triggers a
-    # webhook that starts the Jenkins deployment workflow.
+    # The commit tag signals deployment and load test instructions to Jenkins by
+    # modifying the Docker image tag name. The convention looks as follows:
+    #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
     docker:
       - image: docker:18.02.0-ce
         auth:
@@ -295,6 +296,7 @@ jobs:
               docker tag app:build ${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}
               docker images
               docker push "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
+              docker push "${DOCKERHUB_REPO}:latest"
             else
               echo "Not pushing to dockerhub for tag=${CIRCLE_TAG} branch=${CIRCLE_BRANCH}"
             fi
@@ -438,9 +440,6 @@ jobs:
       - dockerhub-login
       - run:
           name: Push to Docker Hub
-          # The commit tag signals deployment and load test instructions to Jenkins by
-          # modifying the Docker image tag name. The convention looks as follows:
-          #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
           command: |
             DOCKER_TAG="${CIRCLE_SHA1}"
             echo ${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}
@@ -481,9 +480,15 @@ workflows:
             - test
             - contract-tests
             - load-test-checks
-      - deploy:
+      - docker-image-publish-stage:
           requires:
             - docker-image-publish-locust
+          filters:
+            tags:
+              only: /.*/
+      - docker-image-publish-prod:
+          requires:
+            - docker-image-publish-stage
           filters:
             tags:
               only: /.*/
