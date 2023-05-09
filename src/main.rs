@@ -47,13 +47,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(sentry::transports::CurlHttpTransport::new(&options))
             as Arc<dyn sentry::internals::Transport>
     };
-    */
-    let _sentry = sentry::init(sentry::ClientOptions {
+     */
+    // Disable debug-images: it conflicts w/ our debug = 1 rustc build option:
+    // https://github.com/getsentry/sentry-rust/issues/574
+    let mut opts = sentry::apply_defaults(sentry::ClientOptions {
         // Note: set "debug: true," to diagnose sentry issues
         // transport: Some(Arc::new(curl_transport_factory)),
         release: sentry::release_name!(),
         ..sentry::ClientOptions::default()
     });
+    opts.integrations.retain(|i| i.name() != "debug-images");
+    opts.default_integrations = false;
+    let _sentry = sentry::init(opts);
 
     debug!("Starting up...");
 
