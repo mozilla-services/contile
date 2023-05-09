@@ -17,7 +17,12 @@ class RecordKeeper:
         """Create record from Fast API Request and add record to the record keeper."""
 
         headers: tuple[Header, ...] = tuple(
-            Header(name=name, value=value) for name, value in request.headers.items()
+            Header(
+                name=name,
+                # Strip the version from "user-agent" as it's volatile in CI.
+                value=value if name != "user-agent" else value.split("/")[0],
+            )
+            for name, value in request.headers.items()
         )
 
         query_parameters: tuple[QueryParameter, ...] = tuple(
