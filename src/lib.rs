@@ -23,3 +23,26 @@ pub mod server;
 pub mod settings;
 pub mod tags;
 pub mod web;
+
+/// Create the version string (e.g. "contile/1.0.0") with the given separator.
+/// It expects an environment variable `CONTILE_VERSION` as the version and
+/// falls back to `CARGO_PKG_VERSION` if it's not present.
+pub fn create_app_version(separator: &str) -> String {
+    let app = env!("CARGO_PKG_NAME");
+    let version = option_env!("CONTILE_VERSION").unwrap_or(env!("CARGO_PKG_VERSION"));
+
+    format!("{app}{separator}{version}")
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::create_app_version;
+
+    #[test]
+    fn test_create_app_version_fallback() {
+        assert_eq!(
+            create_app_version("/"),
+            concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"))
+        );
+    }
+}

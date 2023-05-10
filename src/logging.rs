@@ -2,6 +2,7 @@
 
 use std::io;
 
+use crate::create_app_version;
 use crate::error::HandlerResult;
 
 use slog::{self, slog_o, Drain};
@@ -21,11 +22,7 @@ pub fn init_logging(json: bool) -> HandlerResult<()> {
             .expect("Couldn't get hostname");
 
         let drain = MozLogJson::new(io::stdout())
-            .logger_name(format!(
-                "{}-{}",
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION")
-            ))
+            .logger_name(create_app_version("-"))
             .msg_type(format!("{}:log", env!("CARGO_PKG_NAME")))
             .hostname(hostname)
             .build()

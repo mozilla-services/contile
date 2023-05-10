@@ -148,7 +148,10 @@ jobs:
       - write-version
       - run:
           name: Build Docker image
-          command: docker build -t app:build .
+          command: |
+            docker build \
+              -t app:build \
+              --build-arg VERSION="$(echo ${CIRCLE_SHA1} | cut -c -7)" .
       # save the built docker container into CircleCI's cache. This is
       # required since Workflows do not have the same remote docker instance.
       - run:

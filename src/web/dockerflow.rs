@@ -12,7 +12,7 @@ use actix_web_location::Location;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::{error::HandlerError, server::ServerState};
+use crate::{create_app_version, error::HandlerError, server::ServerState};
 
 /// Well Known DockerFlow commands for Ops callbacks
 pub const DOCKER_FLOW_ENDPOINTS: [&str; 4] = [
@@ -52,10 +52,7 @@ async fn version() -> HttpResponse {
 /// Returns a status message indicating the current state of the server
 async fn heartbeat(state: web::Data<ServerState>) -> HttpResponse {
     let mut checklist = HashMap::new();
-    checklist.insert(
-        "version".to_owned(),
-        Value::String(env!("CARGO_PKG_VERSION").to_owned()),
-    );
+    checklist.insert("version".to_owned(), Value::String(create_app_version("/")));
     if state.settings.test_mode != crate::settings::TestModes::NoTest {
         checklist.insert(
             "test_mode".to_owned(),
