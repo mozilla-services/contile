@@ -175,13 +175,6 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
-      - run:
-          name: Check for main branch
-          command: |
-            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "Skipping remaining steps in this job: deployments only run on 'main'."
-              circleci-agent step halt
-            fi
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -214,13 +207,6 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
-      - run:
-          name: Check for main branch
-          command: |
-            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "Skipping remaining steps in this job: deployments only run on 'main'."
-              circleci-agent step halt
-            fi
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -357,13 +343,6 @@ jobs:
       - checkout:
           path: ~/contile/
       - run:
-          name: Check for main branch
-          command: |
-            if ! [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo "Skipping remaining steps in this job: load test only run on 'main'."
-              circleci-agent step halt
-            fi
-      - run:
           name: Check for load test directive
           command: |
             if ! git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: abort\|warn\]'; then
@@ -389,43 +368,61 @@ jobs:
 
 workflows:
   version: 2
-  build-deploy:
+  pr-workflow:
     jobs:
-      - checks:
+      - checks: &pr-filters
           filters:
-            tags:
-              only: /.*/
+            branches:
+              ignore: main
       - build:
-          filters:
-            tags:
-              only: /.*/
+          <<: *pr-filters
       - test:
-          filters:
-            tags:
-              only: /.*/
+          <<: *pr-filters
           requires:
             - build
-      - contract-test-checks
+      - contract-test-checks:
+          <<: *pr-filters
       - contract-tests:
+          <<: *pr-filters
+          requires:
+          - build
+          - contract-test-checks
+      - load-test-checks:
+          <<: *pr-filters
+
+  main-workflow:
+    jobs:
+      - checks: &main-filters
+          filters:
+            branches:
+              only: main
+      - build:
+          <<: *main-filters
+      - test:
+          <<: *main-filters
+          requires:
+            - build
+      - contract-test-checks:
+          <<: *main-filters
+      - contract-tests:
+          <<: *main-filters
           requires:
             - build
             - contract-test-checks
-      - load-test-checks
+      - load-test-checks:
+          <<: *main-filters
       - docker-image-publish-locust:
+          <<: *main-filters
           requires:
             - checks
             - test
             - contract-tests
             - load-test-checks
       - docker-image-publish-stage:
+          <<: *main-filters
           requires:
             - docker-image-publish-locust
-          filters:
-            tags:
-              only: /.*/
       - docker-image-publish-prod:
+          <<: *main-filters
           requires:
             - docker-image-publish-stage
-          filters:
-            tags:
-              only: /.*/
