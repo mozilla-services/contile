@@ -96,7 +96,9 @@ commands:
           command: cargo install cargo-llvm-cov
       - run:
           name: Test coverage check (Minimum 54%)
-          command: cargo llvm-cov --fail-under-lines 54
+          command: cargo llvm-cov --html --fail-under-lines 54
+      - store_artifacts:
+          path: target/llvm-cov/html # Default location
 
   setup-sccache:
     steps:
