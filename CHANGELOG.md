@@ -1,3 +1,26 @@
+<a name="1.11.3"></a>
+## 1.11.3 (2023-05-04)
+
+
+#### Chore
+
+*   chore: disable sentry's debug-images feature (#545)    ([eae0214](https://github.com/mozilla-services/contile/commit/eae0214c236014c91a5a6a5c2bcd29637c75399a))
+
+
+<a name="1.11.2"></a>
+## 1.11.2 (2023-05-03)
+
+#### Features
+
+*   feat: Add an adm_mobile_max_tiles setting (DISCO-2306, #529)    ([23f5ae6](https://github.com/mozilla-services/contile/commit/23f5ae6993ed93744bf92bfb3bbca3c900a1eaeb))
+*   feat: Add a metric to measure the tile count of adm response (#533)     ([5bb21d2](https://github.com/mozilla-services/contile/commit/5bb21d25bdaf99ef5755558225938bfe419dd565))
+
+
+#### Chore
+
+*   chore: Chore/update 0323 (#532)    ([fca2c47](https://github.com/mozilla-services/contile/commit/fca2c47bd72b9fabde69b8aa4fc5a659461a7a5f))
+
+
 <a name="1.11.1"></a>
 ## 1.11.1 (2023-04-05)
 

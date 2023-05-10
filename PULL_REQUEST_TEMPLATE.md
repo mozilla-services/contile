@@ -14,6 +14,6 @@ _Put an `x` in the boxes that apply_
 
 - [ ] This PR conforms to the [Contribution Guidelines](https://github.com/mozilla-services/contile/blob/main/CONTRIBUTING.md)
 - [ ] This PR conforms to the [Opsec policies](https://github.com/mozilla-services/websec-check)
-- [ ] Functional and performance test coverage has been expanded and maintained 
+- [ ] [Functional and performance test](https://github.com/mozilla-services/contile/tree/main/test-engineering) coverage has been expanded and maintained (if applicable)
 - [ ] Documentation has been updated
 - [ ] The PR title starts with the JIRA issue reference, format `[DISCO-####]`, and has the same title
