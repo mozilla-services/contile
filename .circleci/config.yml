@@ -99,6 +99,7 @@ commands:
           command: cargo llvm-cov --html --fail-under-lines 54
       - store_artifacts:
           path: target/llvm-cov/html # Default location
+          destination: llvm-cov/html
 
   setup-sccache:
     steps:
