@@ -457,8 +457,7 @@ workflows:
             - contract-test-checks
       - load-test-checks:
           <<: *main-filters
-      - check-for-deployment:
-          <<: *main-filters
+      - check-for-deployment
       - docker-image-publish-locust:
           <<: *main-filters
           requires:
