@@ -405,8 +405,6 @@ workflows:
           <<: *pr-filters
       - test:
           <<: *pr-filters
-          requires:
-            - build
       - contract-test-checks:
           <<: *pr-filters
       - contract-tests:
@@ -427,8 +425,6 @@ workflows:
           <<: *main-filters
       - test:
           <<: *main-filters
-          requires:
-            - build
       - contract-test-checks:
           <<: *main-filters
       - contract-tests:
