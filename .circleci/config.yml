@@ -69,8 +69,7 @@ commands:
             "$CIRCLE_PROJECT_USERNAME" \
             "$CIRCLE_PROJECT_REPONAME" \
             "$CIRCLE_BUILD_URL" > version.json
-
-  check-for-deployment:
+  skip-if-do-not-deploy:
     steps:
       - run:
           name: Check if deployment is disallowed
@@ -157,6 +156,12 @@ jobs:
       - rust-check
       - rust-clippy
 
+  check-for-deployment:
+    docker:
+      - image: cimg/base:2022.08
+    steps:
+      - checkout
+      - skip-if-do-not-deploy
   test:
     docker:
       - image: cimg/rust:<< pipeline.parameters.rust-version >>
@@ -221,7 +226,6 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
-      - check-for-deployment
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -254,7 +258,6 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
-      - check-for-deployment
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -459,9 +462,15 @@ workflows:
             - contract-test-checks
       - load-test-checks:
           <<: *main-filters
+      - check-for-deployment:
+          <<: *main-filters
+          requires:
+            - checks
+            - contract-tests
       - docker-image-publish-locust:
           <<: *main-filters
           requires:
+            - check-for-deployment
             - checks
             - test
             - contract-tests
