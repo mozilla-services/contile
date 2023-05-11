@@ -70,6 +70,25 @@ commands:
             "$CIRCLE_PROJECT_REPONAME" \
             "$CIRCLE_BUILD_URL" > version.json
 
+  check-for-deployment:
+    steps:
+      - run:
+          name: Check if deployment is disallowed
+          # This relies on the [do not deploy] text to be available in the
+          # merge commit when merging the PR to 'main'.
+          command: |
+            if git log -1 "$CIRCLE_SHA1" | grep -q '\[do not deploy\]'; then
+                echo "Skipping remaining steps in this job: deployment was disabled for this commit."
+                circleci-agent step halt
+
+                # No need to deploy, just cancel the rest of jobs of the workflow.
+                # See API detail: https://circleci.com/docs/api/v2/index.html#operation/cancelWorkflow
+
+                curl -X POST https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel \
+                -H 'Accept: application/json' \
+                -H "Circle-Token: ${SKIP_DEPLOY_API_TOKEN}"
+            fi
+
   run-tests:
     steps:
       - run:
@@ -412,8 +431,8 @@ workflows:
       - contract-tests:
           <<: *pr-filters
           requires:
-          - build
-          - contract-test-checks
+            - build
+            - contract-test-checks
       - load-test-checks:
           <<: *pr-filters
 
