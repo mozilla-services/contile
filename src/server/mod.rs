@@ -15,6 +15,7 @@ use cadence::StatsdClient;
 
 use crate::{
     adm::{spawn_updater, AdmFilter},
+    create_app_version,
     error::{HandlerError, HandlerResult},
     metrics::metrics_from_opts,
     server::{img_storage::ImageStore, location::location_config_from_settings},
@@ -29,9 +30,6 @@ pub mod location;
 /// Arbitrary initial cache size based on the expected mean, feel free to
 /// adjust
 const TILES_CACHE_INITIAL_CAPACITY: usize = 768;
-
-/// User-Agent sent to adM
-const REQWEST_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
@@ -111,7 +109,7 @@ impl Server {
         let req = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(settings.connect_timeout))
             .timeout(Duration::from_secs(settings.request_timeout))
-            .user_agent(REQWEST_USER_AGENT)
+            .user_agent(create_app_version("/"))
             .build()?;
         let storage_client = cloud_storage::Client::builder()
             .client(req.clone())

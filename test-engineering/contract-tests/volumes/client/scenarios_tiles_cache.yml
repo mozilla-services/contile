@@ -88,7 +88,7 @@ scenarios:
                     - name: accept
                       value: '*/*'
                     - name: user-agent
-                      value: 'contile/1.11.3'
+                      value: 'contile'
                     - name: host
                       value: 'partner:5000'
                   path: '/tilesp/desktop'
@@ -201,7 +201,7 @@ scenarios:
                     - name: accept
                       value: '*/*'
                     - name: user-agent
-                      value: 'contile/1.11.3'
+                      value: 'contile'
                     - name: host
                       value: 'partner:5000'
                   path: '/tilesp/desktop'
@@ -235,7 +235,7 @@ scenarios:
                     - name: accept
                       value: '*/*'
                     - name: user-agent
-                      value: 'contile/1.11.3'
+                      value: 'contile'
                     - name: host
                       value: 'partner:5000'
                   path: '/tilesp/desktop'
