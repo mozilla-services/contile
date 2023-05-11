@@ -468,7 +468,16 @@ workflows:
           <<: *main-filters
           requires:
             - docker-image-publish-locust
+      # The following job will require manual approval in the CircleCI web application.
+      # Once provided, and when all the requirements are fullfilled (e.g. tests).
+      - unhold-to-deploy:
+          <<: *main-filters
+          type: approval
+          requires:
+            - docker-image-publish-stage
+      # On approval of the `unhold-to-deploy` job, any successive job that requires it
+      # will run. In this case, it's manually triggering deployment to production.
       - docker-image-publish-prod:
           <<: *main-filters
           requires:
-            - docker-image-publish-stage
+            - unhold-to-deploy
