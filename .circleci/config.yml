@@ -221,6 +221,7 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
+      - check-for-deployment
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -253,6 +254,7 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
     steps:
+      - check-for-deployment
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -456,8 +458,6 @@ workflows:
             - build
             - contract-test-checks
       - load-test-checks:
-          <<: *main-filters
-      - check-for-deployment:
           <<: *main-filters
       - docker-image-publish-locust:
           <<: *main-filters
