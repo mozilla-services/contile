@@ -8,7 +8,7 @@ ARG VERSION=unset
 
 # !!!NOTE!!!: Ensure builder's Rust version matches CI's in .circleci/config.yml
 
-FROM lukemathwalker/cargo-chef:latest-rust-1.68-slim-bullseye AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.68-bullseye AS chef
 WORKDIR /app
 
 FROM chef AS planner
