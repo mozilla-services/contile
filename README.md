@@ -8,6 +8,7 @@ The goal of this service is to pass tiles from partners along to Firefox for dis
 Supports the TopSites feature within Firefox.
 
 See also:
+
 - [In-repo documentation](docs/)
 - [Monitoring dashboard](https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure) (Mozilla internal)
 
