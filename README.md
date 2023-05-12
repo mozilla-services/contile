@@ -74,7 +74,6 @@ Occasionally developers might want to prevent a commit from triggering the deplo
 In order to prevent the deployment of the code from a PR when merging to `main`, the **title of that PR** must contain the `[do not deploy]` text. When generating the merge commit for a branch within the GitHub UI, ensure that `[do not deploy]` is still present in the description, especially if you change or rename the PR later on.
 
 For example:
-
 ```
 # PR title (NOT the commit message)
 doc: Add documentation for the release process [do not deploy]
