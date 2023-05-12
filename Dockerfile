@@ -39,6 +39,8 @@ COPY --from=builder /app/target/release/${APPNAME} /app/bin
 COPY --from=builder /app/version.json /app
 COPY --from=builder /app/entrypoint.sh /app
 
+USER app
+
 # ARG variables aren't available at runtime
 ENV BINARY=/app/bin/${APPNAME}
 ENTRYPOINT ["/app/entrypoint.sh"]

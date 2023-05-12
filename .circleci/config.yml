@@ -156,9 +156,9 @@ jobs:
       - dockerhub-login
       #- save-sccache-cache
       - checkout
-      - write-version
       - setup_remote_docker:
           docker_layer_caching: true
+      - write-version
       - run:
           name: Build Docker image
           command: |
