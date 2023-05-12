@@ -466,15 +466,13 @@ workflows:
           <<: *main-filters
           requires:
             - checks
+            - test
             - contract-tests
+            - load-test-checks
       - docker-image-publish-locust:
           <<: *main-filters
           requires:
             - check-for-deployment
-            - checks
-            - test
-            - contract-tests
-            - load-test-checks
       - docker-image-publish-stage:
           <<: *main-filters
           requires:
