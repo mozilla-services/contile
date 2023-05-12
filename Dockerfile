@@ -1,5 +1,3 @@
-# Docker 17.05 or higher required for multi-stage builds
-
 # Change this to be your application's name
 ARG APPNAME=contile
 # This build arg is used to pass the version (e.g. the commit SHA1 hash) from CI
