@@ -23,6 +23,7 @@ RUN cargo build --release
 
 FROM debian:bullseye-slim AS runtime
 ARG APPNAME
+ARG VERSION
 WORKDIR /app
 
 RUN \
@@ -42,4 +43,5 @@ USER app
 
 # ARG variables aren't available at runtime
 ENV BINARY=/app/bin/${APPNAME}
+ENV VERSION=${VERSION}
 ENTRYPOINT ["/app/entrypoint.sh"]
