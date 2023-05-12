@@ -69,6 +69,24 @@ commands:
             "$CIRCLE_PROJECT_USERNAME" \
             "$CIRCLE_PROJECT_REPONAME" \
             "$CIRCLE_BUILD_URL" > version.json
+  skip-if-do-not-deploy:
+    steps:
+      - run:
+          name: Check if deployment is disallowed
+          # This relies on the [do not deploy] text to be available in the
+          # merge commit when merging the PR to 'main'.
+          command: |
+            if git log -1 "$CIRCLE_SHA1" | grep -q '\[do not deploy\]'; then
+                echo "Skipping remaining steps in this job: deployment was disabled for this commit."
+                circleci-agent step halt
+
+                # No need to deploy, just cancel the rest of jobs of the workflow.
+                # See API detail: https://circleci.com/docs/api/v2/index.html#operation/cancelWorkflow
+
+                curl -X POST https://circleci.com/api/v2/workflow/${CIRCLE_WORKFLOW_ID}/cancel \
+                -H 'Accept: application/json' \
+                -H "Circle-Token: ${SKIP_DEPLOY_API_TOKEN}"
+            fi
 
   run-tests:
     steps:
@@ -125,6 +143,13 @@ jobs:
       - setup-rust-check
       - rust-check
       - rust-clippy
+
+  check-for-deployment:
+    docker:
+      - image: cimg/base:2022.08
+    steps:
+      - checkout
+      - skip-if-do-not-deploy
 
   test:
     docker:
@@ -396,8 +421,8 @@ workflows:
       - contract-tests:
           <<: *pr-filters
           requires:
-          - build
-          - contract-test-checks
+            - build
+            - contract-test-checks
       - load-test-checks:
           <<: *pr-filters
 
@@ -420,18 +445,31 @@ workflows:
             - contract-test-checks
       - load-test-checks:
           <<: *main-filters
-      - docker-image-publish-locust:
+      - check-for-deployment:
           <<: *main-filters
           requires:
             - checks
             - test
             - contract-tests
             - load-test-checks
+      - docker-image-publish-locust:
+          <<: *main-filters
+          requires:
+            - check-for-deployment
       - docker-image-publish-stage:
           <<: *main-filters
           requires:
             - docker-image-publish-locust
+      # The following job will require manual approval in the CircleCI web application.
+      # Once provided, and when all the requirements are fullfilled (e.g. tests).
+      - unhold-to-deploy:
+          <<: *main-filters
+          type: approval
+          requires:
+            - docker-image-publish-stage
+      # On approval of the `unhold-to-deploy` job, any successive job that requires it
+      # will run. In this case, it's manually triggering deployment to production.
       - docker-image-publish-prod:
           <<: *main-filters
           requires:
-            - docker-image-publish-stage
+            - unhold-to-deploy
