@@ -153,12 +153,12 @@ jobs:
           # XXX: begin_test_transaction doesn't play nice over threaded tests
           RUST_TEST_THREADS: 1
     steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
       - dockerhub-login
       #- save-sccache-cache
       - checkout
       - write-version
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           name: Build Docker image
           command: |
