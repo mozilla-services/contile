@@ -107,31 +107,6 @@ commands:
           path: target/llvm-cov/html # Default location
           destination: llvm-cov/html
 
-  report-test-results:
-    steps:
-      - run:
-          name: Install cargo2junit
-          command: cargo install cargo2junit
-      - run:
-          name: Generate test results report in JUnit XML format
-          command: |
-            cargo test -- \
-            -Z unstable-options --format json --report-time | cargo2junit > results.xml
-      - store_test_results:
-          path: results.xml
-
-  run-code-coverage:
-    steps:
-      - run:
-          name: Install cargo-llvm-cov
-          command: cargo install cargo-llvm-cov
-      - run:
-          name: Test coverage check (Minimum 54%)
-          command: cargo llvm-cov --html --fail-under-lines 54
-      - store_artifacts:
-          path: target/llvm-cov/html # Default location
-          destination: llvm-cov/html
-
   setup-sccache:
     steps:
       - run:
@@ -175,6 +150,7 @@ jobs:
     steps:
       - checkout
       - skip-if-do-not-deploy
+
   test:
     docker:
       - image: cimg/rust:<< pipeline.parameters.rust-version >>
@@ -190,8 +166,6 @@ jobs:
       - setup-rust
       - cargo-build
       - run-tests
-      - report-test-results
-      - run-code-coverage
 
   build:
     docker:

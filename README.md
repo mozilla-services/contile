@@ -8,7 +8,6 @@ The goal of this service is to pass tiles from partners along to Firefox for dis
 Supports the TopSites feature within Firefox.
 
 See also:
-
 - [In-repo documentation](docs/)
 - [Monitoring dashboard](https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure) (Mozilla internal)
 
@@ -72,11 +71,14 @@ For deployment, you have to add a label to the message of the commit that you wi
 #### Preventing deployment via [do not deploy]
 Occasionally developers might want to prevent a commit from triggering the deployment pipeline. While this should be discouraged, there are some legitimate cases for doing so (e.g. docs only changes).
 In order to prevent the deployment of the code from a PR when merging to `main`, the **title of that PR** must contain the `[do not deploy]` text. When generating the merge commit for a branch within the GitHub UI, ensure that `[do not deploy]` is still present in the description, especially if you change or rename the PR later on.
+
 For example:
+
 ```
 # PR title (NOT the commit message)
 doc: Add documentation for the release process [do not deploy]
 ```
+
 While the `[do not deploy]` can be anywhere in the title, it is recommended to place it at its end in order to better integrate with the current PR title practices and improve readability.
 The deployment pipeline will analyze the message of the merge commit (which will contain the PR title) and make a decision based on it.
 
