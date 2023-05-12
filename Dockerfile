@@ -14,11 +14,11 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
-ARG VERSION
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
+ARG VERSION
 COPY . .
 RUN CONTILE_VERSION=${VERSION} cargo build --release
 
