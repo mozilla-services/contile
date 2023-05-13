@@ -1,8 +1,5 @@
 # Change this to be your application's name
 ARG APPNAME=contile
-# This build arg is used to pass the version (e.g. the commit SHA1 hash) from CI
-# when building the application.
-ARG VERSION=unset
 
 # !!!NOTE!!!: Ensure builder's Rust version matches CI's in .circleci/config.yml
 
@@ -14,16 +11,20 @@ COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
-ARG VERSION
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
+# This build arg is used to pass the version (e.g. the commit SHA1 hash) from CI
+# when building the application.
+ARG VERSION=unset
 RUN CONTILE_VERSION=${VERSION} cargo build --release
 
 FROM debian:bullseye-slim AS runtime
 ARG APPNAME
+
+WORKDIR /app
 
 RUN \
     groupadd --gid 10001 app && \
