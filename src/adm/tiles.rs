@@ -39,7 +39,6 @@ impl AdmTileResponse {
     /// would be to open `./tools/test/test_data/default.json`. If you are not running in the
     /// Project root, you will need to specify the full path in `CONTILE_TEST_FILE_PATH`.
     pub fn fake_response(settings: &Settings, mut response_file: String) -> HandlerResult<Self> {
-        dbg!(&response_file);
         trace!("Response file: {:?}", &response_file);
         response_file.retain(|x| char::is_alphanumeric(x) || x == '_');
         if response_file.is_empty() {
