@@ -25,6 +25,7 @@ use crate::{
     error::{HandlerError, HandlerResult},
     server::{cache, location::location_config_from_settings, ServerState},
     settings::{test_settings, Settings},
+    sov::SOVManager,
     web::{dockerflow, handlers, middleware},
 };
 
@@ -59,6 +60,7 @@ fn get_test_settings() -> Settings {
             })
             .to_string(),
         ),
+        sov_source: json!({"name":"SOV-20230518215316","allocations":[{"position":1,"allocation":[{"partner":"amp","percentage":100}]},{"position":2,"allocation":[{"partner":"amp","percentage":88},{"partner":"moz","percentage":12}]}]}).to_string(),
         ..test_settings()
     }
 }
@@ -91,6 +93,9 @@ macro_rules! init_app_with_spy {
                 settings: $settings.clone(),
                 partner_filter: Arc::new(RwLock::new(
                     HandlerResult::<AdmFilter>::from(&mut $settings).unwrap(),
+                )),
+                sov_manager: Arc::new(RwLock::new(
+                    HandlerResult::<SOVManager>::from(&mut $settings).unwrap(),
                 )),
                 img_store: None,
                 excluded_dmas,
@@ -450,6 +455,8 @@ async fn basic_filtered() {
     assert_eq!(tile1["name"], "Acme");
     let tile2 = &tiles[1];
     assert_eq!(tile2["name"].as_str().unwrap(), "Los Pollos Hermanos");
+    let sov = result["sov"].as_str();
+    assert_eq!(sov, Some("eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"))
 }
 
 #[actix_web::test]
@@ -489,6 +496,8 @@ async fn basic_filtered2() {
     assert_eq!(tiles.len(), 1);
     let tile1 = &tiles[0];
     assert_eq!(tile1["name"], "Acme");
+    let sov = result["sov"].as_str();
+    assert_eq!(sov, Some("eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"))
 }
 
 #[actix_web::test]
@@ -1128,4 +1137,31 @@ async fn fallback_on_error() {
             "contile.tiles.get.error:1"
         ]
     );
+}
+
+#[actix_web::test]
+async fn no_sov() {
+    let adm = init_mock_adm(MOCK_RESPONSE1.to_owned());
+
+    let mut settings = Settings {
+        adm_endpoint_url: adm.endpoint_url,
+        sov_source: "gs://bad.bucket".to_owned(),
+        ..get_test_settings()
+    };
+    let app = init_app!(settings).await;
+
+    let req = test::TestRequest::get()
+        .uri("/v1/tiles")
+        .insert_header((header::USER_AGENT, UA_91))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let content_type = resp.headers().get(header::CONTENT_TYPE);
+    assert!(content_type.is_some());
+
+    let result: Value = test::read_body_json(resp).await;
+
+    let sov = result["sov"].as_str();
+    assert_eq!(sov, None)
 }

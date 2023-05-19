@@ -1,7 +1,9 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_location::Location;
+use base64::Engine;
 use lazy_static::lazy_static;
+use serde::{Serialize, Serializer};
 
 use crate::{
     adm,
@@ -12,14 +14,40 @@ use crate::{
         ServerState,
     },
     settings::Settings,
+    sov::SOVResponse,
     tags::Tags,
     web::{middleware::sentry as l_sentry, DeviceInfo, FormFactor},
 };
 
 lazy_static! {
-    pub static ref EMPTY_TILES: String =
-        serde_json::to_string(&adm::TileResponse { tiles: vec![] })
-            .expect("Couldn't serialize EMPTY_TILES");
+    pub static ref EMPTY_TILES: String = serde_json::to_string(&TilesHandlerResponse {
+        tile_response: adm::TileResponse { tiles: vec![] },
+        sov_response: None
+    })
+    .expect("Couldn't serialize EMPTY_TILES");
+}
+
+#[derive(Serialize, Debug)]
+pub struct TilesHandlerResponse {
+    #[serde(flatten)]
+    pub tile_response: adm::TileResponse,
+    #[serde(
+        rename = "sov",
+        serialize_with = "serialize_sov_response",
+        skip_serializing_if = " Option::is_none"
+    )]
+    pub sov_response: Option<SOVResponse>,
+}
+
+fn serialize_sov_response<S>(sov_response: &Option<SOVResponse>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    use serde::ser::Error;
+    let json_string = serde_json::to_string(sov_response).map_err(Error::custom)?;
+    s.serialize_str(
+        &base64::engine::general_purpose::STANDARD_NO_PAD.encode(json_string.as_bytes()),
+    )
 }
 
 /// Handler for `.../v1/tiles` endpoint
@@ -125,8 +153,12 @@ pub async fn get_tiles(
 
     match result {
         Ok(response) => {
+            let sov_response = &state.sov_manager.read().await.last_response;
             let tiles = cache::Tiles::new(
-                response,
+                TilesHandlerResponse {
+                    tile_response: response,
+                    sov_response: sov_response.as_ref().map(|r| r.response.clone()),
+                },
                 settings.tiles_ttl_with_jitter(),
                 settings.tiles_fallback_ttl_with_jitter(),
                 settings.excluded_countries_200,

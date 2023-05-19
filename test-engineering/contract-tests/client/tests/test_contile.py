@@ -73,7 +73,7 @@ def test_contile(hosts: dict[Service, str], steps: list[Step]):
         if response.status_code == 200:
             # If the response status code is 200 OK, load the response content
             # into a Python dict and generate a dict from the response model
-            assert response.json() == step.response.content.dict()
+            assert response.json() == step.response.content.dict(exclude_unset=True)
             continue
 
         if response.status_code == 204:
