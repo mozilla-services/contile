@@ -210,6 +210,7 @@ jobs:
     docker:
       - image: cimg/base:2022.08
     steps:
+      - checkout
       - setup_remote_docker
       - restore_cache:
           key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
