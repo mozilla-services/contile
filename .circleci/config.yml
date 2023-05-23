@@ -208,7 +208,7 @@ jobs:
     # triggers a webhook that starts the Jenkins deployment workflow. The convention looks as follows:
     #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
     docker:
-      - image: docker:18.02.0-ce
+      - image: cimg/base:2022.08
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
@@ -240,7 +240,7 @@ jobs:
 
   docker-image-publish-prod:
     docker:
-      - image: docker:18.02.0-ce
+      - image: cimg/base:2022.08
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PASS
