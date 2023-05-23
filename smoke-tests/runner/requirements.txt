@@ -13,5 +13,5 @@ watchdog==1.0.2
 Werkzeug==2.2.3
 
 # Custom packages
-requests==2.26.0
+requests==2.31.0
 google-auth==2.6.2
