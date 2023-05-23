@@ -209,9 +209,6 @@ jobs:
     #^(?P<environment>stage|prod)(?:-(?P<task>\w+)-(?P<onfailure>warn|abort))?-(?P<commit>[a-z0-9]+)$
     docker:
       - image: cimg/base:2022.08
-        auth:
-          username: $DOCKER_USER
-          password: $DOCKER_PASS
     steps:
       - setup_remote_docker
       - restore_cache:
@@ -241,9 +238,6 @@ jobs:
   docker-image-publish-prod:
     docker:
       - image: cimg/base:2022.08
-        auth:
-          username: $DOCKER_USER
-          password: $DOCKER_PASS
     steps:
       - setup_remote_docker
       - restore_cache:
