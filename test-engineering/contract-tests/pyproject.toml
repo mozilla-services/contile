@@ -38,7 +38,7 @@ mypy = "^0.991"
 pydantic = "^1.10.7"
 pytest = "^7.3.1"
 pyyaml = "^6.0"
-requests = "^2.30.0"
+requests = "^2.31.0"
 types-requests = "^2.30.0.0"
 types-pyyaml = "^6.0.12.9"
 
