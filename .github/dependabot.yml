@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "friday"
+    commit-message:
+      # Contract tests are run in PR workflow, skip deploy
+      prefix: "[do not deploy]"
     labels:
       - "dependencies"
       - "python"
@@ -14,6 +17,21 @@ updates:
     schedule:
       interval: "weekly"
       day: "friday"
+    commit-message:
+      # Contract tests are run in PR workflow, skip deploy
+      prefix: "[do not deploy]"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "pip"
+    directory: "test-engineering/load/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+    commit-message:
+      # Run the load test when updating load test dependency
+      prefix: "[load test: warn]"
     labels:
       - "dependencies"
       - "python"
