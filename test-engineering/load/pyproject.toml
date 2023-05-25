@@ -32,7 +32,7 @@ license = "Mozilla Public License Version 2.0"
 [tool.poetry.dependencies]
 python = "^3.11"
 locust = "^2.15.1"
-pydantic = "^1.10.7"
+pydantic = "^1.10.8"
 
 
 [tool.poetry.group.dev.dependencies]
