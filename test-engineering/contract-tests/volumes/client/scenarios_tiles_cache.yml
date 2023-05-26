@@ -24,6 +24,7 @@ scenarios:
         response:
           status_code: 200
           content:
+            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
             tiles:
               - id: 22345
                 name: 'Example COM'
@@ -55,6 +56,7 @@ scenarios:
         response:
           status_code: 200
           content:
+            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
             tiles:
               - id: 22345
                 name: 'Example COM'
@@ -137,6 +139,7 @@ scenarios:
         response:
           status_code: 200
           content:
+            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
             tiles:
               - id: 32347
                 name: 'Example COM'
@@ -167,6 +170,7 @@ scenarios:
               value: '175.16.199.0'
         response:
           status_code: 200
+          sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
           content:
             tiles:
               - id: 14356
