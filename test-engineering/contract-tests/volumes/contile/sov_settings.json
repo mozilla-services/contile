@@ -5,7 +5,7 @@
         "position": 1,
         "allocation": [
           {
-            "partner": "apm",
+            "partner": "amp",
             "percentage": 100
           }
         ]
@@ -14,7 +14,7 @@
         "position": 2,
         "allocation": [
           {
-            "partner": "apm",
+            "partner": "amp",
             "percentage": 88
           },
            {
