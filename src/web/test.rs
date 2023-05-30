@@ -60,7 +60,33 @@ fn get_test_settings() -> Settings {
             })
             .to_string(),
         ),
-        sov_source: json!({"name":"SOV-20230518215316","allocations":[{"position":1,"allocation":[{"partner":"amp","percentage":100}]},{"position":2,"allocation":[{"partner":"amp","percentage":88},{"partner":"moz","percentage":12}]}]}).to_string(),
+        sov_source: json!({
+            "name": "SOV-20230518215316",
+            "allocations": [
+                {
+                    "position": 1,
+                    "allocation": [
+                        {
+                            "partner": "amp",
+                            "percentage": 100
+                        }
+                    ]
+                },
+                {
+                    "position": 2,
+                    "allocation": [
+                        {
+                            "partner": "amp",
+                            "percentage": 88
+                        },
+                        {
+                            "partner": "moz-sales",
+                            "percentage": 12
+                        }
+                    ]
+                }
+            ]
+        }).to_string(),
         ..test_settings()
     }
 }
