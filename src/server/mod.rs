@@ -142,6 +142,7 @@ impl Server {
         if let Some(last_response) = sov_manager.fetch(&storage_client).await? {
             sov_manager.update(last_response);
         }
+
         let sov = Arc::new(RwLock::new(sov_manager));
         sov_spawn_updater(
             refresh_rate,

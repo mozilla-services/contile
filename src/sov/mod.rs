@@ -1,10 +1,10 @@
-use std::{fs::read_to_string, path::Path, sync::Arc, time::Duration};
-
 use actix_web::rt;
+use base64::Engine;
 use cadence::{CountedExt, StatsdClient};
 use chrono::Utc;
 use config::ConfigError;
 use serde::{Deserialize, Serialize};
+use std::{fs::read_to_string, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 
 use crate::{
@@ -17,6 +17,7 @@ pub struct SOVManager {
     pub refresh_rate: Duration,
     pub last_response: Option<LastResponse>,
     pub source_url: Option<url::Url>,
+    pub encoded_sov: Option<String>,
 }
 
 impl SOVManager {
@@ -56,6 +57,9 @@ impl SOVManager {
     }
 
     pub fn update(&mut self, last_response: LastResponse) {
+        let json_string = serde_json::to_string(&last_response.response).unwrap();
+        self.encoded_sov =
+            Some(base64::engine::general_purpose::STANDARD_NO_PAD.encode(json_string.as_bytes()));
         self.last_response = Some(last_response);
     }
 }
@@ -180,10 +184,23 @@ impl From<&mut Settings> for HandlerResult<SOVManager> {
         } else {
             (None, None)
         };
-        Ok(SOVManager {
-            refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
-            source_url,
-            last_response,
-        })
+
+        if last_response.as_ref().is_some() {
+            Ok(SOVManager {
+                refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
+                source_url,
+                encoded_sov: Some(base64::engine::general_purpose::STANDARD_NO_PAD.encode(
+                    serde_json::to_string(&last_response.as_ref().unwrap().response).unwrap(),
+                )),
+                last_response,
+            })
+        } else {
+            Ok(SOVManager {
+                refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
+                source_url,
+                encoded_sov: None,
+                last_response,
+            })
+        }
     }
 }

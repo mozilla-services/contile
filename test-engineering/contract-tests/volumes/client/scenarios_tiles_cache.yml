@@ -1,7 +1,12 @@
 # Note: The scenarios in this file will be executed using a 'CONTILE_TILES_TTL' value
 # greater than 0. As a result, requests made to Contile will be cached, impacting
 # subsequent scenario executions.
-
+constants:
+  sov: &sov 
+    "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjox\
+    LCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXR\
+    pb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ\
+    0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"
 scenarios:
   - name: success_tiles_cached_for_identical_proxy_params
     description: >
@@ -24,7 +29,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 22345
                 name: 'Example COM'
@@ -56,7 +61,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 22345
                 name: 'Example COM'
@@ -139,7 +144,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 32347
                 name: 'Example COM'
@@ -170,8 +175,8 @@ scenarios:
               value: '175.16.199.0'
         response:
           status_code: 200
-          sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
           content:
+            sov: *sov
             tiles:
               - id: 14356
                 name: 'Example COM'

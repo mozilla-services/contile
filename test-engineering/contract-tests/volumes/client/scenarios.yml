@@ -1,3 +1,9 @@
+constants:
+  sov: &sov 
+    "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjox\
+    LCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXR\
+    pb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ\
+    0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"
 scenarios:
   - name: success_desktop_windows
     description: Test that Contile successfully returns tiles for Windows on Desktop.
@@ -14,7 +20,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 12345
                 name: 'Example COM'
@@ -42,7 +48,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 12345
                 name: 'Example COM'
@@ -74,7 +80,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 12346
                 name: 'Example COM'
@@ -106,7 +112,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 12347
                 name: 'Example COM'
@@ -219,7 +225,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 22346
                 name: 'Example COM'
@@ -259,7 +265,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 41235
                 name: 'DunBroch'
@@ -300,7 +306,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 32346
                 name: 'Example COM'
@@ -331,7 +337,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 32348
                 name: 'Example COM'
@@ -396,7 +402,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 32345
                 name: 'Example COM'
@@ -439,7 +445,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 32347
                 name: 'Example COM'
@@ -479,7 +485,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov 
             tiles:
               - id: 22345
                 name: 'Example COM'
@@ -513,7 +519,7 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: 'eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96IiwicGVyY2VudGFnZSI6MTJ9XX1dfQ'
+            sov: *sov
             tiles:
               - id: 22345
                 name: 'Example COM'
