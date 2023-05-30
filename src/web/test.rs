@@ -39,7 +39,12 @@ const UA_IPHONE: &str =
 const UA_FORM_FACTOR_OTHER: &str = "Mozilla/5.0 (Raspberry Pi 3) Gecko/20100101 Firefox/91.0";
 const MMDB_LOC: &str = "mmdb/GeoLite2-City-Test.mmdb";
 const TEST_ADDR: &str = "216.160.83.56";
-
+const MOCK_SOV: &str = "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlv\
+                        bnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmV\
+                        yIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOj\
+                        IsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50Y\
+                        WdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFn\
+                        ZSI6MTJ9XX1dfQ";
 /// customizing the settings
 fn get_test_settings() -> Settings {
     let treq = test::TestRequest::with_uri("/").to_http_request();
@@ -483,7 +488,7 @@ async fn basic_filtered() {
     let tile2 = &tiles[1];
     assert_eq!(tile2["name"].as_str().unwrap(), "Los Pollos Hermanos");
     let sov = result["sov"].as_str();
-    assert_eq!(sov, Some("eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"))
+    assert_eq!(sov, Some(MOCK_SOV))
 }
 
 #[actix_web::test]
@@ -524,7 +529,7 @@ async fn basic_filtered2() {
     let tile1 = &tiles[0];
     assert_eq!(tile1["name"], "Acme");
     let sov = result["sov"].as_str();
-    assert_eq!(sov, Some("eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"))
+    assert_eq!(sov, Some(MOCK_SOV))
 }
 
 #[actix_web::test]
