@@ -2,7 +2,6 @@ use actix_web::rt;
 use base64::Engine;
 use cadence::{CountedExt, StatsdClient};
 use chrono::Utc;
-use config::ConfigError;
 use serde::{Deserialize, Serialize};
 use std::{fs::read_to_string, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
@@ -13,6 +12,7 @@ use crate::{
     web::middleware::sentry as l_sentry,
 };
 
+#[derive(Debug)]
 pub struct SOVManager {
     pub refresh_rate: Duration,
     pub last_response: Option<LastResponse>,
@@ -132,75 +132,164 @@ pub struct Allocation {
 
 impl From<&mut Settings> for HandlerResult<SOVManager> {
     fn from(settings: &mut Settings) -> Self {
-        let (source_url, last_response) = if settings.sov_source.starts_with("gs://") {
-            (
-                Some(
-                    settings
-                        .sov_source
-                        .parse::<url::Url>()
-                        .map_err(|e| {
-                            ConfigError::Message(format!(
-                                "Unable to parse SOV URL '{}': {:?}",
-                                &settings.sov_source, e
-                            ))
-                        })
-                        .unwrap(),
-                ),
-                None,
-            )
-        } else if Path::new(&settings.sov_source).exists() {
-            let response = match read_to_string(&settings.sov_source) {
-                Ok(contents) => serde_json::from_str(&contents)
-                    .map_err(|e| {
-                        ConfigError::Message(format!(
-                            "Could not parse SOV settings from file '{}': {:?}",
-                            settings.sov_source, e
-                        ))
-                    })
-                    .unwrap(),
-                Err(e) => panic!(
-                    "Could not read file '{}' with SOV settings: {:?}",
-                    &settings.sov_source, e
-                ),
+        // Try with the remote source first.
+        if settings.sov_source.starts_with("gs://") {
+            let Ok(source_url) = settings.sov_source.parse::<url::Url>() else {
+                return Err(
+                    HandlerErrorKind::Internal(
+                        format!("Unable to parse SOV URL '{}'", &settings.sov_source)
+                    ).into()
+                );
             };
-            (
-                None,
-                Some(LastResponse {
-                    response,
-                    updated: Utc::now(),
-                }),
-            )
-        } else if !settings.sov_source.is_empty() {
-            let response = serde_json::from_str::<SOVResponse>(&settings.sov_source)
-                .map_err(|e| ConfigError::Message(format!("Could not parse SOV settings: {:?}", e)))
-                .unwrap();
-            (
-                None,
-                Some(LastResponse {
-                    response,
-                    updated: Utc::now(),
-                }),
-            )
+
+            return Ok(SOVManager {
+                source_url: Some(source_url),
+                refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
+                encoded_sov: None,
+                last_response: None,
+            });
+        }
+
+        // Then check if it's a local settings file or an inline settings string.
+        let sov = if Path::new(&settings.sov_source).exists() {
+            let Ok(sov) =
+                read_to_string(&settings.sov_source)
+                    .map_err(|_| Err::<String, &str>("Unable to read SOV settings file"))
+                    .and_then(|content| {
+                        serde_json::from_str::<SOVResponse>(&content)
+                            .map_err(|_| Err("Unable to load SOV settings from JSON"))
+                    }) else {
+                        return Err(
+                            HandlerErrorKind::Internal(
+                                format!("Unable to parse SOV settings from file '{}'", settings.sov_source)
+                            ).into()
+                        );
+                    };
+            sov
         } else {
-            (None, None)
+            // Presume it's an inline SOV settings string.
+            let Ok(sov) = serde_json::from_str::<SOVResponse>(&settings.sov_source) else {
+                return Err(
+                    HandlerErrorKind::Internal(
+                        format!("Could not parse SOV settings inline: {:?}", &settings.sov_source)
+                    ).into()
+                );
+            };
+            sov
         };
 
-        if last_response.as_ref().is_some() {
-            Ok(SOVManager {
-                refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
-                source_url,
-                encoded_sov: Some(base64::engine::general_purpose::STANDARD_NO_PAD.encode(
-                    serde_json::to_string(&last_response.as_ref().unwrap().response).unwrap(),
-                )),
-                last_response,
+        Ok(SOVManager {
+            source_url: None,
+            refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
+            encoded_sov: Some(
+                // Unwrapping is safe here since the parsing above ensures it's a valid `SOVResponse`.
+                base64::engine::general_purpose::STANDARD_NO_PAD
+                    .encode(serde_json::to_string(&sov).unwrap()),
+            ),
+            last_response: Some(LastResponse {
+                response: sov,
+                updated: Utc::now(),
+            }),
+        })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use serde_json::json;
+
+    use super::*;
+    use crate::web::test::get_test_settings;
+
+    const MOCK_SOV: &str = "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlv\
+    bnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmV\
+    yIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOj\
+    IsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50Y\
+    WdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFn\
+    ZSI6MTJ9XX1dfQ";
+
+    #[test]
+    #[should_panic(expected = "Unable to parse SOV URL 'gs://bad^^url'")]
+    fn test_bad_gcs_url() {
+        let mut settings = Settings {
+            sov_source: "gs://bad^^url".to_owned(),
+
+            ..get_test_settings()
+        };
+        let _bad_url = HandlerResult::<SOVManager>::from(&mut settings).unwrap();
+    }
+    #[test]
+    #[should_panic(
+        expected = "Unable to parse SOV settings from file './test-engineering/contract-tests/volumes/contile/adm_settings.json'"
+    )]
+    fn test_bad_path() {
+        let mut settings = Settings {
+            sov_source: "./test-engineering/contract-tests/volumes/contile/adm_settings.json"
+                .to_owned(),
+
+            ..get_test_settings()
+        };
+        HandlerResult::<SOVManager>::from(&mut settings).unwrap();
+    }
+
+    #[test]
+    fn test_valid_path() {
+        let mut settings = Settings {
+            sov_source: "./test-engineering/contract-tests/volumes/contile/sov_settings.json"
+                .to_owned(),
+            ..get_test_settings()
+        };
+
+        let sov_manager = HandlerResult::<SOVManager>::from(&mut settings);
+        assert_eq!(sov_manager.unwrap().encoded_sov, Some(MOCK_SOV.to_owned()));
+    }
+
+    #[test]
+    #[should_panic(expected = "Could not parse SOV settings inline: \\\"{}\\\"")]
+    fn test_bad_json_setting_string() {
+        let mut settings = Settings {
+            sov_source: "{}".to_owned(),
+
+            ..get_test_settings()
+        };
+        HandlerResult::<SOVManager>::from(&mut settings).unwrap();
+    }
+
+    #[test]
+    fn test_valid_json_string() {
+        let mut settings = Settings {
+            sov_source: json!({
+                "name": "SOV-20230518215316",
+                "allocations": [
+                    {
+                        "position": 1,
+                        "allocation": [
+                            {
+                                "partner": "amp",
+                                "percentage": 100
+                            }
+                        ]
+                    },
+                    {
+                        "position": 2,
+                        "allocation": [
+                            {
+                                "partner": "amp",
+                                "percentage": 88
+                            },
+                            {
+                                "partner": "moz-sales",
+                                "percentage": 12
+                            }
+                        ]
+                    }
+                ]
             })
-        } else {
-            Ok(SOVManager {
-                refresh_rate: Duration::from_secs(settings.sov_refresh_rate_secs),
-                source_url,
-                encoded_sov: None,
-                last_response,
-            })
-        }
+            .to_string(),
+            ..get_test_settings()
+        };
+
+        let sov_manager = HandlerResult::<SOVManager>::from(&mut settings);
+        assert_eq!(sov_manager.unwrap().encoded_sov, Some(MOCK_SOV.to_owned()));
     }
 }

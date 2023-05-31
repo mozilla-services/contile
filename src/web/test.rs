@@ -46,7 +46,7 @@ const MOCK_SOV: &str = "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlv\
                         WdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFn\
                         ZSI6MTJ9XX1dfQ";
 /// customizing the settings
-fn get_test_settings() -> Settings {
+pub fn get_test_settings() -> Settings {
     let treq = test::TestRequest::with_uri("/").to_http_request();
     Settings {
         maxminddb_loc: Some(MMDB_LOC.into()),
