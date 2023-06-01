@@ -219,6 +219,7 @@ mod test {
         };
         let _bad_url = HandlerResult::<SOVManager>::from(&mut settings).unwrap();
     }
+    
     #[test]
     #[should_panic(
         expected = "Unable to parse SOV settings from file './test-engineering/contract-tests/volumes/contile/adm_settings.json'"
