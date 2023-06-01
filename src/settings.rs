@@ -131,6 +131,12 @@ pub struct Settings {
     pub adm_has_legacy_image: Option<String>,
     /// a JSON structure of the default ADM settings
     pub adm_defaults: Option<String>,
+    /// Number of seconds to watch between polling SOV settings updates
+    pub sov_refresh_rate_secs: u64,
+    /// SOV settings (either as JSON, a path to a JSON file, or a Google Storage url)
+    /// This consist of a name, and allocations settings
+    /// (e.g ```{"name":"SOV","allocations":[{"position":1,"allocation":{"partner":"adm", "percentage": 100}]}]}]}```)
+    pub sov_source: String,
     /// Percentage of overall time for fetch "jitter" (applied to `tiles_ttl` and tiles_fallback_ttl`)
     pub jitter: u8,
 }
@@ -184,6 +190,8 @@ impl Default for Settings {
                 r#"["adidas","amazon","ebay","etsy","geico","nike","samsung","wix"]"#.to_owned(),
             ),
             adm_defaults: None,
+            sov_refresh_rate_secs: 300,
+            sov_source: "".to_owned(),
             // +/- 10% of time for jitter.
             jitter: 10,
         }

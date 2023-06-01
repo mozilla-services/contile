@@ -104,7 +104,7 @@ pub fn spawn_updater(
     is_cloud: bool,
     refresh_rate: Duration,
     filter: &Arc<RwLock<AdmFilter>>,
-    storage_client: cloud_storage::Client,
+    storage_client: Arc<cloud_storage::Client>,
     metrics: Arc<StatsdClient>,
 ) -> HandlerResult<()> {
     {
@@ -779,7 +779,7 @@ mod tests {
             true,
             refresh_rate,
             &adm_filter,
-            cloud_storage::Client::default(),
+            Arc::new(cloud_storage::Client::default()),
             Arc::new(StatsdClient::builder("contile", sink).build()),
         )
         .unwrap();

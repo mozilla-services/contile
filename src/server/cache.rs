@@ -12,9 +12,8 @@ use actix_web::{
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
-use crate::web::handlers::EMPTY_TILES;
+use crate::web::handlers::{TilesHandlerResponse, EMPTY_TILES};
 use crate::{
-    adm::TileResponse,
     error::HandlerError,
     metrics::Metrics,
     web::{FormFactor, OsFamily},
@@ -193,16 +192,16 @@ pub struct Tiles {
 
 impl Tiles {
     pub fn new(
-        tile_response: TileResponse,
+        tiles_handler_response: TilesHandlerResponse,
         ttl: Duration,
         fallback_ttl: Duration,
         always_ok: bool,
     ) -> Result<Self, HandlerError> {
         let empty = Self::empty(ttl, fallback_ttl, always_ok);
-        if tile_response.tiles.is_empty() {
+        if tiles_handler_response.tile_response.tiles.is_empty() {
             return Ok(empty);
         }
-        let json = serde_json::to_string(&tile_response)
+        let json = serde_json::to_string(&tiles_handler_response)
             .map_err(|e| HandlerError::internal(&format!("Response failed to serialize: {}", e)))?;
         Ok(Self {
             content: TilesContent::Json(json),
