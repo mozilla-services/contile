@@ -242,7 +242,7 @@ mod test {
         };
 
         let sov_manager = HandlerResult::<SOVManager>::from(&mut settings);
-        assert_eq!(sov_manager.unwrap().encoded_sov, Some(MOCK_SOV.to_owned()));
+        assert_eq!(sov_manager.unwrap().encoded_sov.as_deref(), Some(MOCK_SOV));
     }
 
     #[test]
