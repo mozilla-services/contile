@@ -208,7 +208,6 @@ mod test {
                             LCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGV\
                             zIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ";
 
-
     #[test]
     #[should_panic(expected = "Unable to parse SOV URL 'gs://bad^^url'")]
     fn test_bad_gcs_url() {
@@ -219,7 +218,7 @@ mod test {
         };
         let _bad_url = HandlerResult::<SOVManager>::from(&mut settings).unwrap();
     }
-    
+
     #[test]
     #[should_panic(
         expected = "Unable to parse SOV settings from file './test-engineering/contract-tests/volumes/contile/adm_settings.json'"
