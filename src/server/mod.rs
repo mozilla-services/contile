@@ -20,6 +20,7 @@ use crate::{
     metrics::metrics_from_opts,
     server::{img_storage::ImageStore, location::location_config_from_settings},
     settings::Settings,
+    sov::{spawn_updater as sov_spawn_updater, SOVManager},
     web::{dockerflow, handlers, middleware},
 };
 
@@ -40,6 +41,7 @@ pub struct ServerState {
     pub tiles_cache: cache::TilesCache,
     pub settings: Settings,
     pub partner_filter: Arc<RwLock<AdmFilter>>,
+    pub sov_manager: Arc<RwLock<SOVManager>>,
     pub img_store: Option<ImageStore>,
     pub excluded_dmas: Option<Vec<u16>>,
     pub start_up: Instant,
@@ -53,6 +55,7 @@ impl Clone for ServerState {
             tiles_cache: self.tiles_cache.clone(),
             settings: self.settings.clone(),
             partner_filter: self.partner_filter.clone(),
+            sov_manager: self.sov_manager.clone(),
             img_store: self.img_store.clone(),
             excluded_dmas: self.excluded_dmas.clone(),
             start_up: self.start_up,
@@ -111,9 +114,11 @@ impl Server {
             .timeout(Duration::from_secs(settings.request_timeout))
             .user_agent(create_app_version("/"))
             .build()?;
-        let storage_client = cloud_storage::Client::builder()
-            .client(req.clone())
-            .build()?;
+        let storage_client = Arc::new(
+            cloud_storage::Client::builder()
+                .client(req.clone())
+                .build()?,
+        );
         let mut partner_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         // try to update from the bucket if possible.
         if partner_filter.is_cloud() {
@@ -130,7 +135,19 @@ impl Server {
             is_cloud,
             refresh_rate,
             &filter,
-            storage_client,
+            Arc::clone(&storage_client),
+            Arc::clone(&metrics),
+        )?;
+        let mut sov_manager = HandlerResult::<SOVManager>::from(&mut settings)?;
+        if let Some(last_response) = sov_manager.fetch(&storage_client).await? {
+            sov_manager.update(last_response);
+        }
+
+        let sov = Arc::new(RwLock::new(sov_manager));
+        sov_spawn_updater(
+            refresh_rate,
+            &sov,
+            Arc::clone(&storage_client),
             Arc::clone(&metrics),
         )?;
         let tiles_cache = cache::TilesCache::new(TILES_CACHE_INITIAL_CAPACITY);
@@ -148,6 +165,7 @@ impl Server {
             tiles_cache: tiles_cache.clone(),
             settings: settings.clone(),
             partner_filter: filter,
+            sov_manager: sov,
             img_store,
             excluded_dmas,
             start_up: Instant::now(),

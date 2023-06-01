@@ -454,7 +454,6 @@ impl From<&mut Settings> for HandlerResult<AdmFilter> {
             Default::default()
         };
         let excluded_countries_200 = settings.excluded_countries_200;
-
         let settings_str = if Path::new(&settings.adm_settings).exists() {
             read_to_string(&settings.adm_settings)
                 .map_err(|e| {

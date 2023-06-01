@@ -2,6 +2,7 @@
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_location::Location;
 use lazy_static::lazy_static;
+use serde::Serialize;
 
 use crate::{
     adm,
@@ -17,9 +18,19 @@ use crate::{
 };
 
 lazy_static! {
-    pub static ref EMPTY_TILES: String =
-        serde_json::to_string(&adm::TileResponse { tiles: vec![] })
-            .expect("Couldn't serialize EMPTY_TILES");
+    pub static ref EMPTY_TILES: String = serde_json::to_string(&TilesHandlerResponse {
+        tile_response: adm::TileResponse { tiles: vec![] },
+        sov_response: None
+    })
+    .expect("Couldn't serialize EMPTY_TILES");
+}
+
+#[derive(Serialize, Debug)]
+pub struct TilesHandlerResponse {
+    #[serde(flatten)]
+    pub tile_response: adm::TileResponse,
+    #[serde(rename = "sov", skip_serializing_if = " Option::is_none")]
+    pub sov_response: Option<String>,
 }
 
 /// Handler for `.../v1/tiles` endpoint
@@ -125,8 +136,12 @@ pub async fn get_tiles(
 
     match result {
         Ok(response) => {
+            let sov_response = state.sov_manager.read().await.encoded_sov.clone();
             let tiles = cache::Tiles::new(
-                response,
+                TilesHandlerResponse {
+                    tile_response: response,
+                    sov_response,
+                },
                 settings.tiles_ttl_with_jitter(),
                 settings.tiles_fallback_ttl_with_jitter(),
                 settings.excluded_countries_200,

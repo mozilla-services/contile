@@ -8,12 +8,12 @@ from typing import Type, Union
 
 import pytest
 import yaml
-from client_models import Records, Scenario, Service, Tiles
+from client_models import Records, Scenario, Service, TilesResponse
 
-SERVICE_MODEL = Union[Type[Records], Type[Tiles]]
+SERVICE_MODEL = Union[Type[Records], Type[TilesResponse]]
 SERVICE_MODELS: dict[Service, SERVICE_MODEL] = {
     Service.PARTNER: Records,
-    Service.CONTILE: Tiles,
+    Service.CONTILE: TilesResponse,
 }
 
 
@@ -38,7 +38,6 @@ def pytest_configure(config):
                 continue
 
             expected_model: SERVICE_MODEL = SERVICE_MODELS.get(step.request.service)
-
             if not isinstance(step.response.content, expected_model):
                 raise pytest.UsageError(
                     f"Failed to create {expected_model.__name__} "
