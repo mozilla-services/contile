@@ -201,12 +201,13 @@ mod test {
     use super::*;
     use crate::web::test::get_test_settings;
 
-    const MOCK_SOV: &str = "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlv\
-    bnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmV\
-    yIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXRpb24iOj\
-    IsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50Y\
-    WdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFn\
-    ZSI6MTJ9XX1dfQ";
+    const MOCK_SOV: &str = "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGl\
+                            vbnMiOlt7InBvc2l0aW9uIjoxLCJhbGxvY2F0aW9uIjpbeyJwYX\
+                            J0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9za\
+                            XRpb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAi\
+                            LCJwZXJjZW50YWdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGV\
+                            zIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ";
+
 
     #[test]
     #[should_panic(expected = "Unable to parse SOV URL 'gs://bad^^url'")]
