@@ -15,6 +15,7 @@
 extern crate slog_scope;
 
 pub mod adm;
+pub mod sov;
 #[macro_use]
 pub mod logging;
 pub mod error;

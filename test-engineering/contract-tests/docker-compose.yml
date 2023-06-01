@@ -61,6 +61,7 @@ services:
       # Timeout requests to the ADM server after this many seconds (default: 5)
       # Use larger timeouts to mitigate the network latency issues on M1 laptops
       CONTILE_ADM_TIMEOUT: 10
+      CONTILE_SOV_SOURCE: /tmp/contile/sov_settings.json
       CONTILE_CONNECT_TIMEOUT: 10
       CONTILE_DEBUG: 1
       CONTILE_HOST: 0.0.0.0
