@@ -45,9 +45,9 @@ class ContileFirefoxUser(FastHttpUser):
         with self.client.get(
             url=TILES_API, headers=headers, catch_response=True, name=name
         ) as response:
-            if response.status_code not in (200, 204):
+            if response.status_code not in (200, 204, 304):
                 response.failure(
-                    f"{response.status_code=}, expected 200, {response.text=}"
+                    f"{response.status_code=}, expected 200,204,304 {response.text=}"
                 )
             if response.status_code == 0:
                 # Do not classify as failure
