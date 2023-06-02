@@ -129,7 +129,7 @@ pub fn filtered_dma(exclude: &Option<Vec<u16>>, dma: &u16) -> String {
 pub async fn get_tiles(
     state: &ServerState,
     location: &Location,
-    device_info: DeviceInfo,
+    device_info: &DeviceInfo,
     tags: &mut Tags,
     metrics: &Metrics,
     headers: Option<&HeaderMap>,

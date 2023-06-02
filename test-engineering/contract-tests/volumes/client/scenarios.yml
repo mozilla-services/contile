@@ -337,7 +337,6 @@ scenarios:
         response:
           status_code: 200
           content:
-            sov: *sov
             tiles:
               - id: 32348
                 name: 'Example COM'
