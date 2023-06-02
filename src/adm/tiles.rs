@@ -267,9 +267,7 @@ pub async fn get_tiles(
         settings.adm_max_tiles
     });
     for tile in iter {
-        if let Some(tile) =
-            filter.filter_and_process(tile, location, device_info, tags, metrics)?
-        {
+        if let Some(tile) = filter.filter_and_process(tile, location, device_info, tags, metrics)? {
             filtered.push(tile);
         }
         if filtered.len() == max_tiles {
