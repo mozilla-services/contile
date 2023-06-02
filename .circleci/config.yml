@@ -97,10 +97,10 @@ commands:
           name: Install cargo-llvm-cov
           command: cargo install cargo-llvm-cov
       - run:
-          name: Run and report tests and coverage (Minimum 54%)
+          name: Run and report tests and coverage (Minimum 67%)
           command: |
-            cargo llvm-cov --no-report test -- -Z unstable-options --format json --report-time | cargo2junit > results.xml && \
-            cargo llvm-cov report --fail-under-lines 54 --html
+            cargo llvm-cov --no-report test -- -Z unstable-options --format json --report-time | cargo2junit > results.xml
+            cargo llvm-cov report --fail-under-lines 67 --html
       - store_test_results:
           path: results.xml
       - store_artifacts:
