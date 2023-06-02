@@ -604,6 +604,9 @@ async fn basic_mobile() {
     assert!(!tiles
         .iter()
         .any(|tile| tile["name"].as_str().unwrap() == "Los Pollos Hermanos"));
+
+    // mobile should not carry the `sov` payload.
+    assert!(result["sov"].is_null());
 }
 
 #[actix_web::test]

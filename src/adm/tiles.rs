@@ -129,14 +129,14 @@ pub fn filtered_dma(exclude: &Option<Vec<u16>>, dma: &u16) -> String {
 pub async fn get_tiles(
     state: &ServerState,
     location: &Location,
-    device_info: DeviceInfo,
+    device_info: &DeviceInfo,
     tags: &mut Tags,
     metrics: &Metrics,
     headers: Option<&HeaderMap>,
 ) -> HandlerResult<TileResponse> {
     let settings = &state.settings;
     let image_store = &state.img_store;
-    let pse = AdmPse::appropriate_from_settings(&device_info, settings);
+    let pse = AdmPse::appropriate_from_settings(device_info, settings);
     let country_code = location
         .country
         .as_deref()
@@ -267,9 +267,7 @@ pub async fn get_tiles(
         settings.adm_max_tiles
     });
     for tile in iter {
-        if let Some(tile) =
-            filter.filter_and_process(tile, location, &device_info, tags, metrics)?
-        {
+        if let Some(tile) = filter.filter_and_process(tile, location, device_info, tags, metrics)? {
             filtered.push(tile);
         }
         if filtered.len() == max_tiles {

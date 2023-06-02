@@ -122,7 +122,7 @@ pub async fn get_tiles(
     let result = adm::get_tiles(
         &state,
         &location,
-        device_info,
+        &device_info,
         &mut tags,
         &metrics,
         // be aggressive about not passing headers unless we absolutely need to
@@ -136,7 +136,12 @@ pub async fn get_tiles(
 
     match result {
         Ok(response) => {
-            let sov_response = state.sov_manager.read().await.encoded_sov.clone();
+            // SOV is for Desktop only for now.
+            let sov_response = if matches!(device_info.form_factor, FormFactor::Desktop) {
+                state.sov_manager.read().await.encoded_sov.clone()
+            } else {
+                None
+            };
             let tiles = cache::Tiles::new(
                 TilesHandlerResponse {
                     tile_response: response,
