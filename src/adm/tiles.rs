@@ -136,7 +136,7 @@ pub async fn get_tiles(
 ) -> HandlerResult<TileResponse> {
     let settings = &state.settings;
     let image_store = &state.img_store;
-    let pse = AdmPse::appropriate_from_settings(&device_info, settings);
+    let pse = AdmPse::appropriate_from_settings(device_info, settings);
     let country_code = location
         .country
         .as_deref()
@@ -268,7 +268,7 @@ pub async fn get_tiles(
     });
     for tile in iter {
         if let Some(tile) =
-            filter.filter_and_process(tile, location, &device_info, tags, metrics)?
+            filter.filter_and_process(tile, location, device_info, tags, metrics)?
         {
             filtered.push(tile);
         }
