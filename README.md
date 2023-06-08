@@ -95,7 +95,7 @@ Releasing to production can be done by:
 4. Developers **must** monitor the [Contile Operational Status][contile_op_status] dashboard for any anomaly, for example significant changes in HTTP response codes, increase in latency, cpu/memory usage (most things under the infrastructure heading).
 
 [circleci_dashboard]: https://app.circleci.com/pipelines/github/mozilla-services/contile?branch=main&filter=all
-[contile_op_status]: https://earthangel-b40313e5.influxcloud.net/d/Ek54pAmnz/contile-operational-status?orgId=1&refresh=1m
+[contile_op_status]: https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&refresh=1m
 
 #### What to do if production breaks?
 If your latest release causes problems and needs to be rolled back:
