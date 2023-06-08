@@ -33,7 +33,6 @@ def pytest_configure(config):
     # information and FastAPI model instances were created for them.
     for scenario in config.contile_scenarios:
         for i, step in enumerate(scenario.steps):
-
             if step.response.status_code != 200:
                 continue
 
