@@ -45,17 +45,21 @@ class ContileFirefoxUser(FastHttpUser):
         with self.client.get(
             url=TILES_API, headers=headers, catch_response=True, name=name
         ) as response:
-            if response.status_code not in (200, 204, 304):
-                response.failure(
-                    f"{response.status_code=}, expected 200,204,304 {response.text=}"
-                )
-            if response.status_code == 0:
+            if response.status_code in (0, 304):
                 # Do not classify as failure
-                # The HttpSession catches any requests.RequestException thrown by
-                # Session (caused by connection errors, timeouts or similar),
-                # instead returning a dummy Response object with status_code set to 0
-                # and content set to None.
+                #
+                # 0: The HttpSession catches any requests.RequestException thrown by
+                #    Session (caused by connection errors, timeouts or similar), instead
+                #    returning a dummy Response object with status_code set to 0 and
+                #    content set to None.
+                #
+                # 304: Is an expected and acceptable status code for Contile when it's
+                #      normalizing User Agent info and the search cache.
                 response.success()
+            elif response.status_code not in (200, 204):
+                response.failure(
+                    f"{response.status_code=}, expected 200,204 {response.text=}"
+                )
 
 
 class ContileNonFirefoxUser(FastHttpUser):
