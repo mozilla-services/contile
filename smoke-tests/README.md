@@ -24,3 +24,8 @@ curl -m 70 -X POST <RUNNER_TRIGGER_URL> \
 -H "Content-Type:application/json" \
 -d '{"environments": ["STAGE", "PROD"]}'
 ```
+
+## Deployment
+
+Smoke tests are executed in the CD pipeline and deployed manually by SRE 
+[Terraform Configuration](https://github.com/mozilla-services/cloudops-infra/tree/master/projects/topsites/tf/modules/geolocation-smoke-tests).
