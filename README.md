@@ -17,7 +17,8 @@ See also:
 This system uses [Actix](https://actix.rs/) web, and Google Cloud APIs (currently vendored).
 
 ## Development Guidelines
-Please see the [CONTRIBUTING.md][contributing] docs on commit guidelines and pull request best practices.
+Please see the [CONTRIBUTING.md](./CONTRIBUTING.md) docs on commit guidelines and pull request best
+practices.
 
 ## Versioning
 The commit hash of the deployed code is considered its version identifier. The commit hash can be retrieved locally via `git rev-parse HEAD`.
@@ -69,18 +70,6 @@ Load testing can be run locally or as a part of the deployment process. Please s
 For deployment, you have to add a label to the message of the commit that you wish to deploy in the form of: `[load test: (abort|warn)]`. In most cases this will be the merge commit created by merging a GitHub pull request. Abort will prevent deployment should the load testing fail while warn will simply warn via Slack and continue deployment. For detailed specifics on this convention, please see the relevant documentation: [Load Test Readme](test-engineering/load/README.md#opt-in-execution-in-staging-and-production).
 
 ### Deployment
-#### Preventing deployment via [do not deploy]
-Occasionally developers might want to prevent a commit from triggering the deployment pipeline. While this should be discouraged, there are some legitimate cases for doing so (e.g. docs only changes).
-In order to prevent the deployment of the code from a PR when merging to `main`, the **title of that PR** must contain the `[do not deploy]` text. When generating the merge commit for a branch within the GitHub UI, ensure that `[do not deploy]` is still present in the description, especially if you change or rename the PR later on.
-
-For example:
-```
-# PR title (NOT the commit message)
-doc: Add documentation for the release process [do not deploy]
-```
-
-While the `[do not deploy]` can be anywhere in the title, it is recommended to place it at its end in order to better integrate with the current PR title practices and improve readability.
-The deployment pipeline will analyze the message of the merge commit (which will contain the PR title) and make a decision based on it.
 
 #### Releasing to Production
 
@@ -109,7 +98,6 @@ don't panic and follow the instructions below:
      then you may submit a fix, rather than reverting the problematic commit.
 
 [incident_docs]: https://mozilla-hub.atlassian.net/wiki/spaces/MIR/overview
-[contributing]: ./CONTRIBUTING.md
 
 ## Why "Contile"?
 
