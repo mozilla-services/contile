@@ -83,19 +83,19 @@ While the `[do not deploy]` can be anywhere in the title, it is recommended to p
 The deployment pipeline will analyze the message of the merge commit (which will contain the PR title) and make a decision based on it.
 
 #### Releasing to Production
-Developers with write access to the Contile repository can initiate a deployment to production after a Pull-Request on the Contile GitHub repository is merged to the `main` branch.
 
-While any developer with write access can trigger the deployment to production, the _expectation_ is that individual(s) who authored and merged the Pull-Request should do so, as they are the ones most familiar with their changes and who can tell, by looking at the data, if anything looks anomalous.
+Developers with write access to the Contile repository will initiate a deployment to production when
+a pull request on the Contile GitHub repository is merged to the `main` branch. It is recommended to
+merge pull requests during hours when the majority of Contile contributors are online.
 
-Releasing to production can be done by:
+While any developer with write access can trigger the deployment to production, the _expectation_ is
+that the individual(s) who authored and merged the pull request should do so, as they are the ones
+most familiar with their changes and who can tell, by looking at the data, if anything looks
+anomalous. Developers **must** monitor the [Contile Infrastructure][contile_infrastructure]
+dashboard for any anomaly, for example significant changes in HTTP response codes, increase in
+latency, cpu/memory usage (most things under the 'Metrics' heading).
 
-1. Opening the [CircleCI dashboard][circleci_dashboard];
-2. Looking up the pipeline named after your PR/ticket/branch name, ex. `<PR NUMBER>/<DISCO-1234>` running in the `main-workflow`; this pipeline should either be in a running status (if the required test jobs are still running) or in the "on hold" status, with the `unhold-to-deploy` being held;
-3. Once in the "on hold" status, with all the other jobs successfully completed, clicking on the "thumbs up" action on the `unhold-to-deploy` job row will approve it and trigger the deployment, unblocking the `deploy` job;
-4. Developers **must** monitor the [Contile Operational Status][contile_op_status] dashboard for any anomaly, for example significant changes in HTTP response codes, increase in latency, cpu/memory usage (most things under the infrastructure heading).
-
-[circleci_dashboard]: https://app.circleci.com/pipelines/github/mozilla-services/contile?branch=main&filter=all
-[contile_op_status]: https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&refresh=1m
+[contile_infrastructure]: https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&refresh=1m
 
 #### What to do if production breaks?
 If your latest release causes problems and needs to be rolled back:

@@ -202,7 +202,7 @@ jobs:
           paths:
             - /home/circleci/cache
 
-  docker-image-publish-stage:
+  docker-image-publish:
     # The commit tag signals deployment and load test instructions to Jenkins by
     # modifying the Docker image tag name. Pushing a new Docker image to the Docker Hub registry
     # triggers a webhook that starts the Jenkins deployment workflow. The convention looks as follows:
@@ -219,7 +219,7 @@ jobs:
           command: docker load -i /home/circleci/cache/docker.tar
       - dockerhub-login
       - run:
-          name: Deploy to Dockerhub
+          name: Deploy Stage to Dockerhub
           command: |
             if git log -1 "$CIRCLE_SHA1" | grep -q '\[load test: warn\]'; then
               echo "Load test requested. Slack warning will be output if test fails and deployment workflow for prod will proceed."
@@ -230,25 +230,12 @@ jobs:
             else
               STAGE_DOCKER_TAG="stage-${CIRCLE_SHA1}"
             fi
-
             echo ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
             docker tag app:build ${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}
             docker images
             docker push "${DOCKERHUB_REPO}:${STAGE_DOCKER_TAG}"
-
-  docker-image-publish-prod:
-    docker:
-      - image: cimg/base:2022.08
-    steps:
-      - setup_remote_docker
-      - restore_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
-          name: Restore Docker image cache
-          command: docker load -i /home/circleci/cache/docker.tar
-      - dockerhub-login
-      - run:
-          name: Deploy to Dockerhub
+          name: Deploy Production to Dockerhub
           command: |
             PROD_DOCKER_TAG="prod-${CIRCLE_SHA1}"
             echo "${DOCKERHUB_REPO}:${PROD_DOCKER_TAG}"
@@ -451,20 +438,7 @@ workflows:
           <<: *main-filters
           requires:
             - check-for-deployment
-      - docker-image-publish-stage:
+      - docker-image-publish:
           <<: *main-filters
           requires:
             - docker-image-publish-locust
-      # The following job will require manual approval in the CircleCI web application.
-      # Once provided, and when all the requirements are fullfilled (e.g. tests).
-      - unhold-to-deploy:
-          <<: *main-filters
-          type: approval
-          requires:
-            - docker-image-publish-stage
-      # On approval of the `unhold-to-deploy` job, any successive job that requires it
-      # will run. In this case, it's manually triggering deployment to production.
-      - docker-image-publish-prod:
-          <<: *main-filters
-          requires:
-            - unhold-to-deploy
