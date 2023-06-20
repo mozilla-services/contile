@@ -5,9 +5,6 @@ updates:
     schedule:
       interval: "weekly"
       day: "friday"
-    commit-message:
-      # Contract tests are run in PR workflow, skip deploy
-      prefix: "[do not deploy]"
     labels:
       - "dependencies"
       - "python"
@@ -17,9 +14,6 @@ updates:
     schedule:
       interval: "weekly"
       day: "friday"
-    commit-message:
-      # Contract tests are run in PR workflow, skip deploy
-      prefix: "[do not deploy]"
     labels:
       - "dependencies"
       - "python"
