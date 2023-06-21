@@ -1,6 +1,6 @@
 # See https://cloud.google.com/functions/docs/writing/specifying-dependencies-python#python39
 click==7.1.2
-cloudevents==1.2.0
+cloudevents==1.9.0
 deprecation==2.1.0
 Flask==1.1.2
 functions-framework==2.2.1
