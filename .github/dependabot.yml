@@ -1,10 +1,41 @@
 version: 2
 updates:
   - package-ecosystem: "pip"
+    directory: "smoke-tests/client/"
+    schedule:
+      interval: "monthly"
+    ignore:
+      - dependency-name: "flask"
+      - dependency-name: "requests"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "pip"
+    directory: "smoke-tests/runner/"
+    schedule:
+      interval: "monthly"
+    ignore:
+      - dependency-name: "flask"
+      - dependency-name: "requests"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "pip"
+    directory: "smoke-tests/tests/"
+    schedule:
+      interval: "monthly"
+    ignore:
+      - dependency-name: "pytest"
+    labels:
+      - "dependencies"
+      - "python"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "pip"
     directory: "test-engineering/contract-tests/partner/"
     schedule:
-      interval: "weekly"
-      day: "friday"
+      interval: "monthly"
     labels:
       - "dependencies"
       - "python"
@@ -12,8 +43,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "test-engineering/contract-tests/client/"
     schedule:
-      interval: "weekly"
-      day: "friday"
+      interval: "monthly"
     labels:
       - "dependencies"
       - "python"
@@ -21,11 +51,10 @@ updates:
   - package-ecosystem: "pip"
     directory: "test-engineering/load/"
     schedule:
-      interval: "weekly"
-      day: "friday"
+      interval: "monthly"
     commit-message:
       # Run the load test when updating load test dependency
-      prefix: "[load test: warn]"
+      prefix: "chore(deps) [load test: abort]"
     labels:
       - "dependencies"
       - "python"
