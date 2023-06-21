@@ -5,8 +5,19 @@ updates:
     schedule:
       interval: "monthly"
     ignore:
+      - dependency-name: "click"
+      - dependency-name: "cloudevents"
+      - dependency-name: "deprecation"
       - dependency-name: "flask"
+      - dependency-name: "functions-framework"
+      - dependency-name: "gunicorn"
+      - dependency-name: "itsdangerous"
+      - dependency-name: "jinja2"
+      - dependency-name: "markupsafe"
+      - dependency-name: "pathtools"
       - dependency-name: "requests"
+      - dependency-name: "watchdog"
+      - dependency-name: "werkzeug"
     labels:
       - "dependencies"
       - "python"
@@ -16,8 +27,20 @@ updates:
     schedule:
       interval: "monthly"
     ignore:
+      - dependency-name: "click"
+      - dependency-name: "cloudevents"
+      - dependency-name: "deprecation"
       - dependency-name: "flask"
+      - dependency-name: "functions-framework"
+      - dependency-name: "google-auth"
+      - dependency-name: "gunicorn"
+      - dependency-name: "itsdangerous"
+      - dependency-name: "jinja2"
+      - dependency-name: "markupsafe"
+      - dependency-name: "pathtools"
       - dependency-name: "requests"
+      - dependency-name: "watchdog"
+      - dependency-name: "werkzeug"
     labels:
       - "dependencies"
       - "python"
