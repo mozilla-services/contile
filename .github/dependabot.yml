@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: "monthly"
     ignore:
-      - dependency-name: "Flask"
+      - dependency-name: "flask"
       - dependency-name: "requests"
     labels:
       - "dependencies"
@@ -16,7 +16,7 @@ updates:
     schedule:
       interval: "monthly"
     ignore:
-      - dependency-name: "Flask"
+      - dependency-name: "flask"
       - dependency-name: "requests"
     labels:
       - "dependencies"
