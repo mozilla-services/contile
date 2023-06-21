@@ -164,6 +164,9 @@ shell commands to **create** a GKE cluster, **setup** an existing GKE cluster or
   ```bash
   kubectl scale deployment/locust-worker --replicas=10
   ```
+* To apply new changes to an existing GCP Cluster, execute the `setup_k8s.sh` file and select the
+  **setup** option. This option will consider the local commit history, creating new containers and
+  deploying them (see [Container Registry][16])
 
 ### Run Test Session
 
@@ -247,3 +250,4 @@ Execute the `setup_k8s.sh` file and select the **delete** option
 [13]: https://docs.google.com/document/d/10Hx4cGvGBvq0z0uOK_CG3ZcyaQnT_EtgR6MYXmIvG6Q/
 [14]: https://docs.locust.io/en/stable/configuration.html#environment-variables
 [15]: https://docs.locust.io/en/stable/running-in-debugger.html
+[16]: https://console.cloud.google.com/gcr/images/spheric-keel-331521/global/locust-merino?project=spheric-keel-331521
