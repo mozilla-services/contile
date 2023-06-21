@@ -10,4 +10,5 @@ ignore = [
     "RUSTSEC-2021-0124", # Bound by tokio restrictions
 
     "RUSTSEC-2021-0141", # dotenv is no longer being maintained, will need to remove
+    "RUSTSEC-2021-0145", # Only affects Windows. Fix tracked at https://github.com/slog-rs/term/pull/45 in Atty
 ]
