@@ -97,6 +97,33 @@ don't panic and follow the instructions below:
    - If a fix can be identified in a relatively short time,
      then you may submit a fix, rather than reverting the problematic commit.
 
+
+##### Locate problematic commit via "git bisect"
+If you are not sure about which commit broke production, you can use `git bisect` to locate the problematic commit as follows:
+
+```sh
+# Start the bisect session.
+$ git bisect start
+
+# Flag a bad commit, usually you can set it to the latest commit as it's broken
+# in production.
+$ git bisect bad <commit-hash-for-a-bad-commit>
+
+# Flag a good commit, this can be set to the last known good commit.
+# You can use an old commit if you're still unsure, bisect will perform binary
+# searches anyway.
+$ git bisect good <commit-hash-for-a-good-commit>
+
+# Git will check out a commit in the middle and then you can test it to see if
+# the issue is still reproducible. If yes, flag it "bad", otherwise flag it
+# "good". Git will use that as input to make the next move until it locates the
+# problematic commit.
+$ git bisect [bad|good]
+
+# End the bisect session when you're done.
+$ git bisect reset
+```
+
 [incident_docs]: https://mozilla-hub.atlassian.net/wiki/spaces/MIR/overview
 
 ## Why "Contile"?
