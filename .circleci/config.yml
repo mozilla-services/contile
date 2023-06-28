@@ -232,6 +232,8 @@ jobs:
           command: docker load -i /tmp/workspace/contile.tar.gz
       - run:
           name: Build client and partner images
+          environment:
+            TEST_RESULTS_DIR: test-results
           command: |
             docker-compose --version
             docker-compose \
@@ -239,12 +241,18 @@ jobs:
              build client partner
       - run:
           name: Run contract tests
+          environment:
+            TEST_RESULTS_DIR: test-results
+            TEST_RESULTS_XML: contract_results.xml
           command: |
             docker-compose \
              -f test-engineering/contract-tests/docker-compose.yml \
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "tiles cache" contract tests
+          environment:
+            TEST_RESULTS_DIR: test-results
+            TEST_RESULTS_XML: contract_results.tiles_cache.xml
           command: |
             docker-compose \
              -f test-engineering/contract-tests/docker-compose.yml \
@@ -252,6 +260,9 @@ jobs:
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "204" contract tests
+          environment:
+            TEST_RESULTS_DIR: test-results
+            TEST_RESULTS_XML: contract_results.204.xml
           command: |
             docker-compose \
              -f test-engineering/contract-tests/docker-compose.yml \
@@ -273,6 +284,8 @@ jobs:
              echo "Contile service exit_code: ${contile_exit_code}"
              exit 0
             fi
+      - store_test_results:
+          path: test-engineering/contract-tests/test-results
 
   load-test-checks:
     docker:

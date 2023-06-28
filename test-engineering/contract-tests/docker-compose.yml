@@ -99,6 +99,7 @@ services:
       SCENARIOS_FILE: /tmp/client/scenarios.yml
     volumes:
       - ./volumes/client:/tmp/client
+      - ./${TEST_RESULTS_DIR:-test-results}:/tmp/test-results
     ## This pulls in knot-dnsutils because it's the only dnsutil
     ## package that is available for the host docker image. This line can
     ## be useful if the tests fail due to connection errors. See also
@@ -106,4 +107,4 @@ services:
     #entrypoint: >
     #  /bin/sh -c "apt update -y && apt install knot-dnsutils -y && hostname -I && kdig contile +short && kdig localhost +short"
     command: >
-      "-vv"
+      --junit-xml=/tmp/test-results/${TEST_RESULTS_XML:-contract_results.xml} -vv
