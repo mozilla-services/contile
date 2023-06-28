@@ -89,29 +89,6 @@ commands:
           path: target/llvm-cov/html # Default location
           destination: llvm-cov/html
 
-  setup-sccache:
-    steps:
-      - run:
-          name: Install sccache
-          command: |
-            cargo install sccache
-            # This configures Rust to use sccache.
-            echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
-            # This is the maximum space sccache cache will use on disk.
-            echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
-            sccache --version
-  restore-sccache-cache:
-    steps:
-      - restore_cache:
-          name: Restore sccache cache
-          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}
-  save-sccache-cache:
-    steps:
-      - save_cache:
-          name: Save sccache cache
-          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
-          paths:
-            - "~/.cache/sccache"
 jobs:
   checks:
     docker:
