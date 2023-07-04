@@ -1,0 +1,26 @@
+version: "3"
+
+services:
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server:1.45
+    container_name: fake-gcs-server
+    expose:
+      - "4443"
+    ports:
+      - "4443:4443"
+    volumes:
+      - ./volumes/fake-gcs-server:/data
+  contile:
+    environment:
+      ADM_REFRESH_RATE_SECS: 10
+      CONTILE_ADM_SETTINGS: "gs://config/o/adm_settings.json"
+      CONTILE_SOV_SOURCE: "gs://shepherd-config-stage/sov_settings.json"
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/contile/key.json
+      SOV_REFRESH_RATE_SECS: 10
+  client:
+    depends_on:
+      - fake-gcs-server
+    links:
+      - fake-gcs-server
+    environment:
+      SCENARIOS_FILE: /tmp/client/scenarios_remote_config.yml

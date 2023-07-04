@@ -1,0 +1,41 @@
+{
+  "adm_advertisers": {
+    "GCS Example COM": {
+      "CA": [
+        {
+          "host": "www.gcsexample.ca",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "exact"
+            }
+          ]
+        }
+      ],
+      "US": [
+        {
+          "host": "www.gcsexample.com",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ]
+    },
+    "GCS Example ORG": {
+      "US": [
+        {
+          "host": "www.gcsexample.org",
+          "paths": [
+            {
+              "value": "/",
+              "matching": "prefix"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

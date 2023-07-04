@@ -1,0 +1,38 @@
+constants:
+  sov: &sov
+    "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlvbnMiOlt7InBvc2l0aW9uIjox\
+    LCJhbGxvY2F0aW9uIjpbeyJwYXJ0bmVyIjoiYW1wIiwicGVyY2VudGFnZSI6MTAwfV19LHsicG9zaXR\
+    pb24iOjIsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50YWdlIjo4OH0seyJwYXJ\
+    0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFnZSI6MTJ9XX1dfQ"
+scenarios:
+  - name: success_startup_with_remote_configuration
+    description: Test that Contile successfully returns tiles when configured remotely.
+    steps:
+      - request:
+          service: contile
+          method: GET
+          path: '/v1/tiles'
+          headers:
+            # Contile maps the User-Agent Header value to os-family and form-factor parameters
+            # The following value will result in os-family: windows and form-factor: desktop
+            - name: User-Agent
+              value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+        response:
+          status_code: 200
+          content:
+            sov: *sov
+            tiles:
+              - id: 12345
+                name: 'GCS Example COM'
+                click_url: 'https://gcsexample.com/desktop_windows?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000'
+                image_url: 'https://gcsexample.com/desktop_windows01.jpg'
+                image_size: null
+                impression_url: 'https://gcsexample.com/desktop_windows?id=0001'
+                url: 'https://www.gcsexample.com/desktop_windows'
+              - id: 56789
+                name: 'GCS Example ORG'
+                click_url: 'https://gcsexample.org/desktop_windows?version=16.0.0&key=7.2&ci=8.9&ctag=E1DE38C8972D0281F5556659A'
+                image_url: 'https://gcsexample.org/desktop_windows02.jpg'
+                image_size: null
+                impression_url: 'https://gcsexample.org/desktop_windows?id=0002'
+                url: 'https://www.gcsexample.org/desktop_windows'

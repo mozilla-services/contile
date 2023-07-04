@@ -1,0 +1,27 @@
+{
+    "name": "SOV-202307042485695",
+    "allocations": [
+      {
+        "position": 1,
+        "allocation": [
+          {
+            "partner": "amp",
+            "percentage": 100
+          }
+        ]
+      },
+      {
+        "position": 2,
+        "allocation": [
+          {
+            "partner": "amp",
+            "percentage": 88
+          },
+           {
+            "partner": "moz-sales",
+            "percentage": 12
+          }
+        ]
+      }
+    ]
+  }
