@@ -89,29 +89,6 @@ commands:
           path: target/llvm-cov/html # Default location
           destination: llvm-cov/html
 
-  setup-sccache:
-    steps:
-      - run:
-          name: Install sccache
-          command: |
-            cargo install sccache
-            # This configures Rust to use sccache.
-            echo 'export "RUSTC_WRAPPER"="sccache"' >> $BASH_ENV
-            # This is the maximum space sccache cache will use on disk.
-            echo 'export "SCCACHE_CACHE_SIZE"="1G"' >> $BASH_ENV
-            sccache --version
-  restore-sccache-cache:
-    steps:
-      - restore_cache:
-          name: Restore sccache cache
-          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}
-  save-sccache-cache:
-    steps:
-      - save_cache:
-          name: Save sccache cache
-          key: sccache-cache-stable-{{ .Branch }}-{{ .Environment.CIRCLE_JOB }}-{{ epoch }}
-          paths:
-            - "~/.cache/sccache"
 jobs:
   checks:
     docker:
@@ -153,11 +130,9 @@ jobs:
           # XXX: begin_test_transaction doesn't play nice over threaded tests
           RUST_TEST_THREADS: 1
     steps:
+      - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-      - dockerhub-login
-      #- save-sccache-cache
-      - checkout
       - write-version
       - run:
           name: Build Docker image
@@ -165,17 +140,16 @@ jobs:
             docker build \
               -t app:build \
               --build-arg VERSION="$(echo ${CIRCLE_SHA1} | cut -c -7)" .
-      # save the built docker container into CircleCI's cache. This is
-      # required since Workflows do not have the same remote docker instance.
       - run:
-          name: docker save app:build
+          name: Save image into workspace
           command: |
-            mkdir -p /home/circleci/cache
-            docker save -o /home/circleci/cache/docker.tar "app:build"
-      - save_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}-{{ epoch }}
+            mkdir -p /tmp/workspace
+            docker save -o /tmp/workspace/contile.tar app:build
+            gzip /tmp/workspace/contile.tar
+      - persist_to_workspace:
+          root: /tmp/workspace
           paths:
-            - /home/circleci/cache
+            - contile.tar.gz
 
   docker-image-publish:
     # The commit tag signals deployment and load test instructions to Jenkins by
@@ -186,12 +160,12 @@ jobs:
       - image: cimg/base:2022.08
     steps:
       - checkout
+      - attach_workspace:
+          at: /tmp/workspace
       - setup_remote_docker
-      - restore_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
       - run:
-          name: Restore Docker image cache
-          command: docker load -i /home/circleci/cache/docker.tar
+          name: Load Docker image from workspace
+          command: docker load -i /tmp/workspace/contile.tar.gz
       - dockerhub-login
       - run:
           name: Deploy Stage to Dockerhub
@@ -247,22 +221,19 @@ jobs:
 
   contract-tests:
     machine:
-      docker_layer_caching: true
       image: ubuntu-2004:2023.04.2
     working_directory: ~/contile
     steps:
       - checkout
-      - restore_cache:
-          key: v1-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
+      - attach_workspace:
+          at: /tmp/workspace
       - run:
-          name: Restore Docker image cache
-          command: docker load -i /home/circleci/cache/docker.tar
-      - run:
-          name: Log in to the default Docker registry
-          command: |
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+          name: Load Docker image from workspace
+          command: docker load -i /tmp/workspace/contile.tar.gz
       - run:
           name: Build client and partner images
+          environment:
+            TEST_RESULTS_DIR: test-results
           command: |
             docker-compose --version
             docker-compose \
@@ -270,12 +241,18 @@ jobs:
              build client partner
       - run:
           name: Run contract tests
+          environment:
+            TEST_RESULTS_DIR: test-results
+            TEST_RESULTS_XML: contract_results.xml
           command: |
             docker-compose \
              -f test-engineering/contract-tests/docker-compose.yml \
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "tiles cache" contract tests
+          environment:
+            TEST_RESULTS_DIR: test-results
+            TEST_RESULTS_XML: contract_results.tiles_cache.xml
           command: |
             docker-compose \
              -f test-engineering/contract-tests/docker-compose.yml \
@@ -283,6 +260,9 @@ jobs:
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "204" contract tests
+          environment:
+            TEST_RESULTS_DIR: test-results
+            TEST_RESULTS_XML: contract_results.204.xml
           command: |
             docker-compose \
              -f test-engineering/contract-tests/docker-compose.yml \
@@ -304,6 +284,8 @@ jobs:
              echo "Contile service exit_code: ${contile_exit_code}"
              exit 0
             fi
+      - store_test_results:
+          path: test-engineering/contract-tests/test-results
 
   load-test-checks:
     docker:
