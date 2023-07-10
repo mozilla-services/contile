@@ -216,7 +216,7 @@ the load test will stop automatically.
 
 * Results should be recorded in the [Contile Load Test Spreadsheet][11]
 * Optionally, the Locust reports can be saved and linked in the spreadsheet:
-  * Download the results via command:
+  * Download the results via the Locust UI or via command:
       ```bash
       kubectl cp <master-pod-name>:/home/locust/contile_stats.csv contile_stats.csv
       kubectl cp <master-pod-name>:/home/locust/contile_exceptions.csv contile_exceptions.csv
@@ -226,7 +226,8 @@ the load test will stop automatically.
       ```bash 
       kubectl get pods -o wide
       ```
-  * Upload the files to [gist][12] and record the links
+  * Upload the files to the [ConServ][12] drive and record the links in the 
+    spreadsheet
 
 ### Clean-up Environment
 
@@ -248,7 +249,7 @@ Execute the `setup_k8s.sh` file and select the **delete** option
 [9]: https://console.cloud.google.com/home/dashboard?q=search&referrer=search&project=spheric-keel-331521&cloudshell=false
 [10]: https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&refresh=1m&var-environment=stage
 [11]: https://docs.google.com/spreadsheets/d/1lGHu--eXEy6ShErmU1-SQ26yLY4xOjGubnRXt0DdGB0/
-[12]: https://gist.github.com/new
+[12]: https://drive.google.com/drive/folders/1A7haAcel4O5-xFPW-pdKuVriGrNDqA-F
 [13]: https://docs.google.com/document/d/10Hx4cGvGBvq0z0uOK_CG3ZcyaQnT_EtgR6MYXmIvG6Q/
 [14]: https://docs.locust.io/en/stable/configuration.html#environment-variables
 [15]: https://docs.locust.io/en/stable/running-in-debugger.html
