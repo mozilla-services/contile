@@ -253,4 +253,4 @@ Execute the `setup_k8s.sh` file and select the **delete** option
 [13]: https://docs.google.com/document/d/10Hx4cGvGBvq0z0uOK_CG3ZcyaQnT_EtgR6MYXmIvG6Q/
 [14]: https://docs.locust.io/en/stable/configuration.html#environment-variables
 [15]: https://docs.locust.io/en/stable/running-in-debugger.html
-[16]: https://console.cloud.google.com/gcr/images/spheric-keel-331521/global/locust-merino?project=spheric-keel-331521
+[16]: https://console.cloud.google.com/gcr/images/spheric-keel-331521/global/locust-contile?project=spheric-keel-331521
