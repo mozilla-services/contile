@@ -23,8 +23,8 @@ spec:
             - name: LOCUST_MASTER_NODE_HOST
               value: locust-master
             - name: TARGET_HOST
-              value: [TARGET_HOST]
+              value:
             - name: LOCUST_LOGLEVEL
-              value: [LOCUST_LOGLEVEL]
+              value:
             - name: CONTILE_LOCATION_TEST_HEADER
-              value: [CONTILE_LOCATION_TEST_HEADER]
+              value:
