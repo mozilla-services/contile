@@ -24,14 +24,31 @@ SERVICE_FILE=locust-master-service.yml
 LOCUST_IMAGE_TAG=$(git log -1 --pretty=format:%h)
 echo "Image tag for locust is set to: ${LOCUST_IMAGE_TAG}"
 
-##Declare variables to be replaced later in the YAML file using the sed commands
-LOCUST_CSV='contile'
-LOCUST_HOST='https://contile-stage.topsites.nonprod.cloudops.mozgcp.net'
-LOCUST_USERS='200'
-LOCUST_SPAWN_RATE='3'
-LOCUST_RUN_TIME='600' # 10 minutes
-LOCUST_LOGLEVEL='INFO'
-CONTILE_LOCATION_TEST_HEADER='X-Test-Location'
+# Declare variables to be replaced later in the YAML file using the sed commands
+ENVIRONMENT_VARIABLES=(
+  "TARGET_HOST,$TARGET"
+  'LOCUST_CSV,contile'
+  "LOCUST_HOST,$TARGET"
+  'LOCUST_USERS,"200"'
+  'LOCUST_SPAWN_RATE,"3"'
+  'LOCUST_RUN_TIME,"600"' # 10 minutes
+  'LOCUST_LOGLEVEL,INFO'
+  'CONTILE_LOCATION_TEST_HEADER,X-Test-Location'
+)
+
+SetEnvironmentVariables()
+{
+  filePath=$1
+  for e in "${ENVIRONMENT_VARIABLES[@]}"
+  do
+      IFS="," read name value <<< "$e"
+      if [ -z "$value" ]; then
+        echo -e "\033[33mWARNING! The $name environment variable is undefined\033[0m"
+        continue
+      fi
+      $SED -i -e "/name: $name/{n; s|value:.*|value: $value|}" $filePath
+  done
+}
 
 SetupGksCluster()
 {
@@ -58,23 +75,11 @@ SetupGksCluster()
     echo -e "==================== Update Kubernetes Manifests "
     echo -e "==================== Replace the target host, project ID and environment variables in the locust-master-controller.yml and locust-worker-controller.yml files"
 
-    FILES=($MASTER_FILE $WORKER_FILE)
-    for file in "${FILES[@]}"
+    $SED -i -e "s|replicas:.*|replicas: $WORKER_COUNT|" $CONTILE_DIRECTORY/$WORKER_FILE
+    for file in $MASTER_FILE $WORKER_FILE
     do
-
-      # LOCUST_CSV
-        $SED -i -e "s|\[TARGET_HOST\]|$TARGET|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[PROJECT_ID\]|$GOOGLE_CLOUD_PROJECT|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[WORKER_COUNT\]|$WORKER_COUNT|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_IMAGE_TAG\]|$LOCUST_IMAGE_TAG|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_CSV\]|$LOCUST_CSV|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_HOST\]|$LOCUST_HOST|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_USERS\]|$LOCUST_USERS|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_SPAWN_RATE\]|$LOCUST_SPAWN_RATE|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_RUN_TIME\]|$LOCUST_RUN_TIME|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[LOCUST_LOGLEVEL\]|$LOCUST_LOGLEVEL|g" $CONTILE_DIRECTORY/$file
-        $SED -i -e "s|\[CONTILE_LOCATION_TEST_HEADER\]|$CONTILE_LOCATION_TEST_HEADER|g" $CONTILE_DIRECTORY/$file
-
+        $SED -i -e "s|image:.*|image: gcr.io/$GOOGLE_CLOUD_PROJECT/locust-contile:$LOCUST_IMAGE_TAG|" $CONTILE_DIRECTORY/$file
+        SetEnvironmentVariables $CONTILE_DIRECTORY/$file
     done
 
     ##Deploy the Locust master and worker nodes using Kubernetes Manifests
