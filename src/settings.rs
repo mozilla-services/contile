@@ -169,7 +169,7 @@ impl Default for Settings {
             exclude_dma: Some("[798, 583, 740]".to_owned()),
             connect_timeout: 2,
             request_timeout: 5,
-            excluded_countries_200: true,
+            excluded_countries_200: false,
             cache_control_header: true,
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
