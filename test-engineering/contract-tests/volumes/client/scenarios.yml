@@ -353,8 +353,8 @@ scenarios:
                 impression_url: 'https://example.org/gb_phone_ios?id=0002'
                 url: 'https://www.example.org/gb_phone_ios'
 
-  - name: success_200_OK_excluded_region
-    description: Test that Contile returns a 200 OK with an empty tiles array for excluded regions
+  - name: success_204_NO_CONTENT_excluded_region
+    description: Test that Contile returns a 204 (No Content) for excluded regions
     steps:
       - request:
           service: contile
@@ -372,9 +372,8 @@ scenarios:
             - name: X-Forwarded-For
               value: '89.160.20.115'
         response:
-          status_code: 200
-          content:
-           tiles: []
+          status_code: 204
+          content: ''
 
   - name: advertiser_url_path_filter_prefix
     description: >
