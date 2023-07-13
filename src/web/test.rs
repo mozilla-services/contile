@@ -738,6 +738,7 @@ async fn empty_tiles_returns_no_content() {
     let adm_settings = filters;
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
+        excluded_countries_200: true,
         adm_settings,
         ..get_test_settings()
     };
@@ -808,6 +809,7 @@ async fn empty_tiles_excluded_country() {
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
         adm_settings,
+        excluded_countries_200: true,
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -841,7 +843,6 @@ async fn empty_tiles_excluded_country_204() {
     // considered "excluded"
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
-        excluded_countries_200: false,
         ..get_test_settings()
     };
     let app = init_app!(settings).await;
@@ -1180,6 +1181,7 @@ async fn no_sov() {
 
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
+        excluded_countries_200: true,
         sov_source: "gs://bad.bucket".to_owned(),
         ..get_test_settings()
     };
