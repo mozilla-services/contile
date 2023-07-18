@@ -28,7 +28,7 @@ The commit hash of the deployed code is considered its version identifier. The c
 Contile uses Rust, and requires the latest stable iteration. See
 [rustup.rs](https://rustup.rs/) for how to install this application.
 
-Once Rust is installed you can compile using `cargo build`. This will 
+Once Rust is installed you can compile using `cargo build`. This will
 create a development release.
 
 Additionally, Contile requires a connection to the ADM servers. These use several 
