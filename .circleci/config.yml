@@ -390,7 +390,7 @@ jobs:
           name: Deploy docs to gh-pages
           command: |
             npx --yes gh-pages@3.0.0 \
-              --user "ci-build <ci-build@merino.mozilla.org>" \
+              --user "ci-build <ci-build@contile.mozilla.org>" \
               --message "[skip ci] Docs updates" \
               --repo "git@github.com:mozilla-services/contile.git" \
               --dist workspace/doc
