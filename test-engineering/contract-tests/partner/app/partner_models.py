@@ -24,11 +24,8 @@ class Tiles(BaseModel):
     tiles: list[Tile]
 
 
-class Header(BaseModel):
+class Header(BaseModel, frozen=True):
     """Model that represents a HTTP header."""
-
-    class Config:
-        frozen = True
 
     name: str
     value: str
@@ -43,21 +40,15 @@ class ResponseFromFile(BaseModel):
     delay: float = 0.0
 
 
-class QueryParameter(BaseModel):
+class QueryParameter(BaseModel, frozen=True):
     """Model that represents a HTTP query parameter."""
-
-    class Config:
-        frozen = True
 
     name: str
     value: str
 
 
-class Record(BaseModel):
+class Record(BaseModel, frozen=True):
     """Model that represents a request sent by Contile."""
-
-    class Config:
-        frozen = True
 
     method: str
     headers: tuple[Header, ...]
