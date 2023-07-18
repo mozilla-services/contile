@@ -1,0 +1,247 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>API - Contile</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="API.html" class="active"><strong aria-hidden="true">1.</strong> API</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Contile</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="contile-api-specification"><a class="header" href="#contile-api-specification">Contile API Specification</a></h1>
+<p>Firefox Instant Find (Contile) is a service to deliver sponsored tiles to customers on the New Browser Tab page. It's a simple service with one endpoint. It uses the User Agent's IP address (exposed via the <code>X-Forwarded-For</code> header) and some platform information from the <code>User-Agent</code> header.</p>
+<p>Servers</p>
+<div class="table-wrapper"><table><thead><tr><th>environment</th><th>server</th></tr></thead><tbody>
+<tr><td>dev</td><td><a href="https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/">https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/</a></td></tr>
+<tr><td>stage</td><td><a href="https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/">https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/</a></td></tr>
+<tr><td>prod</td><td><a href="https://contile.services.mozilla.com/">https://contile.services.mozilla.com/</a></td></tr>
+</tbody></table>
+</div>
+<h2 id="calls"><a class="header" href="#calls">Calls</a></h2>
+<h3 id="fetch-tiles"><a class="header" href="#fetch-tiles">Fetch Tiles</a></h3>
+<p>Return candidate tiles. The following user information is captured and <a href="https://github.com/mozilla-services/contile/blob/main/src/adm/tiles.rs">shared</a> with our advertising partners:</p>
+<div class="table-wrapper"><table><thead><tr><th>item</th><th>description</th><th>derived from</th><th>normalization method</th></tr></thead><tbody>
+<tr><td>country_code</td><td>Unicode Common Locale Data Repository (CLDR) code for the country (e.g. &quot;US&quot;, &quot;CA&quot;, &quot;GB&quot;, etc.)</td><td>IP address</td><td>resolved from IP address lookup database</td></tr>
+<tr><td>region_code</td><td>CLDR for the major region, if available. (e.g. &quot;VA&quot;, &quot;BC&quot;, &quot;KW&quot;, etc.)</td><td>IP address</td><td>resolved from IP address lookup database</td></tr>
+<tr><td>dma</td><td>US based Designated Market Area (DMA) code for areas above 15K population</td><td>IP address</td><td>a configuration specified list of DMAs to ignore. If a DMA matches that list, it's not reported.</td></tr>
+<tr><td>form_factor</td><td>Device form factor</td><td>UserAgent string</td><td>rough form factor of the user's device normalized to &quot;Desktop&quot;, &quot;Phone&quot;, &quot;Tablet&quot; (Currently, only iPad), and &quot;Other&quot;</td></tr>
+<tr><td>os_family</td><td>User Operating System</td><td>UserAgent string</td><td>rough operating system name normalized to &quot;Windows&quot;, &quot;MacOS&quot;, &quot;Linux&quot;, &quot;IOs&quot;, &quot;Android&quot;, &quot;ChromeOS&quot;, &quot;BlackBerry&quot;, &quot;Other&quot;</td></tr>
+</tbody></table>
+</div>
+<h4 id="call"><a class="header" href="#call">Call</a></h4>
+<pre><code class="language-http">GET /v1/tiles
+</code></pre>
+<h4 id="parameters"><a class="header" href="#parameters">Parameters</a></h4>
+<p>None</p>
+<h4 id="response"><a class="header" href="#response">Response</a></h4>
+<p>Returns a JSON structure containing the tile information. For example:</p>
+<pre><code class="language-json">{&quot;tiles&quot;:[
+    {
+        &quot;id&quot;:74301,
+        &quot;name&quot;:&quot;Amazon&quot;,
+        &quot;url&quot;:&quot;https://...&quot;,
+        &quot;click_url&quot;:&quot;https://...&quot;,
+        &quot;image_url&quot;:&quot;https://...&quot;,
+        &quot;image_size&quot;:200,
+        &quot;impression_url&quot;:&quot;...&quot;,
+    },
+    {
+        &quot;id&quot;:74161,
+        &quot;name&quot;:&quot;eBay&quot;,
+        &quot;url&quot;:&quot;https://...&quot;,
+        &quot;click_url&quot;:&quot;https://...&quot;,
+        &quot;image_url&quot;:&quot;https://...&quot;,
+        &quot;image_size&quot;:200,
+        &quot;impression_url&quot;:&quot;https://...&quot;,
+    }
+]}
+</code></pre>
+<h3 id="docker-flow-endpoints"><a class="header" href="#docker-flow-endpoints">Docker Flow endpoints</a></h3>
+<p>As with most Mozilla Services, Contile supports Dockerflow endpoints</p>
+<pre><code class="language-http">GET /___heartbeat__
+</code></pre>
+<p>return if the service is operational</p>
+<pre><code class="language-http">GET /__lbheartbeat__
+</code></pre>
+<p>return if the service is available for load balancers</p>
+<pre><code class="language-http">GET /__version__
+</code></pre>
+<p>get installed version information</p>
+<p>In addition, the following extended Dockerflow endpoints are enabled:</p>
+<pre><code class="language-http">GET /__error__
+</code></pre>
+<p>Force an error, used to test Sentry reporting. This has an optional parameter of <code>with_location=true</code> which will include detected IP location information in the Sentry error message.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid.min.js"></script>
+        <script src="mermaid-init.js"></script>
+
+
+    </body>
+</html>
