@@ -18,3 +18,12 @@ checks: setup-rust-checks
 	cargo fmt -- --check
 	cargo audit
 	cargo clippy --all --all-targets --all-features -- -D warnings
+
+install-doc-dependencies:
+	cargo install mdbook && cargo install mdbook-mermaid
+
+build-docs: 
+	mdbook-mermaid install && mdbook clean && mdbook build
+
+doc-preview: build-docs
+	mdbook serve --open

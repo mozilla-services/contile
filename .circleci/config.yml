@@ -342,7 +342,58 @@ jobs:
             docker images
             docker push "${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:${DOCKER_TAG}"
             docker push "${DOCKERHUB_CONTILE_LOAD_TEST_REPO}:latest"
-
+  docs-build:
+    docker:
+      - image: cimg/base:2022.08
+    steps:
+      - checkout
+      - run:
+          name: Setup Build docs
+          command: |
+            mkdir bin
+            echo 'export PATH=$(pwd)/bin:"$PATH"' >> "$BASH_ENV"
+            source "$BASH_ENV"
+            curl -sSL \
+              https://github.com/rust-lang/mdBook/releases/download/v0.4.24/mdbook-v0.4.24-x86_64-unknown-linux-gnu.tar.gz \
+              | tar -xz --directory=bin
+            curl -sSL \
+              https://github.com/badboy/mdbook-mermaid/releases/download/v0.12.6/mdbook-mermaid-v0.12.6-x86_64-unknown-linux-gnu.tar.gz \
+              | tar -xz --directory=bin
+      - run:
+          name: Build docs
+          command: |
+            make build-docs
+            mkdir workspace
+            cp -r ./book workspace/doc
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - doc
+  docs-publish-github-pages:
+    docker:
+      - image: cimg/node:16.18.1
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "fb:66:d0:7c:9e:0c:48:b1:ae:0c:55:b5:c0:d5:bd:e7"
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: Disable jekyll builds
+          command: touch workspace/doc/.nojekyll
+      - run:
+          name: Set remote origin if needed
+          command: |
+            git remote add origin git@github.com:mozilla-services/contile.git || true
+      - run:
+          name: Deploy docs to gh-pages
+          command: |
+            npx --yes gh-pages@3.0.0 \
+              --user "ci-build <ci-build@merino.mozilla.org>" \
+              --message "[skip ci] Docs updates" \
+              --repo "git@github.com:mozilla-services/contile.git" \
+              --dist workspace/doc
 workflows:
   version: 2
   pr-workflow:
@@ -394,4 +445,10 @@ workflows:
       - docker-image-publish:
           <<: *main-filters
           requires:
-            - docker-image-publish-locust
+            - docker-image-publish-locust     
+      - docs-build:
+          <<: *main-filters
+      - docs-publish-github-pages:
+          <<: *main-filters
+          requires:
+            - docs-build
