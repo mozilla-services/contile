@@ -1,19 +1,18 @@
 # partner
 
-This directory contains a Python-based web service. The HTTP API of this service
-implements the API specification of the partner API that MTS connects to when
-requesting tiles to pass along to Firefox for display.
+This directory contains a Python-based web service. The HTTP API of this service implements the API
+specification of the partner API that MTS connects to when requesting tiles to pass along to Firefox
+for display.
 
 ## Overview
 
-Once the API service is running, API documentation can be found at 
-`http://0.0.0.0:5000/docs`.
+Once the API service is running, API documentation can be found at `http://0.0.0.0:5000/docs`.
 
 ### Records
 
 **GET**: Endpoint to retrieve all historical Contile request records with a counter.
 
-Example: 
+Example:
 
 Request
 
@@ -29,6 +28,7 @@ Response:
 Code: `200`
 
 Body:
+
 ```json
 {
   "records": [
@@ -176,13 +176,12 @@ docker compose run -p 5000:5000 partner
 
 The mock partner runs, by default, on `http://localhost:5000/`.
 
-The test URI path is `tilesp/desktop` for desktop tiles, or `tilesp/mobile` for mobile 
-tiles.
+The test URI path is `tilesp/desktop` for desktop tiles, or `tilesp/mobile` for mobile tiles.
 
-The following query arguments are required. Optional, undefined elements should be left 
-empty (e.g. `...&dma-code=&...`) Failure to include them will return a 400 error with 
-the missing variables listed in the response (NOTE: This will produce an unexpected 500 
-or 502 error in Contile.)
+The following query arguments are required. Optional, undefined elements should be left empty
+(e.g. `...&dma-code=&...`) Failure to include them will return a 400 error with the missing
+variables listed in the response (NOTE: This will produce an unexpected 500 or 502 error in
+Contile.)
 
 * partner - _string_
 * sub1 - _string_
@@ -197,25 +196,23 @@ or 502 error in Contile.)
 
 ## Debugging
 
-It is possible to run the mock partner app outside of docker. It is ___STRONGLY___ 
-suggested to run this within its own Python virtualenv, and possibly its own 
-shell to prevent environment variable cross contamination.
+It is possible to run the mock partner app outside of docker. It is ___STRONGLY___ suggested to run
+this within its own Python virtualenv, and possibly its own shell to prevent environment variable
+cross contamination.
 
 ### Environment Setup
 
-This project uses [Poetry][poetry] for dependency management. For environment setup it 
-is recommended to use [pyenv][pyenv] and [pyenv-virtualenv][pyenv-virtualenv], as they 
-work nicely with Poetry.
+This project uses [Poetry][1] for dependency management. For environment setup it is recommended to
+use [pyenv][2] and [pyenv-virtualenv][3], as they work nicely with Poetry.
 
-Project dependencies are listed in the `pyproject.toml` file.
-To install the dependencies execute:
+Project dependencies are listed in the `pyproject.toml` file. To install the dependencies execute:
+
 ```shell
 poetry install
 ```
 
-The `services: partner` block of `contract-tests/docker-compose.yml` lists the 
-`environment` and `volumes` needed. The following environment variables are used by 
-the mock partner app.
+The `services: partner` block of `contract-tests/docker-compose.yml` lists the `environment` and
+`volumes` needed. The following environment variables are used by the mock partner app.
 
 * PORT - _default port number_
 * RESPONSES_DIR - _directory to read the [Tile Values](#tile_values)_
@@ -244,20 +241,19 @@ CONTILE_ADM_PARTNER_ID=partner_id_test
 CONTILE_ADM_HAS_LEGACY_IMAGE='["Example ORG", "Example COM"]'
 ```
 
-`CONTILE_ADM_TIMEOUT` determines how long to wait for a response from the partner server. 
+`CONTILE_ADM_TIMEOUT` determines how long to wait for a response from the partner server.
 The default value is `5` seconds. You may wish to make this much longer if you're debugging.
 
 These would be in addition to any other settings you wish to use for the Contile server.
 
 **<a name="tile_values"></a>Tile Values**
 
-The returned tile values are stored in 
+The returned tile values are stored in
 `contract-tests/volumes/partner/${country-code}/${region-code}.yml`.
 
-If different values are desired, you can either alter these files or you can copy them 
-into a new directory and use the `RESPONSES_DIR` environment variable for the 
-mock partner app.
+If different values are desired, you can either alter these files or you can copy them into a new
+directory and use the `RESPONSES_DIR` environment variable for the mock partner app.
 
-[poetry]: https://python-poetry.org/docs/#installation
-[pyenv]: https://github.com/pyenv/pyenv#installation
-[pyenv-virtualenv]: https://github.com/pyenv/pyenv-virtualenv#installation
+[1]: https://python-poetry.org/docs/#installation
+[2]: https://github.com/pyenv/pyenv#installation
+[3]: https://github.com/pyenv/pyenv-virtualenv#installation

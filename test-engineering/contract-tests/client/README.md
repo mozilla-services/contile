@@ -3,30 +3,27 @@
 This directory contains a Python-based test framework for the contract tests.
 The HTTP client used in the framework supports:
 
-* Requests for tiles from the MTS, with response checks.
-* Requests for the history of requests from the MTS to the partner API with response
-checks.
+* Requests for tiles from the MTS, with response checks
+* Requests for the history of requests from the MTS to the partner API with response checks
 
 The framework implements response models for the MTS and partner APIs.
 
-For more details on contract test design, refer to the Contile Contract Tests
-[README][contract_tests_readme].
+For more details on contract test design, refer to the Contile Contract Tests [README][1].
 
 ## Overview
 
-The client is instructed on request and response check actions via scenarios, 
-recorded in the `scenarios.yml` file. A scenario is defined by a name, a description 
-and steps.
+The client is instructed on request and response check actions via scenarios, recorded in the
+`scenarios.yml` file. A scenario is defined by a name, a description and steps.
 
 ### Steps
 
 #### Contile Service
 
-* To direct requests to the MTS service, set the `service` value of `request` to
-`contile`
-* The expected content for a `200 OK` response is a collection of tiles.
+* To direct requests to the MTS service, set the `service` value of `request` to `contile`
+* The expected content for a `200 OK` response is a collection of tiles
 
 Example:
+
 ```yaml
 - request:
     service: contile
@@ -57,14 +54,14 @@ Example:
 
 #### Partner Service
 
-* To direct requests to the partner service, set the `service` value of `request` to
-`partner`
-* The expected content for a `200 OK` response is a collection of records.
-    * Each `record` represents a distinct request made by the MTS to the partner.
-    * The frequency of a request is denoted by the `count`.
+* To direct requests to the partner service, set the `service` value of `request` to `partner`
+* The expected content for a `200 OK` response is a collection of records
+    * Each `record` represents a distinct request made by the MTS to the partner
+    * The frequency of a request is denoted by the `count`
 * Request history is cleared between scenarios
 
 Example:
+
 ```yaml
 - request:
     service: partner
@@ -115,19 +112,18 @@ Example:
 
 ## Debugging
 
-To execute the test scenarios outside the client Docker container, expose the Contile 
-and partner API ports in the docker-compose.yml, set environment variables and use a 
-pytest command. It is recommended to execute the tests within a Python virtual 
-environment to prevent dependency cross contamination.
+To execute the test scenarios outside the client Docker container, expose the Contile and partner
+API ports in the docker-compose.yml, set environment variables and use a pytest command. It is
+recommended to execute the tests within a Python virtual environment to prevent dependency cross
+contamination.
 
 ### Environment Setup
 
-This project uses [Poetry][poetry] for dependency management. For environment setup it 
-is recommended to use [pyenv][pyenv] and [pyenv-virtualenv][pyenv-virtualenv], as they 
-work nicely with Poetry.
+This project uses [Poetry][2] for dependency management. For environment setup it is recommended to
+use [pyenv][3] and [pyenv-virtualenv][4], as they work nicely with Poetry.
 
-Project dependencies are listed in the `pyproject.toml` file.
-To install the dependencies execute:
+Project dependencies are listed in the `pyproject.toml` file. To install the dependencies execute:
+
 ```shell
 poetry install --without partner
 ```
@@ -136,13 +132,13 @@ poetry install --without partner
 
 1. Modify `test-engineering/contract-tests/docker-compose.yml`
 
-    In the partner definition, expose port 5000 by adding the following:
+   In the partner definition, expose port 5000 by adding the following:
     ```yaml
     ports:
       - "5000:5000"
     ```
 
-    In the Contile definition, expose port 8000 by adding the following:
+   In the Contile definition, expose port 8000 by adding the following:
     ```yaml
     ports:
       - "8000:8000"
@@ -157,25 +153,25 @@ poetry install --without partner
 
 3. Run the contract tests
 
-    Execute the following from the project root:
+   Execute the following from the project root:
     ```shell
     CONTILE_URL=http://localhost:8000 \
         PARTNER_URL=http://localhost:5000 \
         SCENARIOS_FILE=test-engineering/contract-tests/volumes/client/scenarios.yml \
         pytest test-engineering/contract-tests/client/tests/test_contile.py --vv
     ```
-    * Environment variables can alternatively be set in a pytest.ini file or through an 
-      IDE configuration
-    * Tests can be run individually using [-k _expr_][pytest-k]. 
-      
+    * Environment variables can alternatively be set in a pytest.ini file or through an IDE
+      configuration
+    * Tests can be run individually using [-k _expr_][5]
+
       Example executing the `success_desktop_windows` scenario:
       ```shell
       pytest test-engineering/contract-tests/client/tests/test_contile.py \
           -k success_desktop_windows
       ```
 
-[contract_tests_readme]: ../README.md
-[pytest-k]: https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name
-[poetry]: https://python-poetry.org/docs/#installation
-[pyenv]: https://github.com/pyenv/pyenv#installation
-[pyenv-virtualenv]: https://github.com/pyenv/pyenv-virtualenv#installation
+[1]: ../README.md
+[2]: https://python-poetry.org/docs/#installation
+[3]: https://github.com/pyenv/pyenv#installation
+[4]: https://github.com/pyenv/pyenv-virtualenv#installation
+[5]: https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name
