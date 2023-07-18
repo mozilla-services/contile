@@ -187,5 +187,5 @@ updating the following:
 [20]: ./docker-compose.init_error.yml
 [21]: ./docker-compose.yml
 [22]: https://circleci.com/docs/
-[23]: ../../.circleci/config.yml
+[23]: /.circleci/config.yml
 [24]: ./README.md
