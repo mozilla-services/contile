@@ -1,0 +1,17 @@
+# sample stand-alone config file "sa-test.toml"
+
+debug=true
+port=8000
+host="localhost"
+human_logs=true
+maxmindddb_loc="mmdb/GeoLite2-City-Test.mmdb"
+
+adm_endpoint_url="http://localhost:5000/tilesp/desktop"
+adm_defaults='{"image_hosts":["example.com","example.org"],"impression_hosts":["example.com","example.org"],"click_hosts":["example.com","example.org"]}'
+adm_settings="test-engineering/contract-tests/volumes/contile/adm_settings.json"
+adm_partner_id="partner_id_test"
+adm_sub1="sub1_test"
+adm_has_legacy_image='["Example ORG","Example COM"]'
+adm_timeout=2
+tiles_ttl=0
+sov_source="test-engineering/contract-tests/volumes/contile/sov_settings.json"

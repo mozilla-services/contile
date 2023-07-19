@@ -24,70 +24,33 @@ practices.
 The commit hash of the deployed code is considered its version identifier. The commit hash can be retrieved locally via `git rev-parse HEAD`.
 
 ## Setting Up Your Local Dev Environment
-
-Contile uses Rust, and requires the latest stable iteration. See
-[rustup.rs](https://rustup.rs/) for how to install this application.
-
-Once Rust is installed you can compile using `cargo build`. This will
-create a development release.
-
-Additionally, Contile requires a connection to the ADM servers. These use several 
-keys (which are specified in the configuration file) to pull results.  The contract
-tests include a stub application that can provide ADM-like returns. See the 
-[adm_settings_test.json](./adm_settings_test.json) file for reference.
-
-Normally, these configurations run as a part of a `docker-compose` command, but the individual
-Docker files can be run by themselves.
-
-To start the ADM stub, you can run the following from the root of the Contile source repository:
-
-```shell
-    docker run \
-    --env PORT=5000 \
-    --env RESPONSES_DIR=/tmp/partner/ \
-    --env ACCEPTED_MOBILE_FORM_FACTORS=phone,tablet \
-    --env ACCEPTED_DESKTOP_FORM_FACTORS=desktop \
-    -v `pwd`/test-engineering/contract-tests/volumes/partner:/tmp/partner \
-    -p 5000:5000 \
-    mozilla/contile-integration-tests-partner
-```
-
-To use the above, you'll need to set the Contile configuration option as follows:
-`adm_endpoint_url`  = `http://localhost:5000/tilesp/desktop`.  Note, you also need to 
-define a SOV (Share of Voice) source file, so make sure this is provided for partner allocations. Currently, a sample file is in the contract-tests directory, so you can make use of that, or define your own allocation JSON file to point to. 
-
-It may be helpful to create a settings file to contain all of the preferred settings, like the example of `sa-test.toml` below:
-
-```toml
-# sample stand-alone config file "sa-test.toml"
-
-debug=true
-port=8000
-host="localhost"
-human_logs=true
-maxmindddb_loc="mmdb/GeoLite2-City-Test.mmdb"
-
-adm_endpoint_url="http://localhost:5000/tilesp/desktop"
-adm_defaults='{"image_hosts":["example.com","example.org"],"impression_hosts":["example.com","example.org"],"click_hosts":["example.com","example.org"]}'
-adm_settings="test-engineering/contract-tests/volumes/contile/adm_settings.json"
-adm_partner_id="partner_id_test"
-adm_sub1="sub1_test"
-adm_has_legacy_image='["Example ORG","Example COM"]'
-adm_timeout=2
-tiles_ttl=0
-sov_source="test-engineering/contract-tests/volumes/contile/sov_settings.json"
-```
-
-You can then start the local dev application by running: 
+1. Install Rust. See [rustup.rs](https://rustup.rs/) for how to install on your platform.
+2. Compile Contile using `cargo build`. This will create a development release.
+3. Create connection to ADM server:
+    1. Contile requires a connection to the ADM servers. The contract
+    tests include a stub application that can provide ADM-like returns. See the 
+    [adm_settings_test.json](./adm_settings_test.json) file for reference.
+    2. Run the following from the root of the Contile repository to start the ADM stub:
+    ```shell
+        docker run \
+        --env PORT=5000 \
+        --env RESPONSES_DIR=/tmp/partner/ \
+        --env ACCEPTED_MOBILE_FORM_FACTORS=phone,tablet \
+        --env ACCEPTED_DESKTOP_FORM_FACTORS=desktop \
+        -v `pwd`/test-engineering/contract-tests/volumes/partner:/tmp/partner \
+        -p 5000:5000 \
+        mozilla/contile-integration-tests-partner
+    ```
+4. Configuration settings are contained in the sample `sa-test.toml` file at the root of the Contile repository.  
+You may change settings [there](sa-test.toml) that pertain to your local development on Contile.
+5. Start the local dev application by running: 
 ```shell
  #! /bin/bash
 RUST_LOG=contile=trace,config=debug \
     cargo run -- --config sa-test.toml #--debug-settings
 ```
-
-If you used the sample `sa-test.toml` configuration file as defined above, you should
+6. If you used the sample `sa-test.toml` configuration file for settings, you should
 be able to make requests to the dev server like so:
-
 ```shell
 curl -v http://localhost:8000/v1/tiles -H "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0"
 ```
