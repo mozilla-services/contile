@@ -53,9 +53,10 @@ To start the ADM stub, you can run the following from the root of the Contile so
 ```
 
 To use the above, you'll need to set the Contile configuration option as follows:
-`adm_endpoint_url`  = `http://localhost:5000/tilesp/desktop`. It may be helpful to
-create a settings file to contain all of the preferred settings, like the example
-of `sa-test.toml` below:
+`adm_endpoint_url`  = `http://localhost:5000/tilesp/desktop`.  Note, you also need to 
+define a SOV (Share of Voice) source file, so make sure this is provided for partner allocations. Currently, a sample file is in the contract-tests directory, so you can make use of that, or define your own allocation JSON file to point to. 
+
+It may be helpful to create a settings file to contain all of the preferred settings, like the example of `sa-test.toml` below:
 
 ```toml
 # sample stand-alone config file "sa-test.toml"
@@ -74,6 +75,7 @@ adm_sub1="sub1_test"
 adm_has_legacy_image='["Example ORG","Example COM"]'
 adm_timeout=2
 tiles_ttl=0
+sov_source="test-engineering/contract-tests/volumes/contile/sov_settings.json"
 ```
 
 You can then start the local dev application by running: 
