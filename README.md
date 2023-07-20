@@ -23,14 +23,10 @@ practices.
 ## Versioning
 The commit hash of the deployed code is considered its version identifier. The commit hash can be retrieved locally via `git rev-parse HEAD`.
 
-## Setting Up Your Local Dev Environment
+## Development Setup
 1. Install Rust. See [rustup.rs](https://rustup.rs/) for how to install on your platform.
-2. Compile Contile using `cargo build`. This will create a development release.
-3. Create connection to ADM server:
-    1. Contile requires a connection to the ADM servers. The contract
-    tests include a stub application that can provide ADM-like returns. See the 
-    [adm_settings_test.json](./adm_settings_test.json) file for reference.
-    2. Run the following from the root of the Contile repository to start the ADM stub:
+2. Compile Contile using `cargo build`.
+3. Start connection a local ADM instance (run from root of Contile repo):
     ```shell
         docker run \
         --env PORT=5000 \
@@ -41,16 +37,14 @@ The commit hash of the deployed code is considered its version identifier. The c
         -p 5000:5000 \
         mozilla/contile-integration-tests-partner
     ```
-4. Configuration settings are contained in the sample `sa-test.toml` file at the root of the Contile repository.  
-You may change settings [there](sa-test.toml) that pertain to your local development on Contile.
+4. Configuration settings are contained in the sample `sa-test.toml` file at the root of the Contile repository.  You may change settings [there](sa-test.toml) that pertain to your local development on Contile.
 5. Start the local dev application by running: 
 ```shell
  #! /bin/bash
 RUST_LOG=contile=trace,config=debug \
     cargo run -- --config sa-test.toml #--debug-settings
 ```
-6. If you used the sample `sa-test.toml` configuration file for settings, you should
-be able to make requests to the dev server like so:
+6. Check that the service can accept requests by running:
 ```shell
 curl -v http://localhost:8000/v1/tiles -H "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0"
 ```
