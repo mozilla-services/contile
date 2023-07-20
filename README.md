@@ -37,14 +37,14 @@ The commit hash of the deployed code is considered its version identifier. The c
         -p 5000:5000 \
         mozilla/contile-integration-tests-partner
     ```
-5. Start application by running the command below: 
+4. Start application by running the command below: 
 Note that config settings are contained in the  `sa-test.toml` file.  You may change settings [there](sa-test.toml) that pertain to your local development on Contile.
 ```shell
  #! /bin/bash
 RUST_LOG=contile=trace,config=debug \
     cargo run -- --config sa-test.toml #--debug-settings
 ```
-6. Check that the service can accept requests by running:
+5. Check that the service can accept requests by running:
 ```shell
 curl -v http://localhost:8000/v1/tiles -H "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0"
 ```
