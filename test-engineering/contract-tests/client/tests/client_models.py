@@ -5,7 +5,7 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Service(Enum):
@@ -60,8 +60,10 @@ class Records(BaseModel):
     records: list[RecordCount]
 
 
-class Tile(BaseModel, extra="allow"):
+class Tile(BaseModel):
     """Class that holds information about a Tile returned by Contile."""
+
+    model_config = ConfigDict(extra="allow")
 
     id: int
     name: str

@@ -11,7 +11,7 @@ The load test framework was originally developed in isolation using Molotov, see
 
 ## Contributing
 
-This project uses [Poetry][2] for dependency management. For environment setup it is recommended to
+This project uses [Poetry][2] for dependency management. For environment setup, it is recommended to
 use [pyenv][3] and [pyenv-virtualenv][4], as they work nicely with Poetry.
 
 Project dependencies are listed in the `pyproject.toml` file. To install the dependencies execute:

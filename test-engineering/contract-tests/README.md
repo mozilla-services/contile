@@ -29,10 +29,10 @@ Firefox for display.
 
 When a client sends a request to the MTS, information about the client's form factor and OS family
 are parsed from the `User-Agent` header. Then, when the MTS sends a request to the partner API the
-form factor and OS family information is included in the query parameters. We leverage this behavior
-to map requests from a client to specific responses from the partner API. We can control not only
-the response content, but also the response status code, response headers and even delay the
-response for a period of time, which allows us to effectively test the MTS.
+form factor and OS family information is included in the query parameters. We use this behavior
+to map requests from a client to specific responses from the partner API. We can control the
+response content, the response status code, the response headers and can also delay the response
+for a period of time, which allows us to effectively test the MTS.
 
 For more details see the partner [README][5]
 
@@ -41,11 +41,11 @@ For more details see the partner [README][5]
 The `volumes` directory contains subdirectories which will be mounted as volumes into the Docker
 containers used in the contract test suite:
 
-* the `volumes/client` directory contains YML files which define every test scenario that the
+* the [volumes/client][25] directory contains YML files which define every test scenario that the
   contract test suite will run
-* the `volumes/contile` directory contains files that need to be provided to a MTS Docker container
-  such as a partner settings file
-* the `volumes/partner` directory contains a YML file which defines every response that the API
+* the [volumes/contile][26] directory contains files that need to be provided to a MTS Docker 
+  container such as a partner settings file
+* the [volumes/partner][27] directory contains a YML file which defines every response that the API
   returns keyed by form-factor and then os-family
 
 ## Local Execution
@@ -69,7 +69,7 @@ docker-compose \
 
 ### Import Sorting, Linting, Style Guide Enforcement & Static Type Checking
 
-This project uses [Poetry][6] for dependency management. For environment setup it is recommended to
+This project uses [Poetry][6] for dependency management. For environment setup, it is recommended to
 use [pyenv][7] and [pyenv-virtualenv][8], as they work nicely with Poetry.
 
 Project dependencies are listed in the `pyproject.toml` file.
@@ -116,7 +116,7 @@ See the `Debugging` section of the client [README][4]
 
 ### Contile
 
-To run the contile service, and it's dependant partner service locally, execute the following from
+To run the contile service, and it's dependent partner service locally, execute the following from
 the contract-tests root:
 
 ```shell
@@ -189,3 +189,6 @@ updating the following:
 [22]: https://circleci.com/docs/
 [23]: /.circleci/config.yml
 [24]: ./README.md
+[25]: ./volumes/client
+[26]: ./volumes/contile
+[27]: ./volumes/partner

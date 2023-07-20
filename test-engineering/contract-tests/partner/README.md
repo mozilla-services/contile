@@ -202,7 +202,7 @@ cross contamination.
 
 ### Environment Setup
 
-This project uses [Poetry][1] for dependency management. For environment setup it is recommended to
+This project uses [Poetry][1] for dependency management. For environment setup, it is recommended to
 use [pyenv][2] and [pyenv-virtualenv][3], as they work nicely with Poetry.
 
 Project dependencies are listed in the `pyproject.toml` file. To install the dependencies execute:

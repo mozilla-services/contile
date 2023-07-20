@@ -13,7 +13,7 @@ For more details on contract test design, refer to the Contile Contract Tests [R
 ## Overview
 
 The client is instructed on request and response check actions via scenarios, recorded in the
-`scenarios.yml` file. A scenario is defined by a name, a description and steps.
+`scenarios.yml` file. A scenario is defined by a name, a description, and steps.
 
 ### Steps
 
@@ -119,7 +119,7 @@ contamination.
 
 ### Environment Setup
 
-This project uses [Poetry][2] for dependency management. For environment setup it is recommended to
+This project uses [Poetry][2] for dependency management. For environment setup, it is recommended to
 use [pyenv][3] and [pyenv-virtualenv][4], as they work nicely with Poetry.
 
 Project dependencies are listed in the `pyproject.toml` file. To install the dependencies execute:
