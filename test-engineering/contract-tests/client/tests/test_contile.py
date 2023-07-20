@@ -10,6 +10,7 @@ import requests
 from client_models import Service, Step
 from exceptions import PartnerRecordsNotClearedError
 from requests import Response as RequestsResponse
+from requests.adapters import HTTPAdapter, Retry
 
 
 @pytest.fixture(name="hosts", scope="session")
@@ -20,6 +21,32 @@ def fixture_hosts(request) -> dict[Service, str]:
         Service.CONTILE: request.config.option.contile_url,
         Service.PARTNER: request.config.option.partner_url,
     }
+
+
+@pytest.fixture(scope="session", name="connect_to_partner")
+def fixture_connect_to_partner(hosts: dict[Service, str]) -> Callable[[], None]:
+    """Send a request to Partner API root."""
+
+    partner_host: str = hosts[Service.PARTNER]
+
+    def connect_to_partner():
+        with requests.Session() as session:
+            # Delay Formula = backoff_factor * (2 ^ (total - 1))
+            max_retries: Retry = Retry(total=5, backoff_factor=0.1)
+            session.mount(f"{partner_host}", HTTPAdapter(max_retries=max_retries))
+            response: RequestsResponse = session.get(f"{partner_host}/")
+            response.raise_for_status()
+
+    return connect_to_partner
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fixture_session_setup(connect_to_partner: Callable[[], None]):
+    """Execute instructions before the test session."""
+
+    connect_to_partner()  # make sure we can connect to the Contile partner
+
+    yield  # Allow tests to execute
 
 
 @pytest.fixture(name="clear_partner_records")
@@ -73,7 +100,9 @@ def test_contile(hosts: dict[Service, str], steps: list[Step]):
         if response.status_code == 200:
             # If the response status code is 200 OK, load the response content
             # into a Python dict and generate a dict from the response model
-            assert response.json() == step.response.content.dict(exclude_unset=True)
+            assert response.json() == step.response.content.model_dump(
+                exclude_unset=True
+            )
             continue
 
         if response.status_code == 204:

@@ -4,7 +4,7 @@
 
 FROM python:3.11-slim
 
-LABEL org.opencontainers.image.authors="contextual-services-team@mozilla.com"
+LABEL maintainer="Content Discovery Services (DISCO) Team <disco-team@mozilla.com>"
 
 # Add gcc since there are no wheels for some packages for arm64/aarch64
 RUN apt-get update && apt-get install -y git && \
@@ -21,14 +21,12 @@ ENV PATH="${PYTHON_VENV}/bin:${PATH}"
 
 RUN python -m pip install --upgrade pip
 
-# Setup poetry and extract requirements
+# Setup poetry and install requirements
+ENV POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VERSION=1.5.1
 RUN python -m pip install --no-cache-dir --quiet poetry
-WORKDIR /tmp
-COPY pyproject.toml poetry.lock /tmp/
-RUN poetry export --no-interaction --output requirements.txt --without-hashes
-
-WORKDIR /
-RUN python -m pip install -r /tmp/requirements.txt
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --without dev --no-interaction --no-ansi
 
 RUN useradd --create-home locust
 WORKDIR /home/locust
