@@ -37,8 +37,8 @@ The commit hash of the deployed code is considered its version identifier. The c
         -p 5000:5000 \
         mozilla/contile-integration-tests-partner
     ```
-4. Configuration settings are contained in the sample `sa-test.toml` file at the root of the Contile repository.  You may change settings [there](sa-test.toml) that pertain to your local development on Contile.
-5. Start the local dev application by running: 
+5. Start application by running the command below: 
+Note that config settings are contained in the  `sa-test.toml` file.  You may change settings [there](sa-test.toml) that pertain to your local development on Contile.
 ```shell
  #! /bin/bash
 RUST_LOG=contile=trace,config=debug \
