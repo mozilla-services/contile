@@ -4,7 +4,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class Tile(BaseModel):
@@ -27,8 +27,7 @@ class Tiles(BaseModel):
 class Header(BaseModel):
     """Model that represents a HTTP header."""
 
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
     name: str
     value: str
@@ -46,8 +45,7 @@ class ResponseFromFile(BaseModel):
 class QueryParameter(BaseModel):
     """Model that represents a HTTP query parameter."""
 
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
     name: str
     value: str
@@ -56,8 +54,7 @@ class QueryParameter(BaseModel):
 class Record(BaseModel):
     """Model that represents a request sent by Contile."""
 
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
     method: str
     headers: tuple[Header, ...]

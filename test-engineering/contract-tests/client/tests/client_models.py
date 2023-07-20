@@ -3,9 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 
 class Service(Enum):
@@ -60,14 +60,16 @@ class Records(BaseModel):
     records: list[RecordCount]
 
 
-class Tile(BaseModel, extra=Extra.allow):
+class Tile(BaseModel):
     """Class that holds information about a Tile returned by Contile."""
+
+    model_config = ConfigDict(extra="allow")
 
     id: int
     name: str
     click_url: str
     image_url: str
-    image_size: int | None
+    image_size: int | None = None
     impression_url: str
     url: str
 
@@ -76,7 +78,7 @@ class TilesResponse(BaseModel):
     """Class that contains a list of Tiles and SOV string returned by Contile."""
 
     tiles: list[Tile]
-    sov: Optional[str]
+    sov: str | None = None
 
 
 class Response(BaseModel):
