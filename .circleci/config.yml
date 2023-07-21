@@ -24,6 +24,30 @@ commands:
             else
               echo "${DOCKER_PASS}" | docker login -u="${DOCKER_USER}" --password-stdin
             fi
+  python-checks:
+    description: Execute Python linters and formatters (isort, black, flake8 & mypy)
+    parameters:
+      files:
+        type: string
+        default: .
+    steps:
+      - run:
+          name: setup poetry
+          command: |
+            poetry -V
+            poetry install
+      - run:
+          name: isort
+          command: poetry run isort --check-only << parameters.files >>
+      - run:
+          name: black
+          command: poetry run black --quiet --diff --check << parameters.files >>
+      - run:
+          name: flake8
+          command: poetry run flake8 << parameters.files >>
+      - run:
+          name: mypy
+          command: poetry run mypy << parameters.files >>
   setup-rust:
     steps:
       - run:
@@ -70,25 +94,6 @@ commands:
             "$CIRCLE_PROJECT_REPONAME" \
             "$CIRCLE_BUILD_URL" > version.json
 
-  run-tests:
-    steps:
-      - run:
-          name: Install cargo2junit
-          command: cargo install cargo2junit
-      - run:
-          name: Install cargo-llvm-cov
-          command: cargo install cargo-llvm-cov
-      - run:
-          name: Run and report tests and coverage (Minimum 67%)
-          command: |
-            cargo llvm-cov --no-report test -- -Z unstable-options --format json --report-time | cargo2junit > results.xml
-            cargo llvm-cov report --fail-under-lines 67 --html
-      - store_test_results:
-          path: results.xml
-      - store_artifacts:
-          path: target/llvm-cov/html # Default location
-          destination: llvm-cov/html
-
 jobs:
   checks:
     docker:
@@ -117,7 +122,22 @@ jobs:
       - checkout
       - setup-rust
       - cargo-build
-      - run-tests
+      - run:
+          name: Install cargo2junit
+          command: cargo install cargo2junit
+      - run:
+          name: Install cargo-llvm-cov
+          command: cargo install cargo-llvm-cov
+      - run:
+          name: Run and report tests and coverage (Minimum 67%)
+          command: |
+            cargo llvm-cov --no-report test -- -Z unstable-options --format json --report-time | cargo2junit > results.xml
+            cargo llvm-cov report --fail-under-lines 67 --html
+      - store_test_results:
+          path: results.xml
+      - store_artifacts:
+          path: target/llvm-cov/html # Default location
+          destination: llvm-cov/html
 
   build:
     docker:
@@ -201,23 +221,8 @@ jobs:
     steps:
       - checkout:
           path: ~/contile/
-      - run:
-          name: setup poetry
-          command: |
-            poetry -V
-            poetry install
-      - run:
-          name: isort
-          command: poetry run isort --check-only client partner
-      - run:
-          name: black
-          command: poetry run black --quiet --diff --check client partner
-      - run:
-          name: flake8
-          command: poetry run flake8 client partner
-      - run:
-          name: mypy
-          command: poetry run mypy client partner
+      - python-checks:
+          files: client partner
 
   contract-tests:
     machine:
@@ -294,27 +299,12 @@ jobs:
     steps:
       - checkout:
           path: ~/contile/
-      - run:
-          name: setup poetry
-          command: |
-            poetry -V
-            poetry install
-      - run:
-          name: isort
-          command: poetry run isort --check-only common locustfiles
-      - run:
-          name: black
-          command: poetry run black --quiet --diff --check common locustfiles
-      - run:
-          name: flake8
-          command: poetry run flake8 common locustfiles
-      - run:
-          name: mypy
-          command: poetry run mypy common locustfiles
+      - python-checks:
+          files: common locustfiles
 
   docker-image-publish-locust:
     docker:
-      - image: cimg/base:2022.08
+      - image: cimg/base:2023.07
     working_directory: "~/contile/test-engineering/load"
     steps:
       - checkout:

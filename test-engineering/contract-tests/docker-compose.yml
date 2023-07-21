@@ -24,8 +24,6 @@ services:
     container_name: contile
     depends_on:
       - partner
-    links:
-      - partner
     environment:
       CONTILE_MAXMINDDB_LOC: /tmp/mmdb/GeoLite2-City-Test.mmdb
       CONTILE_ADM_ENDPOINT_URL: http://partner:5000/tilesp/desktop
@@ -88,9 +86,6 @@ services:
       dockerfile: ./client/Dockerfile
     container_name: client
     depends_on:
-      - partner
-      - contile
-    links:
       - partner
       - contile
     environment:
