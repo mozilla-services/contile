@@ -9,7 +9,7 @@ Supports the TopSites feature within Firefox.
 
 See also:
 
-- [In-repo documentation](docs/)
+- [Documentation](https://mozilla-services.github.io/contile/)
 - [Monitoring dashboard](https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure) (Mozilla internal)
 
 ## Requirements
