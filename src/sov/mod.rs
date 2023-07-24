@@ -225,9 +225,7 @@ mod test {
     )]
     fn test_bad_path() {
         let mut settings = Settings {
-            sov_source: "./test-engineering/contract/volumes/contile/adm_settings.json"
-                .to_owned(),
-
+            sov_source: "./test-engineering/contract/volumes/contile/adm_settings.json".to_owned(),
             ..get_test_settings()
         };
         HandlerResult::<SOVManager>::from(&mut settings).unwrap();
@@ -236,8 +234,7 @@ mod test {
     #[test]
     fn test_valid_path() {
         let mut settings = Settings {
-            sov_source: "./test-engineering/contract/volumes/contile/sov_settings.json"
-                .to_owned(),
+            sov_source: "./test-engineering/contract/volumes/contile/sov_settings.json".to_owned(),
             ..get_test_settings()
         };
 
