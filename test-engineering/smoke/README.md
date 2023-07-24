@@ -1,6 +1,6 @@
-# smoke-tests
+# smoke tests
 
-This directory contains code for a smoke-test suite for Contile deployments.
+This directory contains code for a smoke test suite for Contile deployments.
 
 ## Setup
 

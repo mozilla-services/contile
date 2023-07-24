@@ -5,6 +5,6 @@ PULL_REQUEST_TEMPLATE.md
 README.md
 target
 
-smoke-tests/
+test-engineering/smoke/
 
 *.profraw
