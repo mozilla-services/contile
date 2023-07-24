@@ -221,11 +221,11 @@ mod test {
 
     #[test]
     #[should_panic(
-        expected = "Unable to parse SOV settings from file './test-engineering/contract-tests/volumes/contile/adm_settings.json'"
+        expected = "Unable to parse SOV settings from file './test-engineering/contract/volumes/contile/adm_settings.json'"
     )]
     fn test_bad_path() {
         let mut settings = Settings {
-            sov_source: "./test-engineering/contract-tests/volumes/contile/adm_settings.json"
+            sov_source: "./test-engineering/contract/volumes/contile/adm_settings.json"
                 .to_owned(),
 
             ..get_test_settings()
@@ -236,7 +236,7 @@ mod test {
     #[test]
     fn test_valid_path() {
         let mut settings = Settings {
-            sov_source: "./test-engineering/contract-tests/volumes/contile/sov_settings.json"
+            sov_source: "./test-engineering/contract/volumes/contile/sov_settings.json"
                 .to_owned(),
             ..get_test_settings()
         };

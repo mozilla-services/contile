@@ -217,7 +217,7 @@ jobs:
   contract-test-checks:
     docker:
       - image: cimg/python:3.11
-    working_directory: "~/contile/test-engineering/contract-tests"
+    working_directory: "~/contile/test-engineering/contract"
     steps:
       - checkout:
           path: ~/contile/
@@ -242,7 +242,7 @@ jobs:
           command: |
             docker-compose --version
             docker-compose \
-             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract/docker-compose.yml \
              build client partner
       - run:
           name: Run contract tests
@@ -251,7 +251,7 @@ jobs:
             TEST_RESULTS_XML: contract_results.xml
           command: |
             docker-compose \
-             -f test-engineering/contract-tests/docker-compose.yml \
+             -f test-engineering/contract/docker-compose.yml \
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "tiles cache" contract tests
@@ -260,8 +260,8 @@ jobs:
             TEST_RESULTS_XML: contract_results.tiles_cache.xml
           command: |
             docker-compose \
-             -f test-engineering/contract-tests/docker-compose.yml \
-             -f test-engineering/contract-tests/docker-compose.tiles_cache.yml \
+             -f test-engineering/contract/docker-compose.yml \
+             -f test-engineering/contract/docker-compose.tiles_cache.yml \
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "204" contract tests
@@ -270,16 +270,16 @@ jobs:
             TEST_RESULTS_XML: contract_results.204.xml
           command: |
             docker-compose \
-             -f test-engineering/contract-tests/docker-compose.yml \
-             -f test-engineering/contract-tests/docker-compose.204.yml \
+             -f test-engineering/contract/docker-compose.yml \
+             -f test-engineering/contract/docker-compose.204.yml \
              up --abort-on-container-exit --force-recreate
       - run:
           name: Run "init_error" contract tests
           command: |
             set +e # We need this so that the run doesn't exit after docker-compose
             docker-compose \
-             -f test-engineering/contract-tests/docker-compose.yml \
-             -f test-engineering/contract-tests/docker-compose.init_error.yml \
+             -f test-engineering/contract/docker-compose.yml \
+             -f test-engineering/contract/docker-compose.init_error.yml \
              up --abort-on-container-exit --exit-code contile --force-recreate
             contile_exit_code=$?
             if [ "${contile_exit_code}" -eq 0 ]; then
@@ -290,7 +290,7 @@ jobs:
              exit 0
             fi
       - store_test_results:
-          path: test-engineering/contract-tests/test-results
+          path: test-engineering/contract/test-results
 
   load-test-checks:
     docker:

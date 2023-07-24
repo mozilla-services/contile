@@ -62,7 +62,7 @@ docker build -t app:build .
 
 ```shell
 docker-compose \
-  -f test-engineering/contract-tests/docker-compose.yml \
+  -f test-engineering/contract/docker-compose.yml \
   -p contile-contract-tests \
   up --abort-on-container-exit --build
 ```
@@ -117,7 +117,7 @@ See the `Debugging` section of the client [README][4]
 ### Contile
 
 To run the contile service, and it's dependent partner service locally, execute the following from
-the contract-tests root:
+the contract tests root:
 
 ```shell
 docker-compose run -p 8000:8000 contile
@@ -163,7 +163,7 @@ updating the following:
 4. Documentation
     * [ ] client [README][4]
     * [ ] partner [README][5]
-    * [ ] contract-tests [README][24]
+    * [ ] contract tests [README][24]
 
 [1]: https://github.com/mozilla-services/contile-integration-tests
 [2]: sequence_diagram.png

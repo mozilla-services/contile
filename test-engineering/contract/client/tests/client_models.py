@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class Service(Enum):
-    """Enum with contract-test service options."""
+    """Enum with contract test service options."""
 
     CONTILE: str = "contile"
     PARTNER: str = "partner"

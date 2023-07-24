@@ -130,7 +130,7 @@ poetry install --without partner
 
 ### Execution
 
-1. Modify `test-engineering/contract-tests/docker-compose.yml`
+1. Modify `test-engineering/contract/docker-compose.yml`
 
    In the partner definition, expose port 5000 by adding the following:
     ```yaml
@@ -148,7 +148,7 @@ poetry install --without partner
 
    Execute the following from the project root:
    ```shell
-   docker compose -f test-engineering/contract-tests/docker-compose.yml up contile
+   docker compose -f test-engineering/contract/docker-compose.yml up contile
    ```
 
 3. Run the contract tests
@@ -157,8 +157,8 @@ poetry install --without partner
     ```shell
     CONTILE_URL=http://localhost:8000 \
         PARTNER_URL=http://localhost:5000 \
-        SCENARIOS_FILE=test-engineering/contract-tests/volumes/client/scenarios.yml \
-        pytest test-engineering/contract-tests/client/tests/test_contile.py --vv
+        SCENARIOS_FILE=test-engineering/contract/volumes/client/scenarios.yml \
+        pytest test-engineering/contract/client/tests/test_contile.py --vv
     ```
     * Environment variables can alternatively be set in a pytest.ini file or through an IDE
       configuration
@@ -166,7 +166,7 @@ poetry install --without partner
 
       Example executing the `success_desktop_windows` scenario:
       ```shell
-      pytest test-engineering/contract-tests/client/tests/test_contile.py \
+      pytest test-engineering/contract/client/tests/test_contile.py \
           -k success_desktop_windows
       ```
 

@@ -23,7 +23,7 @@ warn_unreachable = true
 
 
 [tool.poetry]
-name = "contract-tests"
+name = "contract"
 version = "0.1.0"
 description = "Contract tests for the Contile project"
 authors = ["Mozilla"]
