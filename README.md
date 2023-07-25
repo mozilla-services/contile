@@ -33,7 +33,7 @@ The commit hash of the deployed code is considered its version identifier. The c
         --env RESPONSES_DIR=/tmp/partner/ \
         --env ACCEPTED_MOBILE_FORM_FACTORS=phone,tablet \
         --env ACCEPTED_DESKTOP_FORM_FACTORS=desktop \
-        -v `pwd`/test-engineering/contract-tests/volumes/partner:/tmp/partner \
+        -v `pwd`/test-engineering/contract/volumes/partner:/tmp/partner \
         -p 5000:5000 \
         mozilla/contile-integration-tests-partner
     ```
@@ -80,7 +80,7 @@ GOOGLE_APPLICATION_CREDENTIALS={path to your credential.json file} \
 
 Contract tests are currently run using Docker images. This is so that they can be run as
 part of our automated continuous integration (CI) testing. 
-See the dedicated [contract-tests README](test-engineering/contract-tests/README.md) for details.
+See the dedicated [contract tests README](test-engineering/contract/README.md) for details.
 
 #### Load Tests
 Load testing can be run locally or as a part of the deployment process. Please see the [Contile Load (Locust) Tests](test-engineering/load/README.md) for detailed instructions. Local execution does not require any labeling in commit messages. 

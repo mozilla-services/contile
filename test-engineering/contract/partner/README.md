@@ -168,7 +168,7 @@ Body:
 
 ## Local Execution
 
-To run the service locally, execute the following from the contract-tests root:
+To run the service locally, execute the following from the contract tests root:
 
 ```shell
 docker compose run -p 5000:5000 partner
@@ -211,7 +211,7 @@ Project dependencies are listed in the `pyproject.toml` file. To install the dep
 poetry install
 ```
 
-The `services: partner` block of `contract-tests/docker-compose.yml` lists the `environment` and
+The `services: partner` block of `contract/docker-compose.yml` lists the `environment` and
 `volumes` needed. The following environment variables are used by the mock partner app.
 
 * PORT - _default port number_
@@ -249,7 +249,7 @@ These would be in addition to any other settings you wish to use for the Contile
 **<a name="tile_values"></a>Tile Values**
 
 The returned tile values are stored in
-`contract-tests/volumes/partner/${country-code}/${region-code}.yml`.
+`contract/volumes/partner/${country-code}/${region-code}.yml`.
 
 If different values are desired, you can either alter these files or you can copy them into a new
 directory and use the `RESPONSES_DIR` environment variable for the mock partner app.
