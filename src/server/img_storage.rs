@@ -5,12 +5,12 @@ use actix_web::http::{header::HeaderValue, uri};
 use base64::Engine;
 use bytes::Bytes;
 use cadence::{CountedExt, StatsdClient};
-use chrono::{DateTime, Duration, Utc};
 use dashmap::DashMap;
 use image::{io::Reader as ImageReader, ImageFormat};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use time::{Duration, OffsetDateTime};
 
 use crate::{
     error::{HandlerError, HandlerErrorKind, HandlerResult},
@@ -118,7 +118,7 @@ pub struct ImageStore {
     // `Settings::tiles_ttl`
     tiles_ttl: u32,
     cadence_metrics: Arc<StatsdClient>,
-    storage_client: Arc<cloud_storage::Client>,
+    storage_client: Arc<google_cloud_storage::client::Client>,
     req: reqwest::Client,
     /// `StoredImage`s already fetched/uploaded
     stored_images: Arc<DashMap<uri::Uri, StoredImage>>,
@@ -129,14 +129,14 @@ pub struct ImageStore {
 pub struct StoredImage {
     pub url: uri::Uri,
     pub image_metrics: ImageMetrics,
-    expiry: DateTime<Utc>,
+    expiry: OffsetDateTime,
 }
 
 impl StoredImage {
     /// Whether this image should be refetched and checked against the Cloud
     /// Storage Bucket
     fn expired(&self) -> bool {
-        self.expiry <= Utc::now()
+        self.expiry <= OffsetDateTime::now_utc()
     }
 }
 
@@ -190,15 +190,23 @@ impl ImageStore {
         // "allUsers" set to `ObjectViewer` to expose the contents of the bucket
         // to public view.
         //
+        let config = google_cloud_storage::client::ClientConfig {
+            http: Some(client.clone()),
+            ..Default::default()
+        }
+        .with_auth()
+        .await
+        .expect("Failed to authenticate GCS client for image storage");
 
-        let storage_client = Arc::new(
-            cloud_storage::Client::builder()
-                .client(client.clone())
-                .build()?,
-        );
+        let storage_client = Arc::new(google_cloud_storage::client::Client::new(config));
+
         let _content = storage_client
-            .bucket()
-            .read(&settings.bucket_name)
+            .get_bucket(
+                &google_cloud_storage::http::buckets::get::GetBucketRequest {
+                    bucket: &settings.bucket_name,
+                    ..Default::default()
+                },
+            )
             .await
             .map_err(|e| HandlerError::internal(&format!("Could not read bucket {:?}", e)))?;
 
@@ -453,12 +461,12 @@ impl ImageStore {
         &self,
         url: uri::Uri,
         image_metrics: ImageMetrics,
-        time_created: DateTime<Utc>,
+        time_created: OffsetDateTime,
     ) -> StoredImage {
         // Images should not change (any image modification should result in a
         // new url from upstream). However, poll it every `Settings::tiles_ttl`
         // anyway, just in case
-        let mut expiry = Utc::now() + Duration::seconds(self.tiles_ttl.into());
+        let mut expiry = OffsetDateTime::now_utc() + Duration::seconds(self.tiles_ttl.into());
         if let Some(bucket_ttl) = self.settings.bucket_ttl {
             // Take `StorageSettings::bucket_ttl` into account in the rare case
             // it's set the image to expire earlier than now + `tiles_ttl`

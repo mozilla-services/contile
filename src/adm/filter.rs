@@ -5,7 +5,9 @@ use std::{
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
 use cadence::{CountedExt, StatsdClient};
+use google_cloud_storage::http::objects::{download::Range, get::GetObjectRequest};
 use lazy_static::lazy_static;
+use time::OffsetDateTime;
 use tokio::sync::RwLock;
 use url::Url;
 
@@ -52,7 +54,7 @@ pub struct AdmFilter {
     pub all_include_regions: HashSet<String>,
     pub source: Option<String>,
     pub source_url: Option<url::Url>,
-    pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
+    pub last_updated: Option<OffsetDateTime>,
     pub refresh_rate: Duration,
     pub defaults: AdmDefaults,
     pub excluded_countries_200: bool,
@@ -104,7 +106,7 @@ pub fn spawn_updater(
     is_cloud: bool,
     refresh_rate: Duration,
     filter: &Arc<RwLock<AdmFilter>>,
-    storage_client: Arc<cloud_storage::Client>,
+    storage_client: Arc<google_cloud_storage::client::Client>,
     metrics: Arc<StatsdClient>,
 ) -> HandlerResult<()> {
     {
@@ -125,7 +127,7 @@ pub fn spawn_updater(
 /// Update `AdmFilter` from the Cloud Storage settings if they've been updated
 async fn updater(
     filter: &Arc<RwLock<AdmFilter>>,
-    storage_client: &cloud_storage::Client,
+    storage_client: &google_cloud_storage::client::Client,
     metrics: &Arc<StatsdClient>,
 ) {
     // Do the check before matching so that the read lock can be released right away.
@@ -170,8 +172,8 @@ impl AdmFilter {
     /// returning new `AdmAdvertiserSettings` if so.
     pub async fn fetch_new_settings(
         &self,
-        storage_client: &cloud_storage::Client,
-    ) -> HandlerResult<Option<(AdmAdvertiserSettings, chrono::DateTime<chrono::Utc>)>> {
+        storage_client: &google_cloud_storage::client::Client,
+    ) -> HandlerResult<Option<(AdmAdvertiserSettings, OffsetDateTime)>> {
         // don't update non-bucket versions (for now)
         if !self.is_cloud() {
             return Ok(None);
@@ -184,22 +186,32 @@ impl AdmFilter {
                 })?
                 .to_string();
             let path = bucket.path().trim_start_matches('/');
-            let obj = storage_client.object().read(&host, path).await?;
-            if let Some(updated) = self.last_updated {
+            let request = GetObjectRequest {
+                bucket: host,
+                object: path.into(),
+                ..Default::default()
+            };
+            let obj = storage_client.get_object(&request).await?;
+            let Some(obj_updated) = obj.updated else {
+                Err(HandlerErrorKind::General(format!("ADM Settings missing last updated timestamp")))?
+            };
+            if let Some(last_updated) = self.last_updated {
                 // if the remote object is not newer than the local object, do nothing
-                if obj.updated <= updated {
+                if obj_updated <= last_updated {
                     return Ok(None);
                 }
             };
 
-            let bytes = storage_client.object().download(&host, path).await?;
+            let bytes = storage_client
+                .download_object(&request, &Range::default())
+                .await?;
             let contents = String::from_utf8(bytes).map_err(|e| {
                 HandlerErrorKind::General(format!("Could not read ADM Settings: {:?}", e))
             })?;
             let new_settings = serde_json::from_str(&contents).map_err(|e| {
                 HandlerErrorKind::General(format!("Could not read ADM Settings: {:?}", e))
             })?;
-            return Ok(Some((new_settings, obj.updated)));
+            return Ok(Some((new_settings, obj_updated)));
         }
         Ok(None)
     }
@@ -208,7 +220,7 @@ impl AdmFilter {
     pub fn update(
         &mut self,
         settings: AdmAdvertiserSettings,
-        last_updated: chrono::DateTime<chrono::Utc>,
+        last_updated: OffsetDateTime,
     ) {
         self.all_include_regions.clear();
         self.advertiser_filters.adm_advertisers.clear();

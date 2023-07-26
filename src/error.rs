@@ -86,7 +86,7 @@ pub enum HandlerErrorKind {
     InvalidUA,
 
     #[error("Cloud Storage error: {}", _0)]
-    CloudStorage(#[from] cloud_storage::Error),
+    CloudStorage(#[from] google_cloud_storage::http::Error),
 }
 
 /// A set of Error Context utilities

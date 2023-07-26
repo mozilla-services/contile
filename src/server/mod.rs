@@ -114,11 +114,15 @@ impl Server {
             .timeout(Duration::from_secs(settings.request_timeout))
             .user_agent(create_app_version("/"))
             .build()?;
-        let storage_client = Arc::new(
-            cloud_storage::Client::builder()
-                .client(req.clone())
-                .build()?,
-        );
+        let config = google_cloud_storage::client::ClientConfig {
+            http: Some(req.clone()),
+            ..Default::default()
+        }
+        .with_auth()
+        .await
+        .expect("Failed to authenticate GCS client for ADM");
+
+        let storage_client = Arc::new(google_cloud_storage::client::Client::new(config));
         let mut partner_filter = HandlerResult::<AdmFilter>::from(&mut settings)?;
         // try to update from the bucket if possible.
         if partner_filter.is_cloud() {

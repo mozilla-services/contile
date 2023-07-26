@@ -1,7 +1,6 @@
 use actix_web::rt;
 use base64::Engine;
 use cadence::{CountedExt, StatsdClient};
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::{fs::read_to_string, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
@@ -108,7 +107,7 @@ async fn updater(
 
 #[derive(Debug)]
 pub struct LastResponse {
-    pub updated: chrono::DateTime<chrono::Utc>,
+    pub updated: time::OffsetDateTime,
     pub response: SOVResponse,
 }
 
@@ -188,7 +187,7 @@ impl From<&mut Settings> for HandlerResult<SOVManager> {
             ),
             last_response: Some(LastResponse {
                 response: sov,
-                updated: Utc::now(),
+                updated: time::OffsetDateTime::now_utc(),
             }),
         })
     }
