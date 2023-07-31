@@ -791,7 +791,7 @@ mod tests {
             true,
             refresh_rate,
             &adm_filter,
-            Arc::new(cloud_storage::Client::default()),
+            Arc::new(google_cloud_storage::client::Client::default()),
             Arc::new(StatsdClient::builder("contile", sink).build()),
         )
         .unwrap();

@@ -1,6 +1,7 @@
 use actix_web::rt;
 use base64::Engine;
 use cadence::{CountedExt, StatsdClient};
+use google_cloud_storage::http::objects::{download::Range, get::GetObjectRequest};
 use serde::{Deserialize, Serialize};
 use std::{fs::read_to_string, path::Path, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
@@ -22,7 +23,7 @@ pub struct SOVManager {
 impl SOVManager {
     pub async fn fetch(
         &self,
-        storage_client: &cloud_storage::Client,
+        storage_client: &google_cloud_storage::client::Client,
     ) -> HandlerResult<Option<LastResponse>> {
         if let Some(bucket) = &self.source_url {
             let host = bucket
@@ -32,15 +33,25 @@ impl SOVManager {
                 })?
                 .to_string();
             let path = bucket.path().trim_start_matches('/');
-            let obj = storage_client.object().read(&host, path).await?;
+            let request = GetObjectRequest {
+                bucket: host,
+                object: path.into(),
+                ..Default::default()
+            };
+            let obj = storage_client.get_object(&request).await?;
+            let Some(obj_updated) = obj.updated else {
+                Err(HandlerErrorKind::General(format!("SOV Settings missing last updated timestamp")))?
+            };
             if let Some(LastResponse { updated, .. }) = self.last_response {
                 // if the remote object is not newer than the local object, do nothing
-                if obj.updated <= updated {
+                if obj_updated <= updated {
                     return Ok(None);
                 }
             };
 
-            let bytes = storage_client.object().download(&host, path).await?;
+            let bytes = storage_client
+                .download_object(&request, &Range::default())
+                .await?;
             let contents = String::from_utf8(bytes).map_err(|e| {
                 HandlerErrorKind::General(format!("Could not read SOV Settings: {:?}", e))
             })?;
@@ -48,7 +59,7 @@ impl SOVManager {
                 HandlerErrorKind::General(format!("Could not read SOV Settings: {:?}", e))
             })?;
             return Ok(Some(LastResponse {
-                updated: obj.updated,
+                updated: obj_updated,
                 response: new_response,
             }));
         }
@@ -68,7 +79,7 @@ impl SOVManager {
 pub fn spawn_updater(
     refresh_rate: Duration,
     manager: &Arc<RwLock<SOVManager>>,
-    storage_client: Arc<cloud_storage::Client>,
+    storage_client: Arc<google_cloud_storage::client::Client>,
     metrics: Arc<StatsdClient>,
 ) -> HandlerResult<()> {
     let manager = Arc::clone(manager);
@@ -83,7 +94,7 @@ pub fn spawn_updater(
 
 async fn updater(
     manager: &Arc<RwLock<SOVManager>>,
-    storage_client: &cloud_storage::Client,
+    storage_client: &google_cloud_storage::client::Client,
     metrics: &Arc<StatsdClient>,
 ) {
     // Do the check before matching so that the read lock can be released right away.
