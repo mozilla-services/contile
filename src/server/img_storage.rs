@@ -6,6 +6,7 @@ use base64::Engine;
 use bytes::Bytes;
 use cadence::{CountedExt, StatsdClient};
 use dashmap::DashMap;
+use google_cloud_storage::http::objects::{get::GetObjectRequest, upload::{UploadObjectRequest, UploadType, Media}, patch::PatchObjectRequest};
 use image::{io::Reader as ImageReader, ImageFormat};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -203,7 +204,7 @@ impl ImageStore {
         let _content = storage_client
             .get_bucket(
                 &google_cloud_storage::http::buckets::get::GetBucketRequest {
-                    bucket: &settings.bucket_name,
+                    bucket: settings.bucket_name.clone(),
                     ..Default::default()
                 },
             )
@@ -389,54 +390,65 @@ impl ImageStore {
 
         // check to see if image has already been stored.
         self.cadence_metrics.incr("image.object.check").ok();
-        if let Ok(exists) = self
+        let get_request = GetObjectRequest {
+            bucket: self.settings.bucket_name.clone(),
+            object: image_path.clone(),
+            ..Default::default()
+        };
+        if let Ok(existing_object) = self
             .storage_client
-            .object()
-            .read(&self.settings.bucket_name, &image_path)
+            .get_object(&get_request)
             .await
         {
-            trace!("Found existing image in bucket: {:?}", &exists.media_link);
+            trace!("Found existing image in bucket: {:?}", &existing_object.media_link);
+            let Some(time_created) = existing_object.time_created else {
+                Err(HandlerErrorKind::General(format!("Image is missing time created timestamp")))?
+            };
             return Ok(self.new_image(
                 format!("{}/{}", &self.settings.cdn_host, &image_path).parse()?,
                 image_metrics,
-                exists.time_created,
+                time_created,
             ));
         }
 
         // store new data to the googles
         self.cadence_metrics.incr("image.object.create").ok();
+        let upload_type = UploadType::Simple(Media{
+            name: image_path.clone().into(),
+            content_type: content_type.to_owned().into(),
+            content_length: None
+        });
+        let request = UploadObjectRequest {
+            bucket: self.settings.bucket_name.clone(),
+            if_generation_match: Some(0),
+            ..Default::default()
+        };
         match self
             .storage_client
-            .object()
-            .create_with_params(
-                &self.settings.bucket_name,
-                image.to_vec(),
-                &image_path,
-                content_type,
-                Some(&[("ifGenerationMatch", "0")]),
-            )
+            .upload_object(&request, image.to_vec(), &upload_type)
             .await
         {
             Ok(mut object) => {
                 object.content_disposition = Some("inline".to_owned());
                 object.cache_control = Some(format!("public, max-age={}", self.settings.cache_ttl));
                 self.cadence_metrics.incr("image.object.update").ok();
-                self.storage_client.object().update(&object).await?;
+                let patch_request = PatchObjectRequest {
+                    bucket: self.settings.bucket_name.clone(),
+                    object: image_path.clone(),
+                    metadata: Some(object),
+                    ..Default::default()
+                };
+                let updated_object = self.storage_client.patch_object(&patch_request).await?;
                 let url = format!("{}/{}", &self.settings.cdn_host, &image_path);
-                trace!("Stored to {:?}: {:?}", &object.self_link, &url);
-                Ok(self.new_image(url.parse()?, image_metrics, object.time_created))
+                trace!("Stored to {:?}: {:?}", &updated_object.self_link, &url);
+                let Some(time_created) = updated_object.time_created else {
+                    Err(HandlerErrorKind::General(format!("Patched image is missing time created timestamp")))?
+                };
+                Ok(self.new_image(url.parse()?, image_metrics, time_created))
             }
             Err(e) => {
-                if let cloud_storage::Error::Other(ref json) = e {
-                    // NOTE: cloud_storage doesn't parse the Google response
-                    // correctly so they seem to come up as the Other variant
-                    let body: serde_json::Value = serde_json::from_str(json).map_err(|e| {
-                        HandlerError::internal(&format!(
-                            "Could not parse cloud_storage::Error::Other: ({:?}) {:?}",
-                            e, json
-                        ))
-                    })?;
-                    if body["error"]["code"].as_i64() == Some(412) {
+                if let google_cloud_storage::http::Error::Response(ref response) = e {
+                    if response.code == 412 {
                         // 412 Precondition Failed: the image already exists, so we
                         // can continue on
                         trace!("Store Precondition Failed (412), image already exists, continuing");
@@ -448,7 +460,7 @@ impl ImageStore {
                             url.parse()?,
                             image_metrics,
                             // approximately (close enough)
-                            Utc::now(),
+                            OffsetDateTime::now_utc(),
                         ));
                     }
                 }
@@ -513,23 +525,22 @@ mod tests {
         }
     }
 
-    fn test_store() -> ImageStore {
+    async fn test_store() -> ImageStore {
         let settings = test_storage_settings();
         let timeout = std::time::Duration::from_secs(settings.request_timeout);
         let req = reqwest::Client::builder()
             .connect_timeout(timeout)
             .build()
             .unwrap();
+        let config = google_cloud_storage::client::ClientConfig {
+            http: Some(req.clone()),
+            ..Default::default()
+        };
         ImageStore {
             settings,
             tiles_ttl: 15 * 60,
             cadence_metrics: Arc::new(StatsdClient::builder("", NopMetricSink).build()),
-            storage_client: Arc::new(
-                cloud_storage::Client::builder()
-                    .client(req.clone())
-                    .build()
-                    .unwrap(),
-            ),
+            storage_client: Arc::new(google_cloud_storage::client::Client::new(config)),
             req,
             stored_images: Default::default(),
         }
@@ -600,7 +611,7 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 96);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let img_store = test_store();
+        let img_store = test_store().await;
         let result = img_store
             .validate(&test_uri, &test_valid_image, "image/jpg")
             .await
@@ -616,7 +627,7 @@ mod tests {
         set_env();
         let test_valid_image = test_image_buffer(96, 100);
         let test_uri: Uri = "https://example.com/test.jpg".parse().unwrap();
-        let img_store = test_store();
+        let img_store = test_store().await;
         assert!(img_store
             .validate(&test_uri, &test_valid_image, "image/jpg")
             .await
