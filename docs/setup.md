@@ -44,4 +44,4 @@ however you'll need to specify the ADM endpoint URL:
 CONTILE_ADM_ENDPOINT_URL={Your ADM endpoint} \
     cargo run
 ```
-Please note that the `{}` indicate a variable replacement and should not be included, for example, a real environmet variable would look like: `CONTILE_ADM_ENDPOINT_URL=https://example.com/`
+Please note that the `{}` indicates a variable replacement, and should not be included. For example, a real environment variable would look like: `CONTILE_ADM_ENDPOINT_URL=https://example.com/`
