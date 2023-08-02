@@ -37,8 +37,8 @@ curl -v http://localhost:8000/v1/tiles -H "User-Agent:Mozilla/5.0 (Windows NT 10
 
 ### Running
 
-Contile is configured via environment variables. To see the complete list of available settings in `contile::settings::Settings` (note, you can use `cargo doc --open` to generate documentation.) In general, we have tried to provide sensible default values for most of these,
-however you may need to specify the following:
+Contile is configured via config files and environment variables. For the complete list of available settings, please see [`contile::settings::Settings`](src/settings.rs) (note, you can use `cargo doc --open` to generate documentation.) In general, we have tried to provide sensible default values for most of these,
+however you'll need to specify the ADM endpoint URL:
 
 ```
 CONTILE_ADM_ENDPOINT_URL={Your ADM endpoint} \
