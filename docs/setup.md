@@ -12,7 +12,7 @@ The commit hash of the deployed code is considered its version identifier. The c
 ## Development Setup
 1. Install Rust. See [rustup.rs](https://rustup.rs/) for how to install on your platform.
 2. Compile Contile using `cargo build`.
-3. Start connection a local ADM instance (run from root of Contile repo):
+3. Start a local ADM instance (run from root of Contile repo):
     ```shell
         docker run \
         --env PORT=5000 \
