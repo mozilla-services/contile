@@ -19,7 +19,7 @@ flowchart TD
     Firefox <--> ImageStore[(GCS <br/> Tiles ImageStore)]
     Contile --> ImageStore
     Filtering[(GCS <br/> AMP Filtering)] --> Contile
-    Contile <-->|AMP Tiles API Endpoint| AMP["AdMarketplace (AMP)" ]
+    Contile <-->|Tiles API| AMP["adMarketplace (AMP)" ]
     Shepherd -->|AMP settings json| Filtering
     MaxmindDb[(MaxmindDb)] --> Contile
 subgraph ContileDependencies[ ]
