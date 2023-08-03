@@ -490,7 +490,7 @@ mod tests {
     use crate::adm::{settings::AdvertiserUrlFilter, tiles::AdmTile};
     use crate::adm::{spawn_updater, AdmDefaults};
     use crate::tags::Tags;
-    use crate::web::test::find_metrics;
+    use crate::web::test::{find_metrics, MockTokenSourceProvider};
     use actix_web::rt;
     use cadence::{SpyMetricSink, StatsdClient};
     use std::sync::Arc;
@@ -791,7 +791,12 @@ mod tests {
             true,
             refresh_rate,
             &adm_filter,
-            Arc::new(google_cloud_storage::client::Client::default()),
+            Arc::new(google_cloud_storage::client::Client::new(
+                google_cloud_storage::client::ClientConfig {
+                    token_source_provider: Box::new(MockTokenSourceProvider),
+                    ..Default::default()
+                },
+            )),
             Arc::new(StatsdClient::builder("contile", sink).build()),
         )
         .unwrap();

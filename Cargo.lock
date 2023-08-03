@@ -544,6 +544,7 @@ dependencies = [
  "futures",
  "gethostname",
  "google-cloud-storage",
+ "google-cloud-token",
  "hex",
  "image",
  "lazy_static",

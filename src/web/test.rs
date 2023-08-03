@@ -11,9 +11,11 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer,
 };
+use async_trait::async_trait;
 use cadence::{SpyMetricSink, StatsdClient};
 use crossbeam_channel::Receiver;
 use futures::{channel::mpsc, StreamExt};
+use google_cloud_token::{TokenSource, TokenSourceProvider};
 use regex::Regex;
 use serde_json::{json, Value};
 use tokio::sync::RwLock;
@@ -45,6 +47,27 @@ const MOCK_SOV: &str = "eyJuYW1lIjoiU09WLTIwMjMwNTE4MjE1MzE2IiwiYWxsb2NhdGlv\
                         IsImFsbG9jYXRpb24iOlt7InBhcnRuZXIiOiJhbXAiLCJwZXJjZW50Y\
                         WdlIjo4OH0seyJwYXJ0bmVyIjoibW96LXNhbGVzIiwicGVyY2VudGFn\
                         ZSI6MTJ9XX1dfQ";
+
+#[derive(Debug)]
+pub struct MockTokenSourceProvider;
+
+impl TokenSourceProvider for MockTokenSourceProvider {
+    fn token_source(&self) -> Arc<dyn TokenSource> {
+        Arc::new(MockTokenSource)
+    }
+}
+
+/// A token source that always returns an empty token.
+#[derive(Debug)]
+struct MockTokenSource;
+
+#[async_trait]
+impl TokenSource for MockTokenSource {
+    async fn token(&self) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        Ok("".into())
+    }
+}
+
 /// customizing the settings
 pub fn get_test_settings() -> Settings {
     let treq = test::TestRequest::with_uri("/").to_http_request();

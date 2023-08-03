@@ -496,7 +496,7 @@ impl ImageStore {
 mod tests {
     use super::*;
 
-    use crate::settings::test_settings;
+    use crate::{settings::test_settings, web::test::MockTokenSourceProvider};
     use actix_web::http::Uri;
     use cadence::{NopMetricSink, SpyMetricSink};
     use rand::Rng;
@@ -534,6 +534,7 @@ mod tests {
             .unwrap();
         let config = google_cloud_storage::client::ClientConfig {
             http: Some(req.clone()),
+            token_source_provider: Box::new(MockTokenSourceProvider),
             ..Default::default()
         };
         ImageStore {
