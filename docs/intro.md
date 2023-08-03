@@ -32,6 +32,4 @@ end
 subgraph Firefox
    NewTab
 end
-
-
 ```
