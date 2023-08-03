@@ -20,7 +20,7 @@ flowchart TD
     Contile --> ImageStore
     Filtering[(GCS <br/> AMP Filtering)] --> Contile
     Contile <-->|Tiles API| AMP["adMarketplace (AMP)" ]
-    Shepherd -->|AMP settings json| Filtering
+    Shepherd -->|Setting Files| Filtering
     MaxmindDb[(MaxmindDb)] --> Contile
 subgraph ContileDependencies[ ]
     Contile
