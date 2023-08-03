@@ -27,7 +27,6 @@ subgraph ContileDependencies[ ]
     ImageStore
     MaxmindDb
     Filtering
-
 end
 
 subgraph Firefox
