@@ -14,22 +14,27 @@ Contile is a service that fetches tiles to support the Sponsored Tiles feature i
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
-flowchart TD
-    Firefox <-->|v1/tiles| Contile
-    Firefox <--> ImageStore[(GCS <br/> Tiles ImageStore)]
-    Contile --> ImageStore
-    Filtering[(GCS <br/> AMP Filtering)] --> Contile
-    Contile <-->|Tiles API| AMP["adMarketplace (AMP)" ]
-    Shepherd -->|Setting Files| Filtering
-    MaxmindDb[(MaxmindDb)] --> Contile
-subgraph ContileDependencies[ ]
-    Contile
+flowchart 
+
+subgraph GCS[GCS]
     ImageStore
-    MaxmindDb
     Filtering
 end
-
 subgraph Firefox
-   NewTab
+    NewTab
 end
+
+subgraph ContileDep[ ]
+    Contile
+    GCS
+    MaxmindDb
+end
+
+Firefox <-->|v1/tiles| Contile
+Firefox <--> ImageStore[(Tiles ImageStore)]
+Filtering[(AMP Filtering)] --> Contile 
+Shepherd -->|Settings File| Filtering
+Contile --> MaxmindDb[(MaxmindDb)]
+ImageStore --> Contile
+Contile <-->|Tiles API| AMP["adMarketplace (AMP)"]
 ```
