@@ -124,7 +124,7 @@ jobs:
       - cargo-build
       - run:
           name: Install cargo2junit
-          command: cargo install cargo2junit
+          command: cargo install cargo2junit --locked
       - run:
           name: Install cargo-llvm-cov
           command: cargo install cargo-llvm-cov
