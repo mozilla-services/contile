@@ -1,8 +1,8 @@
 # Contile Contract Tests
 
-This directory contains the automated contract test suite for the Mozilla Tile Service (MTS).
+The [test-engineering/contract/][0] directory contains the automated contract test suite for the Mozilla Tile Service (MTS).
 Passing contract tests are a prerequisite for deployment. The contract test framework was
-originally developed in isolation, see [contile-integration-tests][1].
+originally developed in isolation, which is now archived. See [contile-integration-tests][1].
 
 ## Overview
 
@@ -19,7 +19,7 @@ The `client` directory contains a Python-based test framework for the contract t
 client used in the framework requests tiles from the MTS and performs checks against the responses.
 The framework implements response models for the MTS API.
 
-For more details see the client [README][4]
+For more details see the client [documentation][4]
 
 ### partner
 
@@ -161,15 +161,16 @@ updating the following:
 3. [CircleCI][22] contract test jobs
     * [ ] [config.yml][23]
 4. Documentation
-    * [ ] client [README][4]
-    * [ ] partner [README][5]
-    * [ ] contract tests [README][24]
+    * [ ] contract tests docs [contract-tests.md][24]
+    * [ ] client docs[client.md][4]
+    * [ ] partner docs [partner.md][5]
 
+[0]: ../../../test-engineering/contract/
 [1]: https://github.com/mozilla-services/contile-integration-tests
-[2]: sequence_diagram.png
+[2]: ./sequence_diagram.png
 [3]: https://miro.com/app/board/uXjVOkw1f-s=/
-[4]: ./client/README.md
-[5]: ./partner/README.md
+[4]: ./client.md
+[5]: ./partner.md
 [6]: https://python-poetry.org/docs/#installation
 [7]: https://github.com/pyenv/pyenv#installation
 [8]: https://github.com/pyenv/pyenv-virtualenv#installation
@@ -177,18 +178,18 @@ updating the following:
 [10]: https://black.readthedocs.io/en/stable/
 [11]: https://flake8.pycqa.org/en/latest/
 [12]: https://mypy-lang.org/
-[13]: ./pyproject.toml
-[14]: ./poetry.lock
+[13]: ../../../test-engineering/contract/pyproject.toml
+[14]: ../../../test-engineering/contract/poetry.lock
 [15]: https://docs.docker.com/
-[16]: ./client/Dockerfile
-[17]: ./partner/Dockerfile
-[18]: ./docker-compose.yml
-[19]: ./docker-compose.204.yml
-[20]: ./docker-compose.init_error.yml
-[21]: ./docker-compose.yml
+[16]: ../../../test-engineering/contract/client/Dockerfile
+[17]: ../../../test-engineering/contract/partner/Dockerfile
+[18]: ../../../test-engineering/contract/docker-compose.yml
+[19]: ../../../test-engineering/contract/docker-compose.204.yml
+[20]: ../../../test-engineering/contract/docker-compose.init_error.yml
+[21]: ../../../test-engineering/contract/docker-compose.tiles_cache.yml
 [22]: https://circleci.com/docs/
-[23]: /.circleci/config.yml
-[24]: ./README.md
-[25]: ./volumes/client
-[26]: ./volumes/contile
-[27]: ./volumes/partner
+[23]: ../../../.circleci/config.yml
+[24]: ./contract-tests.md
+[25]: ../../../test-engineering/contract/volumes/client
+[26]: ../../../test-engineering/contract/volumes/contile
+[27]: ../../../test-engineering/contract/volumes/partner
