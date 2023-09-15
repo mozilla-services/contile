@@ -10,7 +10,7 @@ This documentation describes the integration tests for the Contile server.
 `python3 -m venv venv`
 
 This will create a local install of the python. You can then "activate" it by calling
-`source venv/bin/activate` (note, refer to the [python virtualenv](https://docs.python.org/3/library/venv.html)
+`source venv/bin/activate` (note, refer to the [python virtualenv][virtualenv_docs]
 documentation for system specific details.)
 
 After activation, you no longer need to specify the path: `venv/bin/`
@@ -57,3 +57,5 @@ directory. (e.g. if `CONTILE_TEST_MODE` is set to `/tmp/test_data`, then test an
 Also note that the test server will use the `../../adm_settings_test.json` configuration file. Be sure that your test data responses meets the criteria specified in the `adm_settings_test.json` file. Like `CONTILE_TEST_FILE_PATH` if the path or file name is different, be sure to specify the correct value with `CONTILE_ADM_SETTINGS`.
 
 Tests can specify the data that can be returned by the `adm` component by including a `Fake-Response` header, which contains only the file name of the test_data file. (e.g. to include `./test_data/bad_adv.json` as the adm response, use `Fake-Response: bad_adv`)
+
+[virtualenv_docs]: https://docs.python.org/3/library/venv.html

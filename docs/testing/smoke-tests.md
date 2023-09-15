@@ -28,4 +28,6 @@ curl -m 70 -X POST <RUNNER_TRIGGER_URL> \
 ## Deployment
 
 Smoke tests are executed in the CD pipeline and deployed manually by SRE: 
-[Terraform Configuration](https://github.com/mozilla-services/cloudops-infra/tree/master/projects/topsites/tf/modules/geolocation-smoke-tests).
+[Terraform Configuration][terraform].
+
+[terraform]: https://github.com/mozilla-services/cloudops-infra/tree/master/projects/topsites/tf/modules/geolocation-smoke-tests

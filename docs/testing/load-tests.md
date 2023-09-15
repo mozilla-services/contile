@@ -270,7 +270,7 @@ updating the following:
     * [ ] [locust-master-controller.yml][24]
     * [ ] [locust-master-service.yml][25]
     * [ ] [locust-worker-controller.yml][26]
-4. [CircleCI][27] contract test jobs
+4. [CircleCI][27] load test jobs
     * [ ] [config.yml][17]
 5. Documentation
     * [ ] [load-tests.md][28]
@@ -291,15 +291,15 @@ updating the following:
 [14]: https://docs.locust.io/en/stable/configuration.html#environment-variables
 [15]: https://docs.locust.io/en/stable/running-in-debugger.html
 [16]: https://console.cloud.google.com/gcr/images/spheric-keel-331521/global/locust-contile?project=spheric-keel-331521
-[17]: ../../.circleci/config.yml
-[18]: ../../test-engineering/load/pyproject.toml
-[19]: ../../test-engineering/load/poetry.lock
+[17]:  https://github.com/mozilla-services/contile/blob/main/.circleci/config.yml
+[18]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/pyproject.toml
+[19]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/poetry.lock
 [20]: https://docs.docker.com/ 
-[21]: ../../test-engineering/load/Dockerfile 
-[22]: ../../test-engineering/load/docker-compose.yml
-[23]: ../../test-engineering/load/setup_k8s.sh
-[24]: ../../test-engineering/load/kubernetes-config/locust-master-controller.yml
-[25]: ../../test-engineering/load/kubernetes-config/locust-master-service.yml
-[26]: ../../test-engineering/load/kubernetes-config/locust-worker-controller.yml
+[21]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/Dockerfile
+[22]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/docker-compose.yml
+[23]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/setup_k8s.sh
+[24]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/kubernetes-config/locust-master-controller.yml
+[25]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/kubernetes-config/locust-master-service.yml
+[26]: https://github.com/mozilla-services/contile/blob/main/test-engineering/load/kubernetes-config/locust-worker-controller.yml
 [27]: https://circleci.com/docs/
 [28]: ./load-tests.md

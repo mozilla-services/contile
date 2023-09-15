@@ -8,7 +8,6 @@
 - [Testing](./testing/index.md)
   - [Integration Tests](./testing/integration-tests.md)
   - [Contract Tests](./testing/contract-tests/index.md)
-    - [Overview](./testing/contract-tests/contract-tests.md)
     - [Client](./testing/contract-tests/client.md)
     - [Partner](./testing/contract-tests/partner.md)
   - [Load Tests](./testing/load-tests.md)
