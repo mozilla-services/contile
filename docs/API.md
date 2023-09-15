@@ -14,7 +14,7 @@ Servers
 
 ### Fetch Tiles
 
-Return candidate tiles. The following user information is captured and [shared](https://github.com/mozilla-services/contile/blob/main/src/adm/tiles.rs) with our advertising partners:
+Return candidate tiles. The following user information is captured and [shared][tiles_rs] with our advertising partners:
 
 |item | description | derived from | normalization method |
 |--|--|--|--|
@@ -90,3 +90,5 @@ GET /__error__
 ```
 
 Force an error, used to test Sentry reporting. This has an optional parameter of `with_location=true` which will include detected IP location information in the Sentry error message.
+
+[tiles_rs]: https://github.com/mozilla-services/contile/blob/main/src/adm/tiles.rs
