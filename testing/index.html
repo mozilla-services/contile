@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Developer Setup - Contile</title>
+        <title>Testing - Contile</title>
 
 
         <!-- Custom HTML head -->
@@ -12,21 +12,21 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" href="highlight.css">
-        <link rel="stylesheet" href="tomorrow-night.css">
-        <link rel="stylesheet" href="ayu-highlight.css">
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -34,7 +34,7 @@
     <body>
         <!-- Provide site root to javascript -->
         <script>
-            var path_to_root = "";
+            var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
@@ -80,7 +80,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item affix "><a href="intro.html">Intro</a></li><li class="chapter-item "><a href="api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item expanded "><a href="setup.html" class="active"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item "><a href="testing/index.html"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="testing/integration-tests.html"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item "><a href="testing/contract-tests/index.html"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item "><a href="testing/contract-tests/partner.html"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item affix "><a href="../intro.html">Intro</a></li><li class="chapter-item "><a href="../api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="../setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="../operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item expanded "><a href="../testing/index.html" class="active"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../testing/integration-tests.html"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item "><a href="../testing/contract-tests/index.html"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item "><a href="../testing/contract-tests/partner.html"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="../testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="../testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -112,7 +112,7 @@
                     <h1 class="menu-title">Contile</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
 
@@ -141,57 +141,18 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
-<p>This system uses <a href="https://actix.rs/">Actix</a> web, and Google Cloud APIs (currently vendored).</p>
-<h2 id="development-guidelines"><a class="header" href="#development-guidelines">Development Guidelines</a></h2>
-<p>Please see the <a href="https://github.com/mozilla-services/contile/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> docs on commit guidelines and pull request best
-practices.</p>
-<h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
-<p>The commit hash of the deployed code is considered its version identifier. The commit hash can be retrieved locally via <code>git rev-parse HEAD</code>.</p>
-<h2 id="development-setup"><a class="header" href="#development-setup">Development Setup</a></h2>
-<ol>
-<li>Install Rust. See <a href="https://rustup.rs/">rustup.rs</a> for how to install on your platform.</li>
-<li>Compile Contile using <code>cargo build</code>.</li>
-<li>Start a local ADM instance (run from root of Contile repo):
-<pre><code class="language-shell">    docker run \
-    --env PORT=5000 \
-    --env RESPONSES_DIR=/tmp/partner/ \
-    --env ACCEPTED_MOBILE_FORM_FACTORS=phone,tablet \
-    --env ACCEPTED_DESKTOP_FORM_FACTORS=desktop \
-    -v `pwd`/test-engineering/contract/volumes/partner:/tmp/partner \
-    -p 5000:5000 \
-    mozilla/contile-integration-tests-partner
-</code></pre>
-</li>
-<li>Start application by running the command below: 
-Note that config settings are contained in the  <code>sa-test.toml</code> file.  You may change settings <a href="https://github.com/mozilla-services/contile/blob/main/sa-test.toml">there</a> that pertain to your local development on Contile.</li>
-</ol>
-<pre><code class="language-shell"> #! /bin/bash
-RUST_LOG=contile=trace,config=debug \
-    cargo run -- --config sa-test.toml #--debug-settings
-</code></pre>
-<ol start="5">
-<li>Check that the service can accept requests by running:</li>
-</ol>
-<pre><code class="language-shell">curl -v http://localhost:8000/v1/tiles -H &quot;User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0&quot;
-</code></pre>
-<h3 id="running"><a class="header" href="#running">Running</a></h3>
-<p>Contile is configured via config files and environment variables. For the complete list of available settings, please see <a href="https://github.com/mozilla-services/contile/blob/main/src/settings.rs"><code>contile::settings::Settings</code></a> (note, you can use <code>cargo doc --open</code> to generate documentation.) In general, we have tried to provide sensible default values for most of these,
-however you'll need to specify the ADM endpoint URL:</p>
-<pre><code>CONTILE_ADM_ENDPOINT_URL={Your ADM endpoint} \
-    cargo run
-</code></pre>
-<p>Please note that the <code>{}</code> indicates a variable replacement, and should not be included. For example, a real environment variable would look like: <code>CONTILE_ADM_ENDPOINT_URL=https://example.com/</code></p>
+                        <h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
+<p>This is the source for all testing documentation.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="api.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../operations/rollback.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="operations/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../testing/integration-tests.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -201,11 +162,11 @@ however you'll need to specify the ADM endpoint URL:</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="api.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../operations/rollback.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="operations/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../testing/integration-tests.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
@@ -220,17 +181,17 @@ however you'll need to specify the ADM endpoint URL:</p>
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid.min.js"></script>
-        <script src="mermaid-init.js"></script>
+        <script src="../mermaid.min.js"></script>
+        <script src="../mermaid-init.js"></script>
 
 
     </body>

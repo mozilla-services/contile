@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Operations and Runbooks - Contile</title>
+        <title>Integration Tests - Contile</title>
 
 
         <!-- Custom HTML head -->
@@ -80,7 +80,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item affix "><a href="../intro.html">Intro</a></li><li class="chapter-item "><a href="../api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="../setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item expanded "><a href="../operations/index.html" class="active"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item "><a href="../testing/index.html"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../testing/integration-tests.html"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item "><a href="../testing/contract-tests/index.html"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item "><a href="../testing/contract-tests/partner.html"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="../testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="../testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item affix "><a href="../intro.html">Intro</a></li><li class="chapter-item "><a href="../api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="../setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="../operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item expanded "><a href="../testing/index.html"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../testing/integration-tests.html" class="active"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item "><a href="../testing/contract-tests/index.html"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item "><a href="../testing/contract-tests/partner.html"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="../testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="../testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -141,18 +141,61 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="operations-and-runbooks"><a class="header" href="#operations-and-runbooks">Operations and Runbooks</a></h1>
-<p>This is where we put all our operational documentation.</p>
+                        <h1 id="integration-tests-for-contile"><a class="header" href="#integration-tests-for-contile">Integration Tests for Contile</a></h1>
+<p>This documentation describes the integration tests for the Contile server.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<ol>
+<li>First, create a virtualenv installation of python
+<code>python -m venv venv</code>
+or use python3 for Python 3 or higher version
+<code>python3 -m venv venv</code></li>
+</ol>
+<p>This will create a local install of the python. You can then &quot;activate&quot; it by calling
+<code>source venv/bin/activate</code> (note, refer to the <a href="https://docs.python.org/3/library/venv.html">python virtualenv</a>
+documentation for system specific details.)</p>
+<p>After activation, you no longer need to specify the path: <code>venv/bin/</code></p>
+<ol start="2">
+<li>Install requirements.txt in the Test dir
+<code>pip install -r requirements.txt</code></li>
+</ol>
+<h2 id="running-the-test"><a class="header" href="#running-the-test">Running the test</a></h2>
+<p>There are several integration test related environment variables that may be specified:</p>
+<div class="table-wrapper"><table><thead><tr><th>var</th><th>description</th></tr></thead><tbody>
+<tr><td><strong>CONTILE_TEST_URL</strong></td><td>HTTP URI to the test server. Defaults to <code>http://localhost:8000</code></td></tr>
+<tr><td><strong>CONTILE_TEST_SERVER</strong></td><td>Path to the locally compiled Contile server executable. Defaults to <code>contile/target/debug/contile</code></td></tr>
+<tr><td><strong>CONTILE_TEST_NOSERVER</strong></td><td>Do not attempt to start up the locally compiled Contile server executable</td></tr>
+</tbody></table>
+</div>
+<p>These are different than the Contile test arguments:</p>
+<div class="table-wrapper"><table><thead><tr><th>var</th><th>description</th></tr></thead><tbody>
+<tr><td><strong>CONTILE_TEST_MODE</strong></td><td>Places the server in &quot;Test Mode&quot;. There are several possible test modes available: <code>TestFakeResponse</code>: which will cause it NOT to call out to the ADM server, but use test response files. <code>TestTimeout</code> which will emulate a timeout error when trying to fetch a tile from ADM server.</td></tr>
+<tr><td><strong>CONTILE_TEST_FILE_PATH</strong></td><td>The path to the ADM fake response files.</td></tr>
+<tr><td><strong>CONTILE_ADM_SETTINGS</strong></td><td>The path to the ADM settings to be used for this run</td></tr>
+</tbody></table>
+</div>
+<p>The tests will provide their own ENV var values for these unless specified as part of the exec command.
+(e.g. <code>CONTILE_TEST_FILE_PATH=&quot;/tmp/test_data&quot; pytest .</code>)</p>
+<p>You can run the tests by running
+<code>pytest . </code></p>
+<p>You can specify <code>pytest -sx . </code> if you want tests to stop at the first failure.</p>
+<p>The test will attempt to start the locally compiled Contile server (unless <code>CONTILE_TEST_NOSERVER</code> is set) and run the local tests checking for returned values.</p>
+<h2 id="crafting-tests"><a class="header" href="#crafting-tests">Crafting Tests</a></h2>
+<p>Tests are included in the <code>TestAdm</code> class. Please note that returned values from a live server may differ significantly from the test data, so examining the return results may need to be blocked by checking if <code>settings.get(&quot;noserver&quot;)</code> is not set.</p>
+<p>The server is started with the <code>CONTILE_TEST_MODE</code> flag set. This will prevent the server from using the remote ADM server and instead pull data from a test directory <code>./test_data</code>. This contains JSON formatted files. Names must be lower case, contain only alphanumeric and <code>_</code>, and be properly formatted JSON. The application presumes that these files are located in the relative directory of <code>./tools/test/test_data</code>, however that presumes that you are running in the Project Root directory (The same directory that contains the <code>Cargo.toml</code> file). If this
+is not the case, or the test files are in a different path, be sure to update the <code>CONTILE_TEST_FILE_PATH</code> variable to point to the correct
+directory. (e.g. if <code>CONTILE_TEST_MODE</code> is set to <code>/tmp/test_data</code>, then test an ADM data <code>DEFAULT</code> response for a request with no <code>Fake-Header</code> would be stored as <code>/tmp/test_data/default.json</code>)</p>
+<p>Also note that the test server will use the <code>../../adm_settings_test.json</code> configuration file. Be sure that your test data responses meets the criteria specified in the <code>adm_settings_test.json</code> file. Like <code>CONTILE_TEST_FILE_PATH</code> if the path or file name is different, be sure to specify the correct value with <code>CONTILE_ADM_SETTINGS</code>.</p>
+<p>Tests can specify the data that can be returned by the <code>adm</code> component by including a <code>Fake-Response</code> header, which contains only the file name of the test_data file. (e.g. to include <code>./test_data/bad_adv.json</code> as the adm response, use <code>Fake-Response: bad_adv</code>)</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../setup.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../testing/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="../operations/rollback.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../testing/contract-tests/index.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -162,11 +205,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../setup.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../testing/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="../operations/rollback.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../testing/contract-tests/index.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

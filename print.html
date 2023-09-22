@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item affix "><a href="intro.html">Intro</a></li><li class="chapter-item "><a href="api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item affix "><a href="intro.html">Intro</a></li><li class="chapter-item "><a href="api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item "><a href="testing/index.html"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="testing/integration-tests.html"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item "><a href="testing/contract-tests/index.html"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item "><a href="testing/contract-tests/partner.html"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -179,7 +179,7 @@ Contile &lt;--&gt;|Tiles API| AMP[&quot;adMarketplace (AMP)&quot;]
 <div style="break-before: page; page-break-before: always;"></div><h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>This system uses <a href="https://actix.rs/">Actix</a> web, and Google Cloud APIs (currently vendored).</p>
 <h2 id="development-guidelines"><a class="header" href="#development-guidelines">Development Guidelines</a></h2>
-<p>Please see the <a href="./CONTRIBUTING.html">CONTRIBUTING.md</a> docs on commit guidelines and pull request best
+<p>Please see the <a href="https://github.com/mozilla-services/contile/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> docs on commit guidelines and pull request best
 practices.</p>
 <h2 id="versioning"><a class="header" href="#versioning">Versioning</a></h2>
 <p>The commit hash of the deployed code is considered its version identifier. The commit hash can be retrieved locally via <code>git rev-parse HEAD</code>.</p>
@@ -199,7 +199,7 @@ practices.</p>
 </code></pre>
 </li>
 <li>Start application by running the command below: 
-Note that config settings are contained in the  <code>sa-test.toml</code> file.  You may change settings <a href="sa-test.toml">there</a> that pertain to your local development on Contile.</li>
+Note that config settings are contained in the  <code>sa-test.toml</code> file.  You may change settings <a href="https://github.com/mozilla-services/contile/blob/main/sa-test.toml">there</a> that pertain to your local development on Contile.</li>
 </ol>
 <pre><code class="language-shell"> #! /bin/bash
 RUST_LOG=contile=trace,config=debug \
@@ -211,7 +211,7 @@ RUST_LOG=contile=trace,config=debug \
 <pre><code class="language-shell">curl -v http://localhost:8000/v1/tiles -H &quot;User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:103.0) Gecko/20100101 Firefox/103.0&quot;
 </code></pre>
 <h3 id="running"><a class="header" href="#running">Running</a></h3>
-<p>Contile is configured via config files and environment variables. For the complete list of available settings, please see <a href="src/settings.rs"><code>contile::settings::Settings</code></a> (note, you can use <code>cargo doc --open</code> to generate documentation.) In general, we have tried to provide sensible default values for most of these,
+<p>Contile is configured via config files and environment variables. For the complete list of available settings, please see <a href="https://github.com/mozilla-services/contile/blob/main/src/settings.rs"><code>contile::settings::Settings</code></a> (note, you can use <code>cargo doc --open</code> to generate documentation.) In general, we have tried to provide sensible default values for most of these,
 however you'll need to specify the ADM endpoint URL:</p>
 <pre><code>CONTILE_ADM_ENDPOINT_URL={Your ADM endpoint} \
     cargo run
@@ -231,6 +231,823 @@ If it is the latest commit, you can revert the change with:
 </li>
 <li>Create a revert PR and go through normal review process to merge PR.</li>
 </ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="testing"><a class="header" href="#testing">Testing</a></h1>
+<p>This is the source for all testing documentation.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="integration-tests-for-contile"><a class="header" href="#integration-tests-for-contile">Integration Tests for Contile</a></h1>
+<p>This documentation describes the integration tests for the Contile server.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<ol>
+<li>First, create a virtualenv installation of python
+<code>python -m venv venv</code>
+or use python3 for Python 3 or higher version
+<code>python3 -m venv venv</code></li>
+</ol>
+<p>This will create a local install of the python. You can then &quot;activate&quot; it by calling
+<code>source venv/bin/activate</code> (note, refer to the <a href="https://docs.python.org/3/library/venv.html">python virtualenv</a>
+documentation for system specific details.)</p>
+<p>After activation, you no longer need to specify the path: <code>venv/bin/</code></p>
+<ol start="2">
+<li>Install requirements.txt in the Test dir
+<code>pip install -r requirements.txt</code></li>
+</ol>
+<h2 id="running-the-test"><a class="header" href="#running-the-test">Running the test</a></h2>
+<p>There are several integration test related environment variables that may be specified:</p>
+<div class="table-wrapper"><table><thead><tr><th>var</th><th>description</th></tr></thead><tbody>
+<tr><td><strong>CONTILE_TEST_URL</strong></td><td>HTTP URI to the test server. Defaults to <code>http://localhost:8000</code></td></tr>
+<tr><td><strong>CONTILE_TEST_SERVER</strong></td><td>Path to the locally compiled Contile server executable. Defaults to <code>contile/target/debug/contile</code></td></tr>
+<tr><td><strong>CONTILE_TEST_NOSERVER</strong></td><td>Do not attempt to start up the locally compiled Contile server executable</td></tr>
+</tbody></table>
+</div>
+<p>These are different than the Contile test arguments:</p>
+<div class="table-wrapper"><table><thead><tr><th>var</th><th>description</th></tr></thead><tbody>
+<tr><td><strong>CONTILE_TEST_MODE</strong></td><td>Places the server in &quot;Test Mode&quot;. There are several possible test modes available: <code>TestFakeResponse</code>: which will cause it NOT to call out to the ADM server, but use test response files. <code>TestTimeout</code> which will emulate a timeout error when trying to fetch a tile from ADM server.</td></tr>
+<tr><td><strong>CONTILE_TEST_FILE_PATH</strong></td><td>The path to the ADM fake response files.</td></tr>
+<tr><td><strong>CONTILE_ADM_SETTINGS</strong></td><td>The path to the ADM settings to be used for this run</td></tr>
+</tbody></table>
+</div>
+<p>The tests will provide their own ENV var values for these unless specified as part of the exec command.
+(e.g. <code>CONTILE_TEST_FILE_PATH=&quot;/tmp/test_data&quot; pytest .</code>)</p>
+<p>You can run the tests by running
+<code>pytest . </code></p>
+<p>You can specify <code>pytest -sx . </code> if you want tests to stop at the first failure.</p>
+<p>The test will attempt to start the locally compiled Contile server (unless <code>CONTILE_TEST_NOSERVER</code> is set) and run the local tests checking for returned values.</p>
+<h2 id="crafting-tests"><a class="header" href="#crafting-tests">Crafting Tests</a></h2>
+<p>Tests are included in the <code>TestAdm</code> class. Please note that returned values from a live server may differ significantly from the test data, so examining the return results may need to be blocked by checking if <code>settings.get(&quot;noserver&quot;)</code> is not set.</p>
+<p>The server is started with the <code>CONTILE_TEST_MODE</code> flag set. This will prevent the server from using the remote ADM server and instead pull data from a test directory <code>./test_data</code>. This contains JSON formatted files. Names must be lower case, contain only alphanumeric and <code>_</code>, and be properly formatted JSON. The application presumes that these files are located in the relative directory of <code>./tools/test/test_data</code>, however that presumes that you are running in the Project Root directory (The same directory that contains the <code>Cargo.toml</code> file). If this
+is not the case, or the test files are in a different path, be sure to update the <code>CONTILE_TEST_FILE_PATH</code> variable to point to the correct
+directory. (e.g. if <code>CONTILE_TEST_MODE</code> is set to <code>/tmp/test_data</code>, then test an ADM data <code>DEFAULT</code> response for a request with no <code>Fake-Header</code> would be stored as <code>/tmp/test_data/default.json</code>)</p>
+<p>Also note that the test server will use the <code>../../adm_settings_test.json</code> configuration file. Be sure that your test data responses meets the criteria specified in the <code>adm_settings_test.json</code> file. Like <code>CONTILE_TEST_FILE_PATH</code> if the path or file name is different, be sure to specify the correct value with <code>CONTILE_ADM_SETTINGS</code>.</p>
+<p>Tests can specify the data that can be returned by the <code>adm</code> component by including a <code>Fake-Response</code> header, which contains only the file name of the test_data file. (e.g. to include <code>./test_data/bad_adv.json</code> as the adm response, use <code>Fake-Response: bad_adv</code>)</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contile-contract-tests"><a class="header" href="#contile-contract-tests">Contile Contract Tests</a></h1>
+<p>The <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract">test-engineering/contract/</a> directory contains the automated contract test suite for the Mozilla Tile Service (MTS).
+Passing contract tests are a prerequisite for deployment. The contract test framework was
+originally developed in isolation, which is now archived. See <a href="https://github.com/mozilla-services/contile-integration-tests">contile-integration-tests</a>.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The contract test suite is designed to be set up as a <code>docker-compose</code> CI workflow. The following
+sections as well as the sequence diagram below describe the individual components of the suite.</p>
+<p><strong>Test Scenario: success_tiles_cached_for_identical_proxy_params</strong>
+<img src="testing/contract-tests/./sequence_diagram.png" alt="Sequence diagram of the integration tests" />
+The sequence diagram was created with <a href="https://miro.com/app/board/uXjVOkw1f-s=/">miro</a></p>
+<h3 id="client"><a class="header" href="#client">client</a></h3>
+<p>The <code>client</code> directory contains a Python-based test framework for the contract tests. The HTTP
+client used in the framework requests tiles from the MTS and performs checks against the responses.
+The framework implements response models for the MTS API.</p>
+<p>For more details see the client <a href="testing/contract-tests/./client.html">documentation</a></p>
+<h3 id="partner"><a class="header" href="#partner">partner</a></h3>
+<p>The <code>partner</code> directory contains a Python-based web service. The HTTP API of this service implements
+the API specification of the partner API that MTS connects to when requesting tiles to pass along to
+Firefox for display.</p>
+<p>When a client sends a request to the MTS, information about the client's form factor and OS family
+are parsed from the <code>User-Agent</code> header. Then, when the MTS sends a request to the partner API the
+form factor and OS family information is included in the query parameters. We use this behavior
+to map requests from a client to specific responses from the partner API. We can control the
+response content, the response status code, the response headers and can also delay the response
+for a period of time, which allows us to effectively test the MTS.</p>
+<p>For more details see the partner <a href="testing/contract-tests/./partner.html">README</a></p>
+<h3 id="volumes"><a class="header" href="#volumes">volumes</a></h3>
+<p>The <code>volumes</code> directory contains subdirectories which will be mounted as volumes into the Docker
+containers used in the contract test suite:</p>
+<ul>
+<li>the <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract/volumes/client">volumes/client</a> directory contains YML files which define every test scenario that the
+contract test suite will run</li>
+<li>the <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract/volumes/contile">volumes/contile</a> directory contains files that need to be provided to a MTS Docker 
+container such as a partner settings file</li>
+<li>the <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract/volumes/partner">volumes/partner</a> directory contains a YML file which defines every response that the API
+returns keyed by form-factor and then os-family</li>
+</ul>
+<h2 id="local-execution"><a class="header" href="#local-execution">Local Execution</a></h2>
+<p>To run the contract tests locally, execute the following from the repository root:</p>
+<p><strong>Build Contile Docker Image</strong></p>
+<pre><code class="language-shell">docker build -t app:build .
+</code></pre>
+<p><strong>Build Contract Test Docker Images &amp; Execute Tests</strong></p>
+<pre><code class="language-shell">docker-compose \
+  -f test-engineering/contract/docker-compose.yml \
+  -p contile-contract-tests \
+  up --abort-on-container-exit --build
+</code></pre>
+<h3 id="import-sorting-linting-style-guide-enforcement--static-type-checking"><a class="header" href="#import-sorting-linting-style-guide-enforcement--static-type-checking">Import Sorting, Linting, Style Guide Enforcement &amp; Static Type Checking</a></h3>
+<p>This project uses <a href="https://python-poetry.org/docs/#installation">Poetry</a> for dependency management. For environment setup, it is recommended to
+use <a href="https://github.com/pyenv/pyenv#installation">pyenv</a> and <a href="https://github.com/pyenv/pyenv-virtualenv#installation">pyenv-virtualenv</a>, as they work nicely with Poetry.</p>
+<p>Project dependencies are listed in the <code>pyproject.toml</code> file.
+To install the dependencies execute:</p>
+<pre><code class="language-shell">poetry install
+</code></pre>
+<p>Contributors to this project are expected to execute the following tools.
+Configurations are set in the <code>pyproject.toml</code> and <code>.flake8</code> files.</p>
+<p><strong><a href="https://pycqa.github.io/isort/">isort</a></strong></p>
+<pre><code class="language-shell">poetry run isort client partner
+</code></pre>
+<p><strong><a href="https://black.readthedocs.io/en/stable/">black</a></strong></p>
+<pre><code class="language-shell">poetry run black client partner
+</code></pre>
+<p><strong><a href="https://flake8.pycqa.org/en/latest/">flake8</a></strong></p>
+<pre><code class="language-shell">poetry run flake8 client partner
+</code></pre>
+<p><strong><a href="https://mypy-lang.org/">mypy</a></strong></p>
+<pre><code class="language-shell">poetry run mypy client partner
+</code></pre>
+<h2 id="debugging"><a class="header" href="#debugging">Debugging</a></h2>
+<p>The contract testing system is optimized to run within a set of related docker images.</p>
+<h3 id="client-1"><a class="header" href="#client-1">client</a></h3>
+<p>See the <code>Debugging</code> section of the client <a href="testing/contract-tests/./client.html">README</a></p>
+<h3 id="contile-1"><a class="header" href="#contile-1">Contile</a></h3>
+<p>To run the contile service, and it's dependent partner service locally, execute the following from
+the contract tests root:</p>
+<pre><code class="language-shell">docker-compose run -p 8000:8000 contile
+</code></pre>
+<p>Contile runs, by default, on <code>http://localhost:8000/</code>. However, it may be necessary to run the tests
+outside of docker, in order to debug functions or manually verify expected results.</p>
+<p><strong>Fetching Tiles</strong></p>
+<p>Contile will attempt to look up your IP address if you access it using Firefox. The easiest way to
+get a test response back would be to craft a curl request. For example (presuming that Contile is
+running on <code>http://localhost:8000/v1/tiles</code>):</p>
+<pre><code class="language-sh">curl -v \
+    -H &quot;User-Agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'&quot; \
+    -H &quot;X-Forwarded-For: '89.160.20.115'&quot; \
+    &quot;http://localhost:8000/v1/tiles&quot;
+</code></pre>
+<h3 id="partner-1"><a class="header" href="#partner-1">partner</a></h3>
+<p>See the <code>Local Execution</code> and <code>Debugging</code> sections of the partner <a href="testing/contract-tests/./partner.html">README</a></p>
+<h2 id="maintenance"><a class="header" href="#maintenance">Maintenance</a></h2>
+<p>The contract test maintenance schedule cadence is once a quarter and should include
+updating the following:</p>
+<ol>
+<li><a href="https://python-poetry.org/docs/#installation">poetry</a> version and python dependencies
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/pyproject.toml">pyproject.toml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/poetry.lock">poetry.lock</a></li>
+</ul>
+</li>
+<li><a href="https://docs.docker.com/">Docker</a> artifacts
+<ul>
+<li><input disabled="" type="checkbox"/>
+client <a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/client/Dockerfile">Dockerfile</a></li>
+<li><input disabled="" type="checkbox"/>
+partner <a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/partner/Dockerfile">Dockerfile</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.yml">docker-compose.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.204.yml">docker-compose.204.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.init_error.yml">docker-compose.init_error.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.tiles_cache.yml">docker-compose.tiles_cache.yml</a></li>
+</ul>
+</li>
+<li><a href="https://circleci.com/docs/">CircleCI</a> contract test jobs
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/.circleci/config.yml">config.yml</a></li>
+</ul>
+</li>
+<li>Documentation
+<ul>
+<li><input disabled="" type="checkbox"/>
+contract tests docs <a href="testing/contract-tests/./index.html">index.md</a></li>
+<li><input disabled="" type="checkbox"/>
+client docs <a href="testing/contract-tests/./client.html">client.md</a></li>
+<li><input disabled="" type="checkbox"/>
+partner docs <a href="testing/contract-tests/./partner.html">partner.md</a></li>
+</ul>
+</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contract-test-client"><a class="header" href="#contract-test-client">Contract Test Client</a></h1>
+<p>This documentaition describes the Python-based HTTP client test framework for the contract tests.</p>
+<p>The HTTP client used in the framework supports:</p>
+<ul>
+<li>Requests for tiles from the MTS, with response checks</li>
+<li>Requests for the history of requests from the MTS to the partner API with response checks</li>
+</ul>
+<p>The framework implements response models for the MTS and partner APIs.</p>
+<p>For more details on contract test design, refer to the Contile Contract Tests <a href="testing/contract-tests/./contract-tests.html">documentation</a>.</p>
+<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
+<p>The client is instructed on request and response check actions via scenarios, recorded in the
+<code>scenarios.yml</code> file. A scenario is defined by a name, a description, and steps.</p>
+<h3 id="steps"><a class="header" href="#steps">Steps</a></h3>
+<h4 id="contile-service"><a class="header" href="#contile-service">Contile Service</a></h4>
+<ul>
+<li>To direct requests to the MTS service, set the <code>service</code> value of <code>request</code> to <code>contile</code></li>
+<li>The expected content for a <code>200 OK</code> response is a collection of tiles</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-yaml">- request:
+    service: contile
+    method: GET
+    path: '/v1/tiles'
+    headers:
+      - name: User-Agent
+        value: 'Mozilla/5.0 (Windows NT 10.0; rv:10.0) Gecko/20100101 Firefox/91.0'
+  response:
+    status_code: 200
+    content:
+      tiles:
+        - id: 12345
+          name: 'Example COM'
+          click_url: 'https://example.com/desktop_windows?version=16.0.0&amp;key=22.1&amp;ci=6.2&amp;ctag=1612376952400200000'
+          image_url: 'https://example.com/desktop_windows01.jpg'
+          image_size: null
+          impression_url: 'https://example.com/desktop_windows?id=0001'
+          url: 'https://www.example.com/desktop_windows'
+        - id: 56789
+          name: 'Example ORG'
+          click_url: 'https://example.org/desktop_windows?version=16.0.0&amp;key=7.2&amp;ci=8.9&amp;ctag=E1DE38C8972D0281F5556659A'
+          image_url: 'https://example.org/desktop_windows02.jpg'
+          image_size: null
+          impression_url: 'https://example.org/desktop_windows?id=0002'
+          url: 'https://www.example.org/desktop_windows'
+</code></pre>
+<h4 id="partner-service"><a class="header" href="#partner-service">Partner Service</a></h4>
+<ul>
+<li>To direct requests to the partner service, set the <code>service</code> value of <code>request</code> to <code>partner</code></li>
+<li>The expected content for a <code>200 OK</code> response is a collection of records
+<ul>
+<li>Each <code>record</code> represents a distinct request made by the MTS to the partner</li>
+<li>The frequency of a request is denoted by the <code>count</code></li>
+</ul>
+</li>
+<li>Request history is cleared between scenarios</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-yaml">- request:
+    service: partner
+    method: GET
+    path: '/records/'
+    headers:
+      - name: 'accept'
+        value: '*/*'
+  response:
+    status_code: 200
+    content:
+      records:
+        - count: 1
+          record:
+            method: GET
+            headers:
+              - name: accept
+                value: '*/*'
+              - name: user-agent
+                value: 'contile/1.8.2'
+              - name: host
+                value: 'partner:5000'
+            path: '/tilesp/desktop'
+            query_parameters:
+              - name: partner
+                value: 'partner_id_test'
+              - name: sub1
+                value: 'sub1_test'
+              - name: sub2
+                value: 'newtab'
+              - name: country-code
+                value: 'US'
+              - name: region-code
+                value: ''
+              - name: dma-code
+                value: ''
+              - name: form-factor
+                value: 'desktop'
+              - name: os-family
+                value: 'windows'
+              - name: v
+                value: '1.0'
+              - name: out
+                value: 'json'
+              - name: results
+                value: '5'
+</code></pre>
+<h2 id="debugging-1"><a class="header" href="#debugging-1">Debugging</a></h2>
+<p>To execute the test scenarios outside the client Docker container, expose the Contile and partner
+API ports in the docker-compose.yml, set environment variables and use a pytest command. It is
+recommended to execute the tests within a Python virtual environment to prevent dependency cross
+contamination.</p>
+<h3 id="environment-setup"><a class="header" href="#environment-setup">Environment Setup</a></h3>
+<p>This project uses <a href="https://python-poetry.org/docs/#installation">Poetry</a> for dependency management. For environment setup, it is recommended to
+use <a href="https://github.com/pyenv/pyenv#installation">pyenv</a> and <a href="https://github.com/pyenv/pyenv-virtualenv#installation">pyenv-virtualenv</a>, as they work nicely with Poetry.</p>
+<p>Project dependencies are listed in the <code>pyproject.toml</code> file. To install the dependencies execute:</p>
+<pre><code class="language-shell">poetry install --without partner
+</code></pre>
+<h3 id="execution"><a class="header" href="#execution">Execution</a></h3>
+<ol>
+<li>
+<p>Modify <code>test-engineering/contract/docker-compose.yml</code></p>
+<p>In the partner definition, expose port 5000 by adding the following:</p>
+<pre><code class="language-yaml">ports:
+  - &quot;5000:5000&quot;
+</code></pre>
+<p>In the Contile definition, expose port 8000 by adding the following:</p>
+<pre><code class="language-yaml">ports:
+  - &quot;8000:8000&quot;
+</code></pre>
+</li>
+<li>
+<p>Run Contile and partner docker containers.</p>
+<p>Execute the following from the project root:</p>
+<pre><code class="language-shell">docker compose -f test-engineering/contract/docker-compose.yml up contile
+</code></pre>
+</li>
+<li>
+<p>Run the contract tests</p>
+<p>Execute the following from the project root:</p>
+<pre><code class="language-shell">CONTILE_URL=http://localhost:8000 \
+    PARTNER_URL=http://localhost:5000 \
+    SCENARIOS_FILE=test-engineering/contract/volumes/client/scenarios.yml \
+    pytest test-engineering/contract/client/tests/test_contile.py --vv
+</code></pre>
+<ul>
+<li>
+<p>Environment variables can alternatively be set in a pytest.ini file or through an IDE
+configuration</p>
+</li>
+<li>
+<p>Tests can be run individually using <a href="https://docs.pytest.org/en/latest/example/markers.html#using-k-expr-to-select-tests-based-on-their-name">-k <em>expr</em></a></p>
+<p>Example executing the <code>success_desktop_windows</code> scenario:</p>
+<pre><code class="language-shell">pytest test-engineering/contract/client/tests/test_contile.py \
+    -k success_desktop_windows
+</code></pre>
+</li>
+</ul>
+</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contract-tests---partner"><a class="header" href="#contract-tests---partner">Contract Tests - Partner</a></h1>
+<p>This documentation describes a Python-based web service used for contract tests.
+The HTTP API of this service implements the API specification of the partner API that MTS connects to when requesting tiles to pass along to Firefox
+for display.</p>
+<h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
+<p>Once the API service is running, API documentation can be found at <code>http://0.0.0.0:5000/docs</code>.</p>
+<h3 id="records"><a class="header" href="#records">Records</a></h3>
+<p><strong>GET</strong>: Endpoint to retrieve all historical Contile request records with a counter.</p>
+<p>Example:</p>
+<p>Request</p>
+<pre><code class="language-shell">curl \
+  -X 'GET' \
+  -H 'accept: application/json' \
+  'http://0.0.0.0:5000/records/'
+</code></pre>
+<p>Response:</p>
+<p>Code: <code>200</code></p>
+<p>Body:</p>
+<pre><code class="language-json">{
+  &quot;records&quot;: [
+    {
+      &quot;count&quot;: 1,
+      &quot;record&quot;: {
+        &quot;method&quot;: &quot;GET&quot;,
+        &quot;headers&quot;: [
+          {
+            &quot;name&quot;: &quot;host&quot;,
+            &quot;value&quot;: &quot;0.0.0.0:5000&quot;
+          },
+          {
+            &quot;name&quot;: &quot;user-agent&quot;,
+            &quot;value&quot;: &quot;curl/7.79.1&quot;
+          },
+          {
+            &quot;name&quot;: &quot;accept&quot;,
+            &quot;value&quot;: &quot;application/json&quot;
+          }
+        ],
+        &quot;path&quot;: &quot;/tilesp/desktop&quot;,
+        &quot;query_parameters&quot;: [
+          {
+            &quot;name&quot;: &quot;partner&quot;,
+            &quot;value&quot;: &quot;demofeed&quot;
+          },
+          {
+            &quot;name&quot;: &quot;sub1&quot;,
+            &quot;value&quot;: &quot;123456789&quot;
+          },
+          {
+            &quot;name&quot;: &quot;sub2&quot;,
+            &quot;value&quot;: &quot;placement1&quot;
+          },
+          {
+            &quot;name&quot;: &quot;country-code&quot;,
+            &quot;value&quot;: &quot;US&quot;
+          },
+          {
+            &quot;name&quot;: &quot;region-code&quot;,
+            &quot;value&quot;: &quot;NY&quot;
+          },
+          {
+            &quot;name&quot;: &quot;dma-code&quot;,
+            &quot;value&quot;: &quot;532&quot;
+          },
+          {
+            &quot;name&quot;: &quot;form-factor&quot;,
+            &quot;value&quot;: &quot;desktop&quot;
+          },
+          {
+            &quot;name&quot;: &quot;os-family&quot;,
+            &quot;value&quot;: &quot;macos&quot;
+          },
+          {
+            &quot;name&quot;: &quot;v&quot;,
+            &quot;value&quot;: &quot;1.0&quot;
+          },
+          {
+            &quot;name&quot;: &quot;out&quot;,
+            &quot;value&quot;: &quot;json&quot;
+          },
+          {
+            &quot;name&quot;: &quot;results&quot;,
+            &quot;value&quot;: &quot;2&quot;
+          }
+        ]
+      }
+    }
+  ]
+}
+</code></pre>
+<p><strong>DELETE</strong>: Endpoint to delete all historical Contile request records.</p>
+<p>Example:</p>
+<p>Request</p>
+<pre><code class="language-shell">curl \
+  -X 'DELETE' \
+  -H 'accept: */*' \
+  'http://0.0.0.0:5000/records/'
+</code></pre>
+<p>Response</p>
+<p>Code: <code>204</code></p>
+<p>Body: <code>N/A</code></p>
+<h3 id="tiles"><a class="header" href="#tiles">Tiles</a></h3>
+<p><strong>GET</strong>: Endpoint for requests from Contile.</p>
+<p>Example:</p>
+<p>Request</p>
+<pre><code class="language-shell">curl \
+  -X 'GET' \
+  -H 'accept: application/json' \
+  'http://0.0.0.0:5000/tilesp/desktop?partner=demofeed&amp;sub1=123456789&amp;sub2=placement1&amp;country-code=US&amp;region-code=NY&amp;dma-code=532&amp;form-factor=desktop&amp;os-family=macos&amp;v=1.0&amp;out=json&amp;results=2'
+</code></pre>
+<p>Response</p>
+<p>Code: <code>200</code></p>
+<p>Body:</p>
+<pre><code class="language-json">{
+  &quot;tiles&quot;: [
+    {
+      &quot;id&quot;: 12346,
+      &quot;name&quot;: &quot;Example COM&quot;,
+      &quot;click_url&quot;: &quot;https://example.com/desktop_macos?version=16.0.0&quot;,
+      &quot;image_url&quot;: &quot;https://example.com/desktop_macos01.jpg&quot;,
+      &quot;impression_url&quot;: &quot;https://example.com/desktop_macos?id=0001&quot;,
+      &quot;advertiser_url&quot;: &quot;https://www.example.com/desktop_macos&quot;
+    },
+    {
+      &quot;id&quot;: 56790,
+      &quot;name&quot;: &quot;Example ORG&quot;,
+      &quot;click_url&quot;: &quot;https://example.org/desktop_macos?version=16.0.0&quot;,
+      &quot;image_url&quot;: &quot;https://example.org/desktop_macos02.jpg&quot;,
+      &quot;impression_url&quot;: &quot;https://example.org/desktop_macos?id=0002&quot;,
+      &quot;advertiser_url&quot;: &quot;https://www.example.org/desktop_macos&quot;
+    }
+  ]
+}
+</code></pre>
+<h2 id="local-execution-1"><a class="header" href="#local-execution-1">Local Execution</a></h2>
+<p>To run the service locally, execute the following from the contract tests root:</p>
+<pre><code class="language-shell">docker compose run -p 5000:5000 partner
+</code></pre>
+<p>The mock partner runs, by default, on <code>http://localhost:5000/</code>.</p>
+<p>The test URI path is <code>tilesp/desktop</code> for desktop tiles, or <code>tilesp/mobile</code> for mobile tiles.</p>
+<p>The following query arguments are required. Optional, undefined elements should be left empty
+(e.g. <code>...&amp;dma-code=&amp;...</code>) Failure to include them will return a 400 error with the missing
+variables listed in the response (NOTE: This will produce an unexpected 500 or 502 error in
+Contile.)</p>
+<ul>
+<li>partner - <em>string</em></li>
+<li>sub1 - <em>string</em></li>
+<li>sub2 - <em>alphanumeric</em></li>
+<li>country-code - <em>2 CAPTIAL LETTER Alpha</em></li>
+<li>region-code - <em>1 to 3 CAPITAL LETTER AlphaNumeric</em></li>
+<li>dma-code - <em>Optional Numeric</em></li>
+<li>form-factor - <em>See <code>ACCEPTED_{MOBILE,DESKTOP}_FORM_FACTORS</code></em></li>
+<li>v = <code>1.0</code></li>
+<li>out = <code>json</code></li>
+<li>results = <em>number of tiles to return, usually 2</em></li>
+</ul>
+<h2 id="debugging-2"><a class="header" href="#debugging-2">Debugging</a></h2>
+<p>It is possible to run the mock partner app outside of docker. It is <em><strong>STRONGLY</strong></em> suggested to run
+this within its own Python virtualenv, and possibly its own shell to prevent environment variable
+cross contamination.</p>
+<h3 id="environment-setup-1"><a class="header" href="#environment-setup-1">Environment Setup</a></h3>
+<p>This project uses <a href="https://python-poetry.org/docs/#installation">Poetry</a> for dependency management. For environment setup, it is recommended to
+use <a href="https://github.com/pyenv/pyenv#installation">pyenv</a> and <a href="https://github.com/pyenv/pyenv-virtualenv#installation">pyenv-virtualenv</a>, as they work nicely with Poetry.</p>
+<p>Project dependencies are listed in the <code>pyproject.toml</code> file. To install the dependencies execute:</p>
+<pre><code class="language-shell">poetry install
+</code></pre>
+<p>The <code>services: partner</code> block of <code>contract/docker-compose.yml</code> lists the <code>environment</code> and
+<code>volumes</code> needed. The following environment variables are used by the mock partner app.</p>
+<ul>
+<li>PORT - <em>default port number</em></li>
+<li>RESPONSES_DIR - <em>directory to read the <a href="testing/contract-tests/partner.html#tile_values">Tile Values</a></em></li>
+<li>ACCEPTED_MOBILE_FORM_FACTORS - <em>list of allowed <code>form-factors</code> for <code>tilesp/mobile</code> responses</em></li>
+<li>ACCEPTED_DESKTOP_FORM_FACTORS - <em>list of allowed <code>form-factors</code> for <code>tilesp/desktop</code> responses</em></li>
+</ul>
+<h3 id="execution-1"><a class="header" href="#execution-1">Execution</a></h3>
+<p>Start the mock partner app from inside the mock partner virtualenv using</p>
+<pre><code class="language-sh">gunicorn -c config/gunicorn_conf.py --preload -k uvicorn.workers.UvicornWorker main:app
+</code></pre>
+<p><strong>Contile Configuring</strong></p>
+<p>Use the following environment variables for Contile to contact the mock partner server:</p>
+<pre><code class="language-sh">CONTILE_MAXMINDDB_LOC=${ProjectRoot}/mmdb/GeoLite2-City-Test.mmdb
+CONTILE_ADM_ENDPOINT_URL=http://localhost:5000/tilesp/desktop
+CONTILE_ADM_MOBILE_ENDPOINT_URL=http://localhost:5000/tilesp/mobile
+CONTILE_ADM_QUERY_TILE_COUNT=5
+CONTILE_ADM_SUB1=sub1_test
+CONTILE_ADM_PARTNER_ID=partner_id_test
+CONTILE_ADM_HAS_LEGACY_IMAGE='[&quot;Example ORG&quot;, &quot;Example COM&quot;]'
+</code></pre>
+<p><code>CONTILE_ADM_TIMEOUT</code> determines how long to wait for a response from the partner server.
+The default value is <code>5</code> seconds. You may wish to make this much longer if you're debugging.</p>
+<p>These would be in addition to any other settings you wish to use for the Contile server.</p>
+<p><strong><a name="tile_values"></a>Tile Values</strong></p>
+<p>The returned tile values are stored in
+<code>contract/volumes/partner/${country-code}/${region-code}.yml</code>.</p>
+<p>If different values are desired, you can either alter these files or you can copy them into a new
+directory and use the <code>RESPONSES_DIR</code> environment variable for the mock partner app.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contile-load-locust-tests"><a class="header" href="#contile-load-locust-tests">Contile Load (Locust) Tests</a></h1>
+<p>This documentation describes the automated load test suite for the Mozilla Tile Service (MTS) or Contile.
+The load test framework was originally developed in isolation using Molotov, see the archived repo
+<a href="https://github.com/mozilla-services/contile-loadtests">contile-loadtests</a>.</p>
+<h2 id="related-documentation"><a class="header" href="#related-documentation">Related Documentation</a></h2>
+<ul>
+<li><a href="https://docs.google.com/document/d/10Hx4cGvGBvq0z0uOK_CG3ZcyaQnT_EtgR6MYXmIvG6Q/">Contile Load Test History</a></li>
+<li><a href="https://docs.google.com/spreadsheets/d/1lGHu--eXEy6ShErmU1-SQ26yLY4xOjGubnRXt0DdGB0/">Contile Load Test Spreadsheet</a></li>
+</ul>
+<h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
+<p>This project uses <a href="https://python-poetry.org/docs/#installation">Poetry</a> for dependency management. For environment setup, it is recommended to
+use <a href="https://github.com/pyenv/pyenv#installation">pyenv</a> and <a href="https://github.com/pyenv/pyenv-virtualenv#installation">pyenv-virtualenv</a>, as they work nicely with Poetry.</p>
+<p>Project dependencies are listed in the <code>pyproject.toml</code> file. To install the dependencies execute:</p>
+<pre><code class="language-shell">poetry install
+</code></pre>
+<p>Contributors to this project are expected to execute the following tools for import sorting,
+linting, style guide enforcement and static type checking. Configurations are set in the
+<code>pyproject.toml</code> and <code>.flake8</code> files.</p>
+<p><strong><a href="https://pycqa.github.io/isort/">isort</a></strong></p>
+<pre><code class="language-shell">poetry run isort common locustfiles
+</code></pre>
+<p><strong><a href="https://black.readthedocs.io/en/stable/">black</a></strong></p>
+<pre><code class="language-shell">poetry run black common locustfiles
+</code></pre>
+<p><strong><a href="https://flake8.pycqa.org/en/latest/">flake8</a></strong></p>
+<pre><code class="language-shell">poetry run flake8 common locustfiles
+</code></pre>
+<p><strong><a href="https://mypy-lang.org/">mypy</a></strong></p>
+<pre><code class="language-shell">poetry run mypy common locustfiles
+</code></pre>
+<h2 id="opt-in-execution-in-staging-and-production"><a class="header" href="#opt-in-execution-in-staging-and-production">Opt-In Execution in Staging (and Production)</a></h2>
+<p>To automatically kick off load testing in staging along with your pull request commit, you have to
+include a label in your git commit. This must be the merge commit on the <code>main</code> branch, since only
+the most recent commit is checked for the label. This label is in the form of:
+<code>[load test: (abort|warn)]</code>. Take careful note of the correct syntax and spacing within the label.
+There are two options for load tests, being <code>abort</code> and <code>warn</code>.</p>
+<p>The <code>abort</code> label will prevent a <code>prod</code> deployment should the load test fail.
+Ex. <code>feat: Add feature ABC [load test: abort]</code>.</p>
+<p>The <code>warn</code> label will output a Slack warning should the load test fail, but still allow for <code>prod</code>
+deployment.
+Ex. <code>feat: Add feature XYZ [load test: warn]</code>.</p>
+<p>The commit tag signals load test instructions to Jenkins by modifying the Docker image tag. The
+Jenkins deployment workflow first deploys to <code>stage</code> and then runs load tests if requested. The
+Docker image tag passed to Jenkins appears as follows:
+<code>^(?P&lt;environment&gt;stage|prod)(?:-(?P&lt;task&gt;\w+)-(?P&lt;onfailure&gt;warn|abort))?-(?P&lt;commit&gt;[a-z0-9]+)$</code>.</p>
+<p>The <code>docker-image-publish</code> job in <a href="https://github.com/mozilla-services/contile/blob/main/.circleci/config.yml">.circleci/config.yml</a> defines this process and can be viewed
+for more clarity.</p>
+<h2 id="local-execution-2"><a class="header" href="#local-execution-2">Local Execution</a></h2>
+<p>Follow the steps bellow to execute the load tests locally:</p>
+<h3 id="setup-environment"><a class="header" href="#setup-environment">Setup Environment</a></h3>
+<h4 id="1-configure-environment-variables"><a class="header" href="#1-configure-environment-variables">1. Configure Environment Variables</a></h4>
+<p>Environment variables, listed bellow or specified by <a href="https://docs.locust.io/en/stable/configuration.html#environment-variables">Locust</a>, can be set in
+<code>test-engineering\load\docker-compose.yml</code>.</p>
+<div class="table-wrapper"><table><thead><tr><th>Environment Variable</th><th>Node(s)</th><th>Description</th></tr></thead><tbody>
+<tr><td>(<em>OPTIONAL</em>) CONTILE_LOCATION_TEST_HEADER</td><td>master &amp; worker</td><td>The HTTP header used to manually specify the location from which the request originated (defaults to <code>X-Test-Location</code>).</td></tr>
+</tbody></table>
+</div>
+<h4 id="2-host-locust-via-docker"><a class="header" href="#2-host-locust-via-docker">2. Host Locust via Docker</a></h4>
+<p>Execute the following from the <code>test-engineering\load</code> directory:</p>
+<pre><code class="language-shell">docker-compose -f docker-compose.yml -p contile-py-load-tests up --scale locust_worker=1
+</code></pre>
+<h3 id="run-test-session"><a class="header" href="#run-test-session">Run Test Session</a></h3>
+<h4 id="1-start-load-test"><a class="header" href="#1-start-load-test">1. Start Load Test</a></h4>
+<ul>
+<li>In a browser navigate to <code>http://localhost:8089/</code></li>
+<li>Set up the load test parameters:
+<ul>
+<li>Option 1: Select the <code>Default</code> load test shape with the following recommended settings:
+<ul>
+<li>Number of users: 200</li>
+<li>Spawn rate: 3</li>
+<li>Host: 'http://localhost:8000'</li>
+<li>Duration (Optional): 10m</li>
+</ul>
+</li>
+<li>Option 2: Select the <code>ContileLoadTestShape</code>
+<ul>
+<li>This option has pre-defined settings and will last 10 minutes</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Select &quot;Start Swarming&quot;</li>
+</ul>
+<h4 id="2-stop-load-test"><a class="header" href="#2-stop-load-test">2. Stop Load Test</a></h4>
+<p>Select the 'Stop' button in the top right hand corner of the Locust UI, after the desired test
+duration has elapsed. If the 'Run time' or 'Duration' is set in step 1, the load test will stop
+automatically.</p>
+<h4 id="3-analyse-results"><a class="header" href="#3-analyse-results">3. Analyse Results</a></h4>
+<ul>
+<li>See <a href="testing/load-tests.html#3-analyse-results-1">Distributed GCP Execution - Analyse Results</a></li>
+<li>Only client-side measures, provided by Locust, are available for local execution</li>
+</ul>
+<h3 id="clean-up-environment"><a class="header" href="#clean-up-environment">Clean-up Environment</a></h3>
+<h4 id="1-remove-load-test-docker-containers"><a class="header" href="#1-remove-load-test-docker-containers">1. Remove Load Test Docker Containers</a></h4>
+<p>Execute the following from the <code>test-engineering\load</code> directory:</p>
+<pre><code class="language-shell">docker-compose -f docker-compose.yml -p contile-py-load-tests down
+docker rmi locust
+</code></pre>
+<h3 id="debugging-3"><a class="header" href="#debugging-3">Debugging</a></h3>
+<p>See <a href="https://docs.locust.io/en/stable/running-in-debugger.html">Locust - Running tests in a debugger</a></p>
+<h2 id="distributed-gcp-execution"><a class="header" href="#distributed-gcp-execution">Distributed GCP Execution</a></h2>
+<p>Follow the steps bellow to execute the distributed load tests on GCP:</p>
+<h3 id="setup-environment-1"><a class="header" href="#setup-environment-1">Setup Environment</a></h3>
+<h4 id="1-start-a-gcp-cloud-shell"><a class="header" href="#1-start-a-gcp-cloud-shell">1. Start a GCP Cloud Shell</a></h4>
+<p>The load tests can be executed from the <a href="https://console.cloud.google.com/home/dashboard?q=search&amp;referrer=search&amp;project=spheric-keel-331521&amp;cloudshell=false">contextual-services-test-eng cloud shell</a>.</p>
+<h4 id="2-configure-the-bash-script"><a class="header" href="#2-configure-the-bash-script">2. Configure the Bash Script</a></h4>
+<ul>
+<li>The <code>setup_k8s.sh</code> file, located in the <code>test-engineering\load</code> directory, contains shell commands
+to <strong>create</strong> a GKE cluster, <strong>setup</strong> an existing GKE cluster or <strong>delete</strong> a GKE cluster
+<ul>
+<li>Execute the following from the <code>load</code> directory, to make the file executable:
+<pre><code class="language-shell">chmod +x setup_k8s.sh
+</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="3-create-the-gcp-cluster"><a class="header" href="#3-create-the-gcp-cluster">3. Create the GCP Cluster</a></h4>
+<ul>
+<li>Execute the <code>setup_k8s.sh</code> file and select the <strong>create</strong> option, in order to initiate the process
+of creating a cluster, setting up the env variables and building the docker image
+<pre><code class="language-shell">./setup_k8s.sh
+</code></pre>
+</li>
+<li>The cluster creation process will take some time. It is considered complete, once an external IP
+is assigned to the <code>locust_master</code> node. Monitor the assignment via a watch loop:
+<pre><code class="language-bash">kubectl get svc locust-master --watch
+</code></pre>
+</li>
+<li>The number of workers is defaulted to 5, but can be modified with the <code>kubectl scale</code> command.
+Example (10 workers):
+<pre><code class="language-bash">kubectl scale deployment/locust-worker --replicas=10
+</code></pre>
+</li>
+<li>To apply new changes to an existing GCP Cluster, execute the <code>setup_k8s.sh</code> file and select the
+<strong>setup</strong> option.
+<ul>
+<li>This option will consider the local commit history, creating new containers and
+deploying them (see <a href="https://console.cloud.google.com/gcr/images/spheric-keel-331521/global/locust-contile?project=spheric-keel-331521">Container Registry</a>)</li>
+</ul>
+</li>
+</ul>
+<h3 id="run-test-session-1"><a class="header" href="#run-test-session-1">Run Test Session</a></h3>
+<h4 id="1-start-load-test-1"><a class="header" href="#1-start-load-test-1">1. Start Load Test</a></h4>
+<ul>
+<li>
+<p>In a browser navigate to <code>http://$EXTERNAL_IP:8089</code></p>
+<p>This url can be generated via command</p>
+<pre><code class="language-bash">EXTERNAL_IP=$(kubectl get svc locust-master -o jsonpath=&quot;{.status.loadBalancer.ingress[0].ip}&quot;)
+echo http://$EXTERNAL_IP:8089
+</code></pre>
+</li>
+<li>
+<p>Select &quot;Start Swarming&quot;</p>
+<ul>
+<li>The load test is set up using <code>ContileLoadTestShape</code>, which has pre-defined settings and will
+last 10 minutes</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-stop-load-test-1"><a class="header" href="#2-stop-load-test-1">2. Stop Load Test</a></h4>
+<p>Select the 'Stop' button in the top right hand corner of the Locust UI, after the desired test
+duration has elapsed. If the 'Run time' or 'Duration' is set in step 1, the load test will stop
+automatically.</p>
+<h4 id="3-analyse-results-1"><a class="header" href="#3-analyse-results-1">3. Analyse Results</a></h4>
+<p><strong>RPS</strong></p>
+<ul>
+<li>The request-per-second load target for Contile is <code>3000</code></li>
+<li>Locust reports client-side RPS via the &quot;contile_stats.csv&quot; file and the UI (under the &quot;Statistics&quot;
+tab or the &quot;Charts&quot; tab)</li>
+<li><a href="https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&amp;refresh=1m&amp;var-environment=stage">Grafana</a> reports the server-side RPS via the &quot;HTTP requests per second per country&quot; chart</li>
+</ul>
+<p><strong>HTTP Request Failures</strong></p>
+<ul>
+<li>The number of responses with errors (5xx response codes) should be <code>0</code></li>
+<li>Locust reports Failures via the &quot;contile_failures.csv&quot; file and the UI
+(under the &quot;Failures&quot; tab or the &quot;Charts&quot; tab)</li>
+<li><a href="https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&amp;refresh=1m&amp;var-environment=stage">Grafana</a> reports Failures via the &quot;HTTP Response codes&quot; chart and the &quot;HTTP 5xx error rate&quot;
+chart</li>
+</ul>
+<p><strong>Exceptions</strong></p>
+<ul>
+<li>The number of exceptions raised by the test framework should be <code>0</code></li>
+<li>Locust reports Exceptions via the &quot;contile_exceptions.csv&quot; file and the UI (under the &quot;Exceptions&quot;
+tab)</li>
+</ul>
+<p><strong>Resource Consumption</strong></p>
+<ul>
+<li>To conserve costs, resource allocation must be kept to a minimum. It is expected that container,
+CPU and memory usage should trend consistently between load test runs.</li>
+<li><a href="https://earthangel-b40313e5.influxcloud.net/d/oak1zw6Gz/contile-infrastructure?orgId=1&amp;refresh=1m&amp;var-environment=stage">Grafana</a> reports metrics on resources via the &quot;Container Count&quot;, &quot;CPU cores used&quot; and
+&quot;Memory used&quot; charts</li>
+</ul>
+<h4 id="4-report-results"><a class="header" href="#4-report-results">4. Report Results</a></h4>
+<ul>
+<li>Results should be recorded in the <a href="https://docs.google.com/spreadsheets/d/1lGHu--eXEy6ShErmU1-SQ26yLY4xOjGubnRXt0DdGB0/">Contile Load Test Spreadsheet</a></li>
+<li>Optionally, the Locust reports can be saved and linked in the spreadsheet:
+<ul>
+<li>Download the results via the Locust UI or via command:
+<pre><code class="language-bash">kubectl cp &lt;master-pod-name&gt;:/home/locust/contile_stats.csv contile_stats.csv
+kubectl cp &lt;master-pod-name&gt;:/home/locust/contile_exceptions.csv contile_exceptions.csv
+kubectl cp &lt;master-pod-name&gt;:/home/locust/contile_failures.csv contile_failures.csv
+</code></pre>
+The <code>master-pod-name</code> can be found at the top of the pod list:
+<pre><code class="language-bash">kubectl get pods -o wide
+</code></pre>
+</li>
+<li>Upload the files to the <a href="https://drive.google.com/drive/folders/1A7haAcel4O5-xFPW-pdKuVriGrNDqA-F">ConServ</a> drive and record the links in the spreadsheet</li>
+</ul>
+</li>
+</ul>
+<h3 id="clean-up-environment-1"><a class="header" href="#clean-up-environment-1">Clean-up Environment</a></h3>
+<h4 id="1-delete-the-gcp-cluster"><a class="header" href="#1-delete-the-gcp-cluster">1. Delete the GCP Cluster</a></h4>
+<p>Execute the <code>setup_k8s.sh</code> file and select the <strong>delete</strong> option</p>
+<pre><code class="language-shell">./tests/load/setup_k8s.sh
+</code></pre>
+<h2 id="maintenance-1"><a class="header" href="#maintenance-1">Maintenance</a></h2>
+<p>The load test maintenance schedule cadence is once a quarter and should include
+updating the following:</p>
+<ol>
+<li><a href="https://python-poetry.org/docs/#installation">poetry</a> version and python dependencies
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/pyproject.toml">pyproject.toml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/poetry.lock">poetry.lock</a></li>
+</ul>
+</li>
+<li><a href="https://docs.docker.com/">Docker</a> artifacts
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/Dockerfile">Dockerfile</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/docker-compose.yml">docker-compose.yml</a></li>
+</ul>
+</li>
+<li>Distributed GCP execution scripts and Kubernetes configurations
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/setup_k8s.sh">setup_k8s.sh</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/kubernetes-config/locust-master-controller.yml">locust-master-controller.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/kubernetes-config/locust-master-service.yml">locust-master-service.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/load/kubernetes-config/locust-worker-controller.yml">locust-worker-controller.yml</a></li>
+</ul>
+</li>
+<li><a href="https://circleci.com/docs/">CircleCI</a> load test jobs
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/.circleci/config.yml">config.yml</a></li>
+</ul>
+</li>
+<li>Documentation
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="testing/./load-tests.html">load-tests.md</a></li>
+</ul>
+</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="smoke-tests"><a class="header" href="#smoke-tests">Smoke Tests</a></h1>
+<p>This documentation describes the smoke test suite for Contile deployments.</p>
+<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
+<p>Set runtime environment variables for the <code>runner</code> function that contain trigger
+URLs for the clients using the following naming scheme:</p>
+<p><code>CLIENT_URL_&lt;COUNTRY_CODE&gt;</code></p>
+<p>Examples:</p>
+<pre><code>CLIENT_URL_US
+CLIENT_URL_GB
+CLIENT_URL_CH
+</code></pre>
+<h2 id="example-runner-invocation"><a class="header" href="#example-runner-invocation">Example runner invocation</a></h2>
+<pre><code class="language-bash">curl -m 70 -X POST &lt;RUNNER_TRIGGER_URL&gt; \
+-H &quot;Authorization:bearer $(gcloud auth print-identity-token)&quot; \
+-H &quot;Content-Type:application/json&quot; \
+-d '{&quot;environments&quot;: [&quot;STAGE&quot;, &quot;PROD&quot;]}'
+</code></pre>
+<h2 id="deployment"><a class="header" href="#deployment">Deployment</a></h2>
+<p>Smoke tests are executed in the CD pipeline and deployed manually by SRE: 
+<a href="https://github.com/mozilla-services/cloudops-infra/tree/master/projects/topsites/tf/modules/geolocation-smoke-tests">Terraform Configuration</a>.</p>
 
                     </main>
 

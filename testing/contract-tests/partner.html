@@ -1,0 +1,392 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Partner - Contile</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item affix "><a href="../../intro.html">Intro</a></li><li class="chapter-item "><a href="../../api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="../../setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="../../operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item expanded "><a href="../../testing/index.html"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../testing/integration-tests.html"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item expanded "><a href="../../testing/contract-tests/index.html"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item expanded "><a href="../../testing/contract-tests/partner.html" class="active"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="../../testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="../../testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Contile</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="contract-tests---partner"><a class="header" href="#contract-tests---partner">Contract Tests - Partner</a></h1>
+<p>This documentation describes a Python-based web service used for contract tests.
+The HTTP API of this service implements the API specification of the partner API that MTS connects to when requesting tiles to pass along to Firefox
+for display.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Once the API service is running, API documentation can be found at <code>http://0.0.0.0:5000/docs</code>.</p>
+<h3 id="records"><a class="header" href="#records">Records</a></h3>
+<p><strong>GET</strong>: Endpoint to retrieve all historical Contile request records with a counter.</p>
+<p>Example:</p>
+<p>Request</p>
+<pre><code class="language-shell">curl \
+  -X 'GET' \
+  -H 'accept: application/json' \
+  'http://0.0.0.0:5000/records/'
+</code></pre>
+<p>Response:</p>
+<p>Code: <code>200</code></p>
+<p>Body:</p>
+<pre><code class="language-json">{
+  &quot;records&quot;: [
+    {
+      &quot;count&quot;: 1,
+      &quot;record&quot;: {
+        &quot;method&quot;: &quot;GET&quot;,
+        &quot;headers&quot;: [
+          {
+            &quot;name&quot;: &quot;host&quot;,
+            &quot;value&quot;: &quot;0.0.0.0:5000&quot;
+          },
+          {
+            &quot;name&quot;: &quot;user-agent&quot;,
+            &quot;value&quot;: &quot;curl/7.79.1&quot;
+          },
+          {
+            &quot;name&quot;: &quot;accept&quot;,
+            &quot;value&quot;: &quot;application/json&quot;
+          }
+        ],
+        &quot;path&quot;: &quot;/tilesp/desktop&quot;,
+        &quot;query_parameters&quot;: [
+          {
+            &quot;name&quot;: &quot;partner&quot;,
+            &quot;value&quot;: &quot;demofeed&quot;
+          },
+          {
+            &quot;name&quot;: &quot;sub1&quot;,
+            &quot;value&quot;: &quot;123456789&quot;
+          },
+          {
+            &quot;name&quot;: &quot;sub2&quot;,
+            &quot;value&quot;: &quot;placement1&quot;
+          },
+          {
+            &quot;name&quot;: &quot;country-code&quot;,
+            &quot;value&quot;: &quot;US&quot;
+          },
+          {
+            &quot;name&quot;: &quot;region-code&quot;,
+            &quot;value&quot;: &quot;NY&quot;
+          },
+          {
+            &quot;name&quot;: &quot;dma-code&quot;,
+            &quot;value&quot;: &quot;532&quot;
+          },
+          {
+            &quot;name&quot;: &quot;form-factor&quot;,
+            &quot;value&quot;: &quot;desktop&quot;
+          },
+          {
+            &quot;name&quot;: &quot;os-family&quot;,
+            &quot;value&quot;: &quot;macos&quot;
+          },
+          {
+            &quot;name&quot;: &quot;v&quot;,
+            &quot;value&quot;: &quot;1.0&quot;
+          },
+          {
+            &quot;name&quot;: &quot;out&quot;,
+            &quot;value&quot;: &quot;json&quot;
+          },
+          {
+            &quot;name&quot;: &quot;results&quot;,
+            &quot;value&quot;: &quot;2&quot;
+          }
+        ]
+      }
+    }
+  ]
+}
+</code></pre>
+<p><strong>DELETE</strong>: Endpoint to delete all historical Contile request records.</p>
+<p>Example:</p>
+<p>Request</p>
+<pre><code class="language-shell">curl \
+  -X 'DELETE' \
+  -H 'accept: */*' \
+  'http://0.0.0.0:5000/records/'
+</code></pre>
+<p>Response</p>
+<p>Code: <code>204</code></p>
+<p>Body: <code>N/A</code></p>
+<h3 id="tiles"><a class="header" href="#tiles">Tiles</a></h3>
+<p><strong>GET</strong>: Endpoint for requests from Contile.</p>
+<p>Example:</p>
+<p>Request</p>
+<pre><code class="language-shell">curl \
+  -X 'GET' \
+  -H 'accept: application/json' \
+  'http://0.0.0.0:5000/tilesp/desktop?partner=demofeed&amp;sub1=123456789&amp;sub2=placement1&amp;country-code=US&amp;region-code=NY&amp;dma-code=532&amp;form-factor=desktop&amp;os-family=macos&amp;v=1.0&amp;out=json&amp;results=2'
+</code></pre>
+<p>Response</p>
+<p>Code: <code>200</code></p>
+<p>Body:</p>
+<pre><code class="language-json">{
+  &quot;tiles&quot;: [
+    {
+      &quot;id&quot;: 12346,
+      &quot;name&quot;: &quot;Example COM&quot;,
+      &quot;click_url&quot;: &quot;https://example.com/desktop_macos?version=16.0.0&quot;,
+      &quot;image_url&quot;: &quot;https://example.com/desktop_macos01.jpg&quot;,
+      &quot;impression_url&quot;: &quot;https://example.com/desktop_macos?id=0001&quot;,
+      &quot;advertiser_url&quot;: &quot;https://www.example.com/desktop_macos&quot;
+    },
+    {
+      &quot;id&quot;: 56790,
+      &quot;name&quot;: &quot;Example ORG&quot;,
+      &quot;click_url&quot;: &quot;https://example.org/desktop_macos?version=16.0.0&quot;,
+      &quot;image_url&quot;: &quot;https://example.org/desktop_macos02.jpg&quot;,
+      &quot;impression_url&quot;: &quot;https://example.org/desktop_macos?id=0002&quot;,
+      &quot;advertiser_url&quot;: &quot;https://www.example.org/desktop_macos&quot;
+    }
+  ]
+}
+</code></pre>
+<h2 id="local-execution"><a class="header" href="#local-execution">Local Execution</a></h2>
+<p>To run the service locally, execute the following from the contract tests root:</p>
+<pre><code class="language-shell">docker compose run -p 5000:5000 partner
+</code></pre>
+<p>The mock partner runs, by default, on <code>http://localhost:5000/</code>.</p>
+<p>The test URI path is <code>tilesp/desktop</code> for desktop tiles, or <code>tilesp/mobile</code> for mobile tiles.</p>
+<p>The following query arguments are required. Optional, undefined elements should be left empty
+(e.g. <code>...&amp;dma-code=&amp;...</code>) Failure to include them will return a 400 error with the missing
+variables listed in the response (NOTE: This will produce an unexpected 500 or 502 error in
+Contile.)</p>
+<ul>
+<li>partner - <em>string</em></li>
+<li>sub1 - <em>string</em></li>
+<li>sub2 - <em>alphanumeric</em></li>
+<li>country-code - <em>2 CAPTIAL LETTER Alpha</em></li>
+<li>region-code - <em>1 to 3 CAPITAL LETTER AlphaNumeric</em></li>
+<li>dma-code - <em>Optional Numeric</em></li>
+<li>form-factor - <em>See <code>ACCEPTED_{MOBILE,DESKTOP}_FORM_FACTORS</code></em></li>
+<li>v = <code>1.0</code></li>
+<li>out = <code>json</code></li>
+<li>results = <em>number of tiles to return, usually 2</em></li>
+</ul>
+<h2 id="debugging"><a class="header" href="#debugging">Debugging</a></h2>
+<p>It is possible to run the mock partner app outside of docker. It is <em><strong>STRONGLY</strong></em> suggested to run
+this within its own Python virtualenv, and possibly its own shell to prevent environment variable
+cross contamination.</p>
+<h3 id="environment-setup"><a class="header" href="#environment-setup">Environment Setup</a></h3>
+<p>This project uses <a href="https://python-poetry.org/docs/#installation">Poetry</a> for dependency management. For environment setup, it is recommended to
+use <a href="https://github.com/pyenv/pyenv#installation">pyenv</a> and <a href="https://github.com/pyenv/pyenv-virtualenv#installation">pyenv-virtualenv</a>, as they work nicely with Poetry.</p>
+<p>Project dependencies are listed in the <code>pyproject.toml</code> file. To install the dependencies execute:</p>
+<pre><code class="language-shell">poetry install
+</code></pre>
+<p>The <code>services: partner</code> block of <code>contract/docker-compose.yml</code> lists the <code>environment</code> and
+<code>volumes</code> needed. The following environment variables are used by the mock partner app.</p>
+<ul>
+<li>PORT - <em>default port number</em></li>
+<li>RESPONSES_DIR - <em>directory to read the <a href="#tile_values">Tile Values</a></em></li>
+<li>ACCEPTED_MOBILE_FORM_FACTORS - <em>list of allowed <code>form-factors</code> for <code>tilesp/mobile</code> responses</em></li>
+<li>ACCEPTED_DESKTOP_FORM_FACTORS - <em>list of allowed <code>form-factors</code> for <code>tilesp/desktop</code> responses</em></li>
+</ul>
+<h3 id="execution"><a class="header" href="#execution">Execution</a></h3>
+<p>Start the mock partner app from inside the mock partner virtualenv using</p>
+<pre><code class="language-sh">gunicorn -c config/gunicorn_conf.py --preload -k uvicorn.workers.UvicornWorker main:app
+</code></pre>
+<p><strong>Contile Configuring</strong></p>
+<p>Use the following environment variables for Contile to contact the mock partner server:</p>
+<pre><code class="language-sh">CONTILE_MAXMINDDB_LOC=${ProjectRoot}/mmdb/GeoLite2-City-Test.mmdb
+CONTILE_ADM_ENDPOINT_URL=http://localhost:5000/tilesp/desktop
+CONTILE_ADM_MOBILE_ENDPOINT_URL=http://localhost:5000/tilesp/mobile
+CONTILE_ADM_QUERY_TILE_COUNT=5
+CONTILE_ADM_SUB1=sub1_test
+CONTILE_ADM_PARTNER_ID=partner_id_test
+CONTILE_ADM_HAS_LEGACY_IMAGE='[&quot;Example ORG&quot;, &quot;Example COM&quot;]'
+</code></pre>
+<p><code>CONTILE_ADM_TIMEOUT</code> determines how long to wait for a response from the partner server.
+The default value is <code>5</code> seconds. You may wish to make this much longer if you're debugging.</p>
+<p>These would be in addition to any other settings you wish to use for the Contile server.</p>
+<p><strong><a name="tile_values"></a>Tile Values</strong></p>
+<p>The returned tile values are stored in
+<code>contract/volumes/partner/${country-code}/${region-code}.yml</code>.</p>
+<p>If different values are desired, you can either alter these files or you can copy them into a new
+directory and use the <code>RESPONSES_DIR</code> environment variable for the mock partner app.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../testing/contract-tests/client.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../testing/load-tests.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../testing/contract-tests/client.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../testing/load-tests.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../mermaid.min.js"></script>
+        <script src="../../mermaid-init.js"></script>
+
+
+    </body>
+</html>

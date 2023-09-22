@@ -1,0 +1,332 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Contract Tests - Contile</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item affix "><a href="../../intro.html">Intro</a></li><li class="chapter-item "><a href="../../api.html"><strong aria-hidden="true">1.</strong> API documentation</a></li><li class="chapter-item "><a href="../../setup.html"><strong aria-hidden="true">2.</strong> Developer Setup</a></li><li class="chapter-item "><a href="../../operations/index.html"><strong aria-hidden="true">3.</strong> Operations and Runbooks</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../operations/rollback.html"><strong aria-hidden="true">3.1.</strong> Rollback</a></li></ol></li><li class="chapter-item expanded "><a href="../../testing/index.html"><strong aria-hidden="true">4.</strong> Testing</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../testing/integration-tests.html"><strong aria-hidden="true">4.1.</strong> Integration Tests</a></li><li class="chapter-item expanded "><a href="../../testing/contract-tests/index.html" class="active"><strong aria-hidden="true">4.2.</strong> Contract Tests</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../testing/contract-tests/client.html"><strong aria-hidden="true">4.2.1.</strong> Client</a></li><li class="chapter-item "><a href="../../testing/contract-tests/partner.html"><strong aria-hidden="true">4.2.2.</strong> Partner</a></li></ol></li><li class="chapter-item "><a href="../../testing/load-tests.html"><strong aria-hidden="true">4.3.</strong> Load Tests</a></li><li class="chapter-item "><a href="../../testing/smoke-tests.html"><strong aria-hidden="true">4.4.</strong> Smoke Tests</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Contile</h1>
+
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="contile-contract-tests"><a class="header" href="#contile-contract-tests">Contile Contract Tests</a></h1>
+<p>The <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract">test-engineering/contract/</a> directory contains the automated contract test suite for the Mozilla Tile Service (MTS).
+Passing contract tests are a prerequisite for deployment. The contract test framework was
+originally developed in isolation, which is now archived. See <a href="https://github.com/mozilla-services/contile-integration-tests">contile-integration-tests</a>.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The contract test suite is designed to be set up as a <code>docker-compose</code> CI workflow. The following
+sections as well as the sequence diagram below describe the individual components of the suite.</p>
+<p><strong>Test Scenario: success_tiles_cached_for_identical_proxy_params</strong>
+<img src="./sequence_diagram.png" alt="Sequence diagram of the integration tests" />
+The sequence diagram was created with <a href="https://miro.com/app/board/uXjVOkw1f-s=/">miro</a></p>
+<h3 id="client"><a class="header" href="#client">client</a></h3>
+<p>The <code>client</code> directory contains a Python-based test framework for the contract tests. The HTTP
+client used in the framework requests tiles from the MTS and performs checks against the responses.
+The framework implements response models for the MTS API.</p>
+<p>For more details see the client <a href="./client.html">documentation</a></p>
+<h3 id="partner"><a class="header" href="#partner">partner</a></h3>
+<p>The <code>partner</code> directory contains a Python-based web service. The HTTP API of this service implements
+the API specification of the partner API that MTS connects to when requesting tiles to pass along to
+Firefox for display.</p>
+<p>When a client sends a request to the MTS, information about the client's form factor and OS family
+are parsed from the <code>User-Agent</code> header. Then, when the MTS sends a request to the partner API the
+form factor and OS family information is included in the query parameters. We use this behavior
+to map requests from a client to specific responses from the partner API. We can control the
+response content, the response status code, the response headers and can also delay the response
+for a period of time, which allows us to effectively test the MTS.</p>
+<p>For more details see the partner <a href="./partner.html">README</a></p>
+<h3 id="volumes"><a class="header" href="#volumes">volumes</a></h3>
+<p>The <code>volumes</code> directory contains subdirectories which will be mounted as volumes into the Docker
+containers used in the contract test suite:</p>
+<ul>
+<li>the <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract/volumes/client">volumes/client</a> directory contains YML files which define every test scenario that the
+contract test suite will run</li>
+<li>the <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract/volumes/contile">volumes/contile</a> directory contains files that need to be provided to a MTS Docker 
+container such as a partner settings file</li>
+<li>the <a href="https://github.com/mozilla-services/contile/tree/main/test-engineering/contract/volumes/partner">volumes/partner</a> directory contains a YML file which defines every response that the API
+returns keyed by form-factor and then os-family</li>
+</ul>
+<h2 id="local-execution"><a class="header" href="#local-execution">Local Execution</a></h2>
+<p>To run the contract tests locally, execute the following from the repository root:</p>
+<p><strong>Build Contile Docker Image</strong></p>
+<pre><code class="language-shell">docker build -t app:build .
+</code></pre>
+<p><strong>Build Contract Test Docker Images &amp; Execute Tests</strong></p>
+<pre><code class="language-shell">docker-compose \
+  -f test-engineering/contract/docker-compose.yml \
+  -p contile-contract-tests \
+  up --abort-on-container-exit --build
+</code></pre>
+<h3 id="import-sorting-linting-style-guide-enforcement--static-type-checking"><a class="header" href="#import-sorting-linting-style-guide-enforcement--static-type-checking">Import Sorting, Linting, Style Guide Enforcement &amp; Static Type Checking</a></h3>
+<p>This project uses <a href="https://python-poetry.org/docs/#installation">Poetry</a> for dependency management. For environment setup, it is recommended to
+use <a href="https://github.com/pyenv/pyenv#installation">pyenv</a> and <a href="https://github.com/pyenv/pyenv-virtualenv#installation">pyenv-virtualenv</a>, as they work nicely with Poetry.</p>
+<p>Project dependencies are listed in the <code>pyproject.toml</code> file.
+To install the dependencies execute:</p>
+<pre><code class="language-shell">poetry install
+</code></pre>
+<p>Contributors to this project are expected to execute the following tools.
+Configurations are set in the <code>pyproject.toml</code> and <code>.flake8</code> files.</p>
+<p><strong><a href="https://pycqa.github.io/isort/">isort</a></strong></p>
+<pre><code class="language-shell">poetry run isort client partner
+</code></pre>
+<p><strong><a href="https://black.readthedocs.io/en/stable/">black</a></strong></p>
+<pre><code class="language-shell">poetry run black client partner
+</code></pre>
+<p><strong><a href="https://flake8.pycqa.org/en/latest/">flake8</a></strong></p>
+<pre><code class="language-shell">poetry run flake8 client partner
+</code></pre>
+<p><strong><a href="https://mypy-lang.org/">mypy</a></strong></p>
+<pre><code class="language-shell">poetry run mypy client partner
+</code></pre>
+<h2 id="debugging"><a class="header" href="#debugging">Debugging</a></h2>
+<p>The contract testing system is optimized to run within a set of related docker images.</p>
+<h3 id="client-1"><a class="header" href="#client-1">client</a></h3>
+<p>See the <code>Debugging</code> section of the client <a href="./client.html">README</a></p>
+<h3 id="contile"><a class="header" href="#contile">Contile</a></h3>
+<p>To run the contile service, and it's dependent partner service locally, execute the following from
+the contract tests root:</p>
+<pre><code class="language-shell">docker-compose run -p 8000:8000 contile
+</code></pre>
+<p>Contile runs, by default, on <code>http://localhost:8000/</code>. However, it may be necessary to run the tests
+outside of docker, in order to debug functions or manually verify expected results.</p>
+<p><strong>Fetching Tiles</strong></p>
+<p>Contile will attempt to look up your IP address if you access it using Firefox. The easiest way to
+get a test response back would be to craft a curl request. For example (presuming that Contile is
+running on <code>http://localhost:8000/v1/tiles</code>):</p>
+<pre><code class="language-sh">curl -v \
+    -H &quot;User-Agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:10.0) Gecko/20100101 Firefox/91.0'&quot; \
+    -H &quot;X-Forwarded-For: '89.160.20.115'&quot; \
+    &quot;http://localhost:8000/v1/tiles&quot;
+</code></pre>
+<h3 id="partner-1"><a class="header" href="#partner-1">partner</a></h3>
+<p>See the <code>Local Execution</code> and <code>Debugging</code> sections of the partner <a href="./partner.html">README</a></p>
+<h2 id="maintenance"><a class="header" href="#maintenance">Maintenance</a></h2>
+<p>The contract test maintenance schedule cadence is once a quarter and should include
+updating the following:</p>
+<ol>
+<li><a href="https://python-poetry.org/docs/#installation">poetry</a> version and python dependencies
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/pyproject.toml">pyproject.toml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/poetry.lock">poetry.lock</a></li>
+</ul>
+</li>
+<li><a href="https://docs.docker.com/">Docker</a> artifacts
+<ul>
+<li><input disabled="" type="checkbox"/>
+client <a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/client/Dockerfile">Dockerfile</a></li>
+<li><input disabled="" type="checkbox"/>
+partner <a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/partner/Dockerfile">Dockerfile</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.yml">docker-compose.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.204.yml">docker-compose.204.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.init_error.yml">docker-compose.init_error.yml</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/test-engineering/contract/docker-compose.tiles_cache.yml">docker-compose.tiles_cache.yml</a></li>
+</ul>
+</li>
+<li><a href="https://circleci.com/docs/">CircleCI</a> contract test jobs
+<ul>
+<li><input disabled="" type="checkbox"/>
+<a href="https://github.com/mozilla-services/contile/blob/main/.circleci/config.yml">config.yml</a></li>
+</ul>
+</li>
+<li>Documentation
+<ul>
+<li><input disabled="" type="checkbox"/>
+contract tests docs <a href="./index.html">index.md</a></li>
+<li><input disabled="" type="checkbox"/>
+client docs <a href="./client.html">client.md</a></li>
+<li><input disabled="" type="checkbox"/>
+partner docs <a href="./partner.html">partner.md</a></li>
+</ul>
+</li>
+</ol>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../testing/integration-tests.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../../testing/contract-tests/client.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../testing/integration-tests.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../../testing/contract-tests/client.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="../../mermaid.min.js"></script>
+        <script src="../../mermaid-init.js"></script>
+
+
+    </body>
+</html>
