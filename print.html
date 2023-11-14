@@ -175,7 +175,69 @@ Contile --&gt; MaxmindDb[(MaxmindDb)]
 ImageStore --&gt; Contile
 Contile &lt;--&gt;|Tiles API| AMP[&quot;adMarketplace (AMP)&quot;]
 </pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="api-documentation"><a class="header" href="#api-documentation">API documentation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="contile-api-specification"><a class="header" href="#contile-api-specification">Contile API Specification</a></h1>
+<p>Firefox Instant Find (Contile) is a service to deliver sponsored tiles to customers on the New Browser Tab page. It's a simple service with one endpoint. It uses the User Agent's IP address (exposed via the <code>X-Forwarded-For</code> header) and some platform information from the <code>User-Agent</code> header.</p>
+<p>Servers</p>
+<div class="table-wrapper"><table><thead><tr><th>environment</th><th>server</th></tr></thead><tbody>
+<tr><td>dev</td><td><a href="https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/">https://contile-dev.topsites.nonprod.cloudops.mozgcp.net/</a></td></tr>
+<tr><td>stage</td><td><a href="https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/">https://contile-stage.topsites.nonprod.cloudops.mozgcp.net/</a></td></tr>
+<tr><td>prod</td><td><a href="https://contile.services.mozilla.com/">https://contile.services.mozilla.com/</a></td></tr>
+</tbody></table>
+</div>
+<h2 id="calls"><a class="header" href="#calls">Calls</a></h2>
+<h3 id="fetch-tiles"><a class="header" href="#fetch-tiles">Fetch Tiles</a></h3>
+<p>Return candidate tiles. The following user information is captured and <a href="https://github.com/mozilla-services/contile/blob/main/src/adm/tiles.rs">shared</a> with our advertising partners:</p>
+<div class="table-wrapper"><table><thead><tr><th>item</th><th>description</th><th>derived from</th><th>normalization method</th></tr></thead><tbody>
+<tr><td>country_code</td><td>Unicode Common Locale Data Repository (CLDR) code for the country (e.g. &quot;US&quot;, &quot;CA&quot;, &quot;GB&quot;, etc.)</td><td>IP address</td><td>resolved from IP address lookup database</td></tr>
+<tr><td>region_code</td><td>CLDR for the major region, if available. (e.g. &quot;VA&quot;, &quot;BC&quot;, &quot;KW&quot;, etc.)</td><td>IP address</td><td>resolved from IP address lookup database</td></tr>
+<tr><td>dma</td><td>US based Designated Market Area (DMA) code for areas above 15K population</td><td>IP address</td><td>a configuration specified list of DMAs to ignore. If a DMA matches that list, it's not reported.</td></tr>
+<tr><td>form_factor</td><td>Device form factor</td><td>UserAgent string</td><td>rough form factor of the user's device normalized to &quot;Desktop&quot;, &quot;Phone&quot;, &quot;Tablet&quot; (Currently, only iPad), and &quot;Other&quot;</td></tr>
+<tr><td>os_family</td><td>User Operating System</td><td>UserAgent string</td><td>rough operating system name normalized to &quot;Windows&quot;, &quot;MacOS&quot;, &quot;Linux&quot;, &quot;IOs&quot;, &quot;Android&quot;, &quot;ChromeOS&quot;, &quot;BlackBerry&quot;, &quot;Other&quot;</td></tr>
+</tbody></table>
+</div>
+<h4 id="call"><a class="header" href="#call">Call</a></h4>
+<pre><code class="language-http">GET /v1/tiles
+</code></pre>
+<h4 id="parameters"><a class="header" href="#parameters">Parameters</a></h4>
+<p>None</p>
+<h4 id="response"><a class="header" href="#response">Response</a></h4>
+<p>Returns a JSON structure containing the tile information. For example:</p>
+<pre><code class="language-json">{&quot;tiles&quot;:[
+    {
+        &quot;id&quot;:74301,
+        &quot;name&quot;:&quot;Amazon&quot;,
+        &quot;url&quot;:&quot;https://...&quot;,
+        &quot;click_url&quot;:&quot;https://...&quot;,
+        &quot;image_url&quot;:&quot;https://...&quot;,
+        &quot;image_size&quot;:200,
+        &quot;impression_url&quot;:&quot;...&quot;,
+    },
+    {
+        &quot;id&quot;:74161,
+        &quot;name&quot;:&quot;eBay&quot;,
+        &quot;url&quot;:&quot;https://...&quot;,
+        &quot;click_url&quot;:&quot;https://...&quot;,
+        &quot;image_url&quot;:&quot;https://...&quot;,
+        &quot;image_size&quot;:200,
+        &quot;impression_url&quot;:&quot;https://...&quot;,
+    }
+]}
+</code></pre>
+<h3 id="docker-flow-endpoints"><a class="header" href="#docker-flow-endpoints">Docker Flow endpoints</a></h3>
+<p>As with most Mozilla Services, Contile supports Dockerflow endpoints</p>
+<pre><code class="language-http">GET /___heartbeat__
+</code></pre>
+<p>return if the service is operational</p>
+<pre><code class="language-http">GET /__lbheartbeat__
+</code></pre>
+<p>return if the service is available for load balancers</p>
+<pre><code class="language-http">GET /__version__
+</code></pre>
+<p>get installed version information</p>
+<p>In addition, the following extended Dockerflow endpoints are enabled:</p>
+<pre><code class="language-http">GET /__error__
+</code></pre>
+<p>Force an error, used to test Sentry reporting. This has an optional parameter of <code>with_location=true</code> which will include detected IP location information in the Sentry error message.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
 <p>This system uses <a href="https://actix.rs/">Actix</a> web, and Google Cloud APIs (currently vendored).</p>
 <h2 id="development-guidelines"><a class="header" href="#development-guidelines">Development Guidelines</a></h2>
