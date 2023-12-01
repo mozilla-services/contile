@@ -135,11 +135,11 @@ impl From<&mut Settings> for HandlerResult<SOVManager> {
         // Try with the remote source first.
         if settings.sov_source.starts_with("gs://") {
             let Ok(source_url) = settings.sov_source.parse::<url::Url>() else {
-                return Err(
-                    HandlerErrorKind::Internal(
-                        format!("Unable to parse SOV URL '{}'", &settings.sov_source)
-                    ).into()
-                );
+                return Err(HandlerErrorKind::Internal(format!(
+                    "Unable to parse SOV URL '{}'",
+                    &settings.sov_source
+                ))
+                .into());
             };
 
             return Ok(SOVManager {
@@ -152,28 +152,28 @@ impl From<&mut Settings> for HandlerResult<SOVManager> {
 
         // Then check if it's a local settings file or an inline settings string.
         let sov = if Path::new(&settings.sov_source).exists() {
-            let Ok(sov) =
-                read_to_string(&settings.sov_source)
-                    .map_err(|_| Err::<String, &str>("Unable to read SOV settings file"))
-                    .and_then(|content| {
-                        serde_json::from_str::<SOVResponse>(&content)
-                            .map_err(|_| Err("Unable to load SOV settings from JSON"))
-                    }) else {
-                        return Err(
-                            HandlerErrorKind::Internal(
-                                format!("Unable to parse SOV settings from file '{}'", settings.sov_source)
-                            ).into()
-                        );
-                    };
+            let Ok(sov) = read_to_string(&settings.sov_source)
+                .map_err(|_| Err::<String, &str>("Unable to read SOV settings file"))
+                .and_then(|content| {
+                    serde_json::from_str::<SOVResponse>(&content)
+                        .map_err(|_| Err("Unable to load SOV settings from JSON"))
+                })
+            else {
+                return Err(HandlerErrorKind::Internal(format!(
+                    "Unable to parse SOV settings from file '{}'",
+                    settings.sov_source
+                ))
+                .into());
+            };
             sov
         } else {
             // Presume it's an inline SOV settings string.
             let Ok(sov) = serde_json::from_str::<SOVResponse>(&settings.sov_source) else {
-                return Err(
-                    HandlerErrorKind::Internal(
-                        format!("Could not parse SOV settings inline: {:?}", &settings.sov_source)
-                    ).into()
-                );
+                return Err(HandlerErrorKind::Internal(format!(
+                    "Could not parse SOV settings inline: {:?}",
+                    &settings.sov_source
+                ))
+                .into());
             };
             sov
         };

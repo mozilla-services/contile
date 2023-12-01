@@ -11,7 +11,7 @@ parameters:
   rust-version:
     type: string
     # NOTE: Ensure this Rust version matches the builder's in ../Dockerfile
-    default: "1.68"
+    default: "1.74"
 
 commands:
   dockerhub-login:
@@ -123,13 +123,21 @@ jobs:
       - setup-rust
       - cargo-build
       - run:
+          # Run tests once with stable Rust, as JSON/JUNIT output requires
+          # breaking stability guarantees with RUSTC_BOOTSTRAP (see below)
+          name: Run tests
+          command: cargo test
+      - run:
           name: Install cargo2junit
           command: cargo install cargo2junit --locked
       - run:
           name: Install cargo-llvm-cov
           command: cargo install cargo-llvm-cov
       - run:
-          name: Run and report tests and coverage (Minimum 67%)
+          name: Report tests and coverage (Minimum 67%)
+          environment:
+            # https://github.com/johnterickson/cargo2junit/issues/79
+            RUSTC_BOOTSTRAP: 1
           command: |
             cargo llvm-cov --no-report test -- -Z unstable-options --format json --report-time | cargo2junit > results.xml
             cargo llvm-cov report --fail-under-lines 67 --html
@@ -435,7 +443,7 @@ workflows:
       - docker-image-publish:
           <<: *main-filters
           requires:
-            - docker-image-publish-locust     
+            - docker-image-publish-locust
       - docs-build:
           <<: *main-filters
       - docs-publish-github-pages:

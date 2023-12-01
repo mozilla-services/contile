@@ -17,12 +17,6 @@ use crate::{error::HandlerError, server::ServerState, settings::Settings, tags::
 
 pub struct SentryWrapper;
 
-impl SentryWrapper {
-    pub fn new() -> Self {
-        SentryWrapper::default()
-    }
-}
-
 impl Default for SentryWrapper {
     fn default() -> Self {
         Self

@@ -1,5 +1,5 @@
 # !!!NOTE!!!: Ensure Rust version matches CI's in .circleci/config.yml
-FROM lukemathwalker/cargo-chef:latest-rust-1.68-bullseye AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.74-bookworm AS chef
 WORKDIR /app
 
 FROM chef AS planner
@@ -19,7 +19,7 @@ COPY . .
 ARG VERSION=unset
 RUN CONTILE_VERSION=${VERSION} cargo build --release
 
-FROM debian:bullseye-slim AS runtime
+FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 
 RUN \
