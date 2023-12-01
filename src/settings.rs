@@ -89,10 +89,6 @@ pub struct Settings {
     pub connect_timeout: u64,
     /// default total request timeout (in seconds)
     pub request_timeout: u64,
-    /// Whether excluded countries recieve empty tile responses via an HTTP 200
-    /// status code or 204s when disabled. See
-    /// https://github.com/mozilla-services/contile/issues/284
-    pub excluded_countries_200: bool,
     /// Whether Tiles responses may include a `Cache-Control` header
     pub cache_control_header: bool,
 
@@ -169,7 +165,6 @@ impl Default for Settings {
             exclude_dma: Some("[798, 583, 740]".to_owned()),
             connect_timeout: 2,
             request_timeout: 5,
-            excluded_countries_200: false,
             cache_control_header: true,
             // ADM specific settings
             adm_endpoint_url: "".to_owned(),
