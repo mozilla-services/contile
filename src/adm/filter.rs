@@ -55,7 +55,6 @@ pub struct AdmFilter {
     pub last_updated: Option<chrono::DateTime<chrono::Utc>>,
     pub refresh_rate: Duration,
     pub defaults: AdmDefaults,
-    pub excluded_countries_200: bool,
 }
 
 /// Parse &str into a `Url`

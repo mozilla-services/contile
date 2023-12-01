@@ -12,7 +12,7 @@ use actix_web::{
 use cadence::StatsdClient;
 use dashmap::DashMap;
 
-use crate::web::handlers::{TilesHandlerResponse, EMPTY_TILES};
+use crate::web::handlers::TilesHandlerResponse;
 use crate::{
     error::HandlerError,
     metrics::Metrics,
@@ -186,8 +186,6 @@ pub struct Tiles {
     /// upstream service outages). `fallback_expiry` is when we stop serving
     /// this stale Tiles completely
     fallback_expiry: SystemTime,
-    /// Return OK instead of NoContent
-    always_ok: bool,
 }
 
 impl Tiles {
@@ -195,9 +193,8 @@ impl Tiles {
         tiles_handler_response: TilesHandlerResponse,
         ttl: Duration,
         fallback_ttl: Duration,
-        always_ok: bool,
     ) -> Result<Self, HandlerError> {
-        let empty = Self::empty(ttl, fallback_ttl, always_ok);
+        let empty = Self::empty(ttl, fallback_ttl);
         if tiles_handler_response.tile_response.tiles.is_empty() {
             return Ok(empty);
         }
@@ -209,12 +206,11 @@ impl Tiles {
         })
     }
 
-    pub fn empty(ttl: Duration, fallback_ttl: Duration, always_ok: bool) -> Self {
+    pub fn empty(ttl: Duration, fallback_ttl: Duration) -> Self {
         Self {
             content: TilesContent::Empty,
             expiry: SystemTime::now() + ttl,
             fallback_expiry: SystemTime::now() + fallback_ttl,
-            always_ok,
         }
     }
 
@@ -238,21 +234,11 @@ impl Tiles {
                     .body(json.to_owned())
             }
             TilesContent::Empty => {
-                let mut builder = if self.always_ok {
-                    HttpResponse::Ok()
-                } else {
-                    HttpResponse::NoContent()
-                };
+                let mut builder = HttpResponse::NoContent();
                 if cache_control_header {
                     builder.insert_header(self.cache_control_header());
                 }
-                if self.always_ok {
-                    builder
-                        .content_type("application/json")
-                        .body(EMPTY_TILES.as_str())
-                } else {
-                    builder.finish()
-                }
+                builder.finish()
             }
         }
     }
@@ -359,7 +345,7 @@ mod test_tiles_state {
     #[test]
     fn test_size_fresh() {
         let tiles_state = TilesState::Fresh {
-            tiles: Tiles::empty(Duration::from_secs(60), Duration::from_secs(60), true),
+            tiles: Tiles::empty(Duration::from_secs(60), Duration::from_secs(60)),
         };
         assert_eq!(tiles_state.size(), 0);
     }
@@ -367,7 +353,7 @@ mod test_tiles_state {
     #[test]
     fn test_size_refreshing() {
         let tiles_state = TilesState::Refreshing {
-            tiles: Tiles::empty(Duration::from_secs(60), Duration::from_secs(60), true),
+            tiles: Tiles::empty(Duration::from_secs(60), Duration::from_secs(60)),
         };
         assert_eq!(tiles_state.size(), 0);
     }

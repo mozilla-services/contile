@@ -1,7 +1,6 @@
 //! API Handlers
 use actix_web::{web, HttpRequest, HttpResponse};
 use actix_web_location::Location;
-use lazy_static::lazy_static;
 use serde::Serialize;
 
 use crate::{
@@ -16,14 +15,6 @@ use crate::{
     tags::Tags,
     web::{middleware::sentry as l_sentry, DeviceInfo, FormFactor},
 };
-
-lazy_static! {
-    pub static ref EMPTY_TILES: String = serde_json::to_string(&TilesHandlerResponse {
-        tile_response: adm::TileResponse { tiles: vec![] },
-        sov_response: None
-    })
-    .expect("Couldn't serialize EMPTY_TILES");
-}
 
 #[derive(Serialize, Debug)]
 pub struct TilesHandlerResponse {
@@ -149,7 +140,6 @@ pub async fn get_tiles(
                 },
                 settings.tiles_ttl_with_jitter(),
                 settings.tiles_fallback_ttl_with_jitter(),
-                settings.excluded_countries_200,
             )?;
             trace!(
                 "get_tiles: cache miss{}: {:?}",
@@ -178,7 +168,6 @@ pub async fn get_tiles(
                     tiles: Tiles::empty(
                         settings.tiles_ttl_with_jitter(),
                         settings.tiles_fallback_ttl_with_jitter(),
-                        settings.excluded_countries_200,
                     ),
                 });
                 // Report the error directly to sentry
@@ -242,16 +231,8 @@ async fn maybe_early_respond(
         .contains(&location.country())
     {
         trace!("get_tiles: country not included: {:?}", location.country());
-        // Nothing to serve. We typically send a 204 for empty tiles but
-        // optionally send 200 to resolve
-        // https://github.com/mozilla-services/contile/issues/284
-        let response = if state.settings.excluded_countries_200 {
-            HttpResponse::Ok()
-                .content_type("application/json")
-                .body(EMPTY_TILES.as_str())
-        } else {
-            HttpResponse::NoContent().finish()
-        };
+        // Nothing to serve.
+        let response = HttpResponse::NoContent().finish();
         return Some(response);
     }
 
