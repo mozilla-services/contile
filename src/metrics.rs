@@ -118,7 +118,7 @@ impl Metrics {
     /// Duration is calculated when this timer is dropped.
     pub fn start_timer(&mut self, label: &str, tags: Option<Tags>) {
         let mut mtags = self.tags.clone().unwrap_or_default();
-        Extend::extend(&mut mtags, tags.into_iter());
+        Extend::extend(&mut mtags, tags);
 
         trace!("⌚ Starting timer... {:?}", &label; &mtags);
         self.timer = Some(MetricTimer {
@@ -138,7 +138,7 @@ impl Metrics {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.incr_with_tags(label);
             let mut mtags = self.tags.clone().unwrap_or_default();
-            Extend::extend(&mut mtags, tags.into_iter());
+            Extend::extend(&mut mtags, tags);
 
             for (key, val) in mtags.tags.iter() {
                 tagged = tagged.with_tag(key, val);
@@ -165,7 +165,7 @@ impl Metrics {
         if let Some(client) = self.client.as_ref() {
             let mut tagged = client.count_with_tags(label, count);
             let mut mtags = self.tags.clone().unwrap_or_default();
-            Extend::extend(&mut mtags, tags.into_iter());
+            Extend::extend(&mut mtags, tags);
 
             for (key, val) in mtags.tags.iter() {
                 tagged = tagged.with_tag(key, val);

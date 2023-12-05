@@ -319,14 +319,14 @@ mod test_tile_cache {
 
         let count_metrics = metrics
             .iter()
-            .cloned()
-            .filter(|m| m.starts_with("test.tiles_cache.count"));
+            .filter(|m| m.starts_with("test.tiles_cache.count"))
+            .cloned();
         assert!(count_metrics.count() > 0);
 
         let size_metrics = metrics
             .iter()
-            .cloned()
-            .filter(|m| m.starts_with("test.tiles_cache.size"));
+            .filter(|m| m.starts_with("test.tiles_cache.size"))
+            .cloned();
         assert!(size_metrics.count() > 0);
     }
 }

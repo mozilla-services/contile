@@ -149,9 +149,9 @@ impl Default for Settings {
             statsd_host: None,
             statsd_port: 8125,
             actix_keep_alive: None,
-            /// 15 minutes
+            // 15 minutes
             tiles_ttl: 15 * 60,
-            /// 3 hours
+            // 3 hours
             tiles_fallback_ttl: 3 * 60 * 60,
             maxminddb_loc: None,
             storage: "".to_owned(),
