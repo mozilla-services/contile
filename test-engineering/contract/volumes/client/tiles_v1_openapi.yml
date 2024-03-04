@@ -1,0 +1,81 @@
+openapi: 3.0.0
+security: []
+servers:
+  - url: https://contile.services.mozilla.com
+info:
+  description: 'APIs to interact with tiles ("tiles") for Firefox, while preserving privacy.'
+  version: '2.1'
+  title: Firefox Tiles
+paths:
+  /v1/tiles:
+    get:
+      summary: Get tiles
+      responses:
+        '200':
+          description: Get a list of tiles based on region. The IP address is used to deduce a rough geographic region, for example "Texas" in the U.S. or "England" in the U.K.
+          headers:
+            cache-control:
+              schema:
+                type: string
+              description: indicates tiles valid duration.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tile'
+                  sov:
+                    type: string
+                    description: SoV configuration
+                    example: kdfsi90wfglmnds
+        '204':
+          description: No tiles available
+        '403':
+          description: Tiles service is for firefox only
+
+components:
+  schemas:
+    Tile:
+      type: object
+      description: tile format
+      required:
+        [id, name, url, click_url, image_url, image_size, impression_url]
+      additionalProperties: false
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 1234
+          description: Partner specific id for ad
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+          example: Example COM
+          description: Advertiser name
+        url:
+          type: string
+          example: https://www.example.com/desktop_macos
+          description: Advertiser URL
+        click_url:
+          type: string
+          example: https://example.com/desktop_macos?version=16.0.0&key=22.1&ci=6.2&ctag=1612376952400200000
+          description: Click counting URL
+        image_url:
+          type: string
+          example: https://example.com/desktop_macos01.jpg
+          description: Ad image
+        image_size:
+          type: integer
+          nullable: true
+          format: int32
+          example: 200
+          description: Image size
+        impression_url:
+          type: string
+          example: https://example.com/desktop_macos?id=0001
+          description: Impression counting URL

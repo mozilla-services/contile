@@ -92,6 +92,7 @@ services:
       CONTILE_URL: http://contile:8000
       PARTNER_URL: http://partner:5000
       SCENARIOS_FILE: /tmp/client/scenarios.yml
+      OPENAPI_FILE: /tmp/client/tiles_v1_openapi.yml
     volumes:
       - ./volumes/client:/tmp/client
       - ./${TEST_RESULTS_DIR:-test-results}:/tmp/test-results
