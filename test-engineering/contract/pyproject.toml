@@ -37,7 +37,7 @@ pyyaml = "^6.0.1"
 requests = "^2.31.0"
 types-pyyaml = "^6.0.12.10"
 types-requests = "^2.31.0.1"
-schemathesis = "^3.25.5"
+schemathesis = "^3.25.6"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"

@@ -4,11 +4,12 @@ servers:
   - url: https://contile.services.mozilla.com
 info:
   description: 'APIs to interact with tiles ("tiles") for Firefox, while preserving privacy.'
-  version: '2.1'
+  version: '1.0'
   title: Firefox Tiles
 paths:
   /v1/tiles:
     get:
+      operationId: getTiles
       summary: Get tiles
       responses:
         '200':

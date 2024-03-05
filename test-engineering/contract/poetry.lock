@@ -412,13 +412,13 @@ socks = ["socksio (==1.*)"]
 
 [[package]]
 name = "hypothesis"
-version = "6.98.15"
+version = "6.98.17"
 description = "A library for property-based testing"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "hypothesis-6.98.15-py3-none-any.whl", hash = "sha256:5b40fd81fce9e0b35f0a47e10eb41f375a6b9e8551d0e1084c83b8b0d0d1bb6b"},
-    {file = "hypothesis-6.98.15.tar.gz", hash = "sha256:1e31210951511b24ce8b3b6e04d791c466385a30ac3af571bf2223954b025d77"},
+    {file = "hypothesis-6.98.17-py3-none-any.whl", hash = "sha256:313f64b9f9f95e12c8b5342466bef7f352d2608afeeb434817c039602b45f0c4"},
+    {file = "hypothesis-6.98.17.tar.gz", hash = "sha256:bbd227000cc21a9686a00867f031479c3812d8ab076e4af1c813f6b3a50c98f5"},
 ]
 
 [package.dependencies]
@@ -1250,13 +1250,13 @@ files = [
 
 [[package]]
 name = "schemathesis"
-version = "3.25.5"
+version = "3.25.6"
 description = "Property-based testing framework for Open API and GraphQL based apps"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "schemathesis-3.25.5-py3-none-any.whl", hash = "sha256:124ea082756acf4bda2258a90bfd0efd8ac436fa4428d4dbc2ddaa53275698ac"},
-    {file = "schemathesis-3.25.5.tar.gz", hash = "sha256:dc9e19129736c05d9a75bf8b3db2224fe50c81edc0ca3a14a5f0deb80f07c4ec"},
+    {file = "schemathesis-3.25.6-py3-none-any.whl", hash = "sha256:64738ecb8c8b5abc82a991a9b537daadcb81aefcf06105cf10fd7d26a0b98303"},
+    {file = "schemathesis-3.25.6.tar.gz", hash = "sha256:9d2e24c4d105af7c147565acff3ebddbf79500bd8afabe915c231b7e319d1e66"},
 ]
 
 [package.dependencies]
@@ -1805,4 +1805,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "a0c75434ed6cb9095d5ac8217d932eef8637ef1c74cd9e4a01718322d4a7f41b"
+content-hash = "e21c798840e43cb712c191357adb321a0ebab873f5dff3376134b621ec80173c"
