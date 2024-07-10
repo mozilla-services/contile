@@ -349,12 +349,12 @@ async fn basic_old_ua() {
 
 #[actix_web::test]
 async fn basic_bad_reply() {
-    let missing_ci = r#"{
+    let bad_click_host = r#"{
         "tiles": [
             {
                 "id": 601,
                 "name": "Acme",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ctag=1612376952400200000",
+                "click_url": "https://evil.com/ctp?version=16.0.0&key=22.1&ctag=1612376952400200000",
                 "image_url": "https://cdn.example.com/601.jpg",
                 "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
                 "impression_url": "https://example.net/static?id=0000"
@@ -368,7 +368,7 @@ async fn basic_bad_reply() {
                 "impression_url": "https://example.net/static?id=DEADB33F"
             }
         ]}"#;
-    let adm = init_mock_adm(missing_ci.to_owned());
+    let adm = init_mock_adm(bad_click_host.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
         adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),
@@ -401,12 +401,12 @@ async fn basic_bad_reply() {
 
 #[actix_web::test]
 async fn basic_all_bad_reply() {
-    let missing_ci = r#"{
+    let bad_click_host = r#"{
         "tiles": [
             {
                 "id": 601,
                 "name": "Acme",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=22.1&ctag=1612376952400200000",
+                "click_url": "https://evil.com/ctp?version=16.0.0&key=22.1&ctag=1612376952400200000",
                 "image_url": "https://cdn.example.com/601.jpg",
                 "advertiser_url": "https://www.acme.biz/?foo=1&device=Computers&cmpgn=123601",
                 "impression_url": "https://example.net/static?id=0000"
@@ -414,13 +414,13 @@ async fn basic_all_bad_reply() {
             {
                 "id": 703,
                 "name": "Dunder Mifflin",
-                "click_url": "https://example.com/ctp?version=16.0.0&key=7.2&ci=8.9",
+                "click_url": "https://evil.com/ctp?version=16.0.0&key=7.2&ci=8.9",
                 "image_url": "https://cdn.example.com/703.jpg",
                 "advertiser_url": "https://www.dunderm.biz/?tag=bar&ref=baz",
                 "impression_url": "https://example.net/static?id=DEADB33F"
             }
         ]}"#;
-    let adm = init_mock_adm(missing_ci.to_owned());
+    let adm = init_mock_adm(bad_click_host.to_owned());
     let mut settings = Settings {
         adm_endpoint_url: adm.endpoint_url,
         adm_settings: AdmFilter::advertisers_to_string(advertiser_filters()),

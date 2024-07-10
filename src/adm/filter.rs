@@ -1,6 +1,4 @@
-use std::{
-    borrow::Cow, collections::HashSet, fmt::Debug, iter::FromIterator, sync::Arc, time::Duration,
-};
+use std::{borrow::Cow, collections::HashSet, fmt::Debug, sync::Arc, time::Duration};
 
 use actix_web::{http::Uri, rt};
 use actix_web_location::Location;
@@ -23,13 +21,6 @@ use crate::{
 };
 
 lazy_static! {
-    static ref REQ_CLICK_PARAMS: Vec<&'static str> = vec!["ci", "ctag", "key", "version"];
-    static ref ALL_CLICK_PARAMS: HashSet<&'static str> = {
-        let opt_click_params = vec!["click-status"];
-        let mut all = HashSet::from_iter(REQ_CLICK_PARAMS.clone());
-        all.extend(opt_click_params);
-        all
-    };
     static ref DEFAULT_PATH_FILTER: Vec<PathFilter> = vec![PathFilter::default()];
 }
 
@@ -283,10 +274,6 @@ impl AdmFilter {
 
         let parsed = parse_url(url, species, &tile.name, tags)?;
         let host = get_host(&parsed, species)?;
-        let query_keys = parsed
-            .query_pairs()
-            .map(|p| p.0.to_string())
-            .collect::<HashSet<String>>();
         // run the gauntlet of checks.
 
         if !check_url(parsed, "Click", &defaults.click_hosts)? {
@@ -299,30 +286,6 @@ impl AdmFilter {
             return Err(HandlerErrorKind::InvalidHost(species, host).into());
         }
 
-        for key in &*REQ_CLICK_PARAMS {
-            if !query_keys.contains(*key) {
-                trace!("missing param: key={:?} url={:?}", &key, url);
-                tags.add_tag("type", species);
-                tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", url);
-
-                tags.add_extra("reason", "missing required query param");
-                tags.add_extra("param", key);
-                return Err(HandlerErrorKind::InvalidHost(species, host).into());
-            }
-        }
-        for key in query_keys {
-            if !ALL_CLICK_PARAMS.contains(key.as_str()) {
-                trace!("invalid param key={:?} url={:?}", &key, url);
-                tags.add_tag("type", species);
-                tags.add_extra("tile", &tile.name);
-                tags.add_extra("url", url);
-
-                tags.add_extra("reason", "invalid query param");
-                tags.add_extra("param", &key);
-                return Err(HandlerErrorKind::InvalidHost(species, host).into());
-            }
-        }
         Ok(())
     }
 
